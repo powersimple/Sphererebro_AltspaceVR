@@ -46,7 +46,8 @@ Machine-specific notes go in `CLAUDE.local.md` (gitignored). Read `CHANGELOG.md`
 - Recliners: 33 at r 5.4 (y 0) + 35 at r 7.1 (y 0.5 riser), each over 330 deg, carve-out 30 deg at 6 o'clock.
 
 ## Ben's standing rules (carried from the Polys project; all still apply)
-1. **Ask before:** build/upload, commit/push, saving a scene Ben has open, joining live worlds or acting as his account.
+1. **Ben does every commit and push himself** (all projects on his account): Claude never commits or pushes; it prepares
+   the work and suggests a message. **Ask before:** build/upload, saving a scene Ben has open, joining live worlds or acting as his account.
 2. **Do not delete things**; deactivate or move (temp files Claude made are fine to remove).
 3. **Optimise for Quest:** low poly, quality textures; textures max 2048 on Android (ASTC), unlit/baked where possible.
    Forward rendering: at most 4 extra real-time lights per object; only the main directional casts shadows.
