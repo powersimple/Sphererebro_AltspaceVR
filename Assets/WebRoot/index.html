@@ -1,0 +1,177 @@
+﻿<html world-asset>
+<head>
+  <meta charset="utf-8">
+  <title>Space</title>
+  <!-- black from the first frame: the screen shows this page before the player exists -->
+  <style>html,body{background:#000}</style>
+</head>
+<body>
+  <!--
+    Video screen player. The world's video screen (a BS Browser) loads this same page as
+      index.html?v=<YouTube id>&t=<start seconds>&m=<1 muted | 0 sound>&l=<1 loop>[&p=<playlist id>][&r=<player px>][&debug=1]
+    (with r, the player is laid out r pixels wide and scaled up to fill the screen, so YouTube streams and decodes a
+    smaller video: the muted copies of the big screen)
+    (with p, the video plays as part of that playlist and the playlist carries on after it: the DJ sets)
+    or ?v=sc<SoundCloud track id> for a SoundCloud mix, played in SoundCloud's own embed player (cover art, waveform)
+    and driven the same way: it reports its time once a second and takes the same seek / pause / play messages.
+    because YouTube shows "Error 153 (video player configuration error)" when an embed is opened as the top-level page
+    with no referrer. Wrapped in the IFrame API from a real https page, the embed gets a referrer and an origin.
+    With no ?v= this script does nothing, so the world itself is unaffected. Open
+    https://<this-world>.worldspace.host/index.html?v=GpLZe8XO3MA&debug=1 in any browser to test it (status line at the top).
+  -->
+  <script>
+  (function () {
+    var q = new URLSearchParams(location.search);
+    var id = q.get('v');
+    if (!id) return;
+    // The screen showed the video cropped at the right and bottom: the page's window was bigger than the panel it is
+    // drawn on. So the player is sized to the panel's page size (?w=&h=, default 1280 x 720) whenever the window claims
+    // more, kept 16:9 and centred, instead of filling 100vw x 100vh.
+    var pw = Number(q.get('w')) || 1920, ph = Number(q.get('h')) || 1080;
+    var rw = Number(q.get('r')) || 0;   // the player's own width before scaling up (0: no scaling)
+    var st = document.createElement('style');
+    st.textContent = 'html,body{margin:0;height:100%;background:#000;overflow:hidden}' +
+      // The player stays invisible (the page is black) until the video is actually playing: before that YouTube shows a
+      // big grey play button over the thumbnail, and at the end its suggestions.
+      '#p{position:absolute;left:0;top:0;display:block;border:0;opacity:0;transition:opacity .4s}#p.on{opacity:1}' +
+      '#msg{position:fixed;left:0;right:0;top:0;color:#fc6;font:16px sans-serif;padding:6px;background:#000a;z-index:9}';
+    document.head.appendChild(st);
+    var p = document.createElement('div'); p.id = 'p'; document.body.appendChild(p);
+    var msg = document.createElement('div'); msg.id = 'msg'; msg.style.display = q.get('debug') ? 'block' : 'none';
+    document.body.appendChild(msg);
+    function say(t, always) {
+      msg.textContent = t; if (always) msg.style.display = 'block';
+      console.log('[player] ' + t);
+    }
+    function fit() {
+      var el = document.getElementById('p');
+      // the panel holds pw x ph device pixels; at a zoom (devicePixelRatio > 1) that is fewer CSS pixels
+      var dpr = devicePixelRatio || 1;
+      var vw = Math.min(innerWidth, pw / dpr), vh = Math.min(innerHeight, ph / dpr);
+      var w = Math.min(vw, vh * 16 / 9), h = w * 9 / 16;
+      // YouTube picks the stream by the player's laid-out size, which a CSS scale doesn't change
+      var lw = rw && rw < w ? rw : w, k = w / lw;
+      el.style.width = lw + 'px'; el.style.height = lw * 9 / 16 + 'px';
+      el.style.transformOrigin = '0 0'; el.style.transform = k === 1 ? '' : 'scale(' + k + ')';
+      el.style.left = (vw - w) / 2 + 'px'; el.style.top = (vh - h) / 2 + 'px';
+      say('window ' + innerWidth + 'x' + innerHeight + ' dpr ' + devicePixelRatio + ', player ' + Math.round(w) + 'x' + Math.round(h));
+    }
+    addEventListener('resize', fit);
+    fit();
+    // Tell the space where the video is (the console's timeline), about once a second: { from, event: "time", t, d, s }.
+    function toSpace(m) { if (window.O && typeof window.O.sendMessage === 'function') window.O.sendMessage('app', JSON.stringify(m)); }
+    var player = null;
+    // the sound: on or off (?m=, then { mute }) and the level when on (?a= 0..100, then { volume: 0..1 }), changed in
+    // place so the video never reloads for them
+    var sound = q.get('m') === '0';
+    var level = q.get('a') !== null ? Math.max(0, Math.min(100, Number(q.get('a')) || 0)) : 100;
+    function applySound() {
+      if (!player) return;
+      if (player.sc) { player.setVolume(sound ? level : 0); return; }
+      if (sound) { player.unMute(); player.setVolume(level); } else player.mute();
+    }
+    setInterval(function () {
+      if (!player || !player.getCurrentTime) return;
+      toSpace({ from: 'polysplayer', event: 'time', id: id, t: player.getCurrentTime() || 0, d: player.getDuration() || 0, s: player.getPlayerState() });
+    }, 1000);
+    // The space can seek or pause without reloading the page: { seek: seconds } / { pause: true } / { play: true }.
+    // { mute: true | false } and { volume: 0..1 } change the sound in place, for this headset only.
+    addEventListener('bsmessage', function (e) {
+      var m = {}; try { m = JSON.parse(e.detail.message); } catch (err) { return; }
+      if (typeof m.mute === 'boolean') sound = !m.mute;
+      if (typeof m.volume === 'number') level = Math.round(100 * Math.max(0, Math.min(1, m.volume)));
+      if (!player) return;
+      if (typeof m.seek === 'number') player.seekTo(m.seek, true);
+      if (m.pause) player.pauseVideo();
+      if (m.play) player.playVideo();
+      if (typeof m.mute === 'boolean' || typeof m.volume === 'number') applySound();
+    });
+    var loop = q.get('l') === '1';
+    // ?v=sc<track id>: a SoundCloud track, in SoundCloud's own embed player (cover art and waveform), driven through its
+    // Widget API. It answers to the same time reports and { seek, pause, play } messages as the YouTube player.
+    var sc = /^sc(\d+)$/.exec(id);
+    if (sc) {
+      var frame = document.createElement('iframe');
+      frame.id = 'p'; frame.allow = 'autoplay'; frame.setAttribute('frameborder', '0');
+      frame.src = 'https://w.soundcloud.com/player/?url=' + encodeURIComponent('https://api.soundcloud.com/tracks/' + sc[1]) +
+        '&auto_play=true&visual=true&hide_related=true&show_comments=false&show_reposts=false&show_teaser=false&buying=false&sharing=false&download=false';
+      document.body.replaceChild(frame, document.getElementById('p'));
+      fit();
+      var pos = 0, dur = 0, stateNow = -1;
+      var api = document.createElement('script'); api.src = 'https://w.soundcloud.com/player/api.js';
+      api.onerror = function () { say('Could not load the SoundCloud player script', true); };
+      api.onload = function () {
+        var w = SC.Widget(frame), E = SC.Widget.Events;
+        function setState(s) { if (s === stateNow) return; stateNow = s; say('state ' + s); frame.classList.toggle('on', s === 1 || s === 2); }
+        w.bind(E.READY, function () {
+          w.getDuration(function (ms) { dur = (ms || 0) / 1000; });
+          w.setVolume(sound ? level : 0);
+          var t = Number(q.get('t')) || 0;
+          if (t > 0) w.seekTo(t * 1000);
+          w.play();
+          player = {   // the YouTube player's calls, for the time reports and the space's messages above
+            sc: true,
+            getCurrentTime: function () { return pos; },
+            getDuration: function () { return dur; },
+            getPlayerState: function () { return stateNow; },
+            seekTo: function (s) { pos = s; w.seekTo(s * 1000); },
+            pauseVideo: function () { w.pause(); },
+            playVideo: function () { w.play(); },
+            setVolume: function (v) { w.setVolume(v); }
+          };
+        });
+        w.bind(E.PLAY_PROGRESS, function (e) { pos = (e.currentPosition || 0) / 1000; if (stateNow !== 1) setState(1); });
+        w.bind(E.PLAY, function () { setState(1); });
+        w.bind(E.PAUSE, function () { setState(2); });
+        w.bind(E.FINISH, function () { if (loop) { w.seekTo(0); w.play(); } else setState(0); });
+        w.bind(E.ERROR, function () { say('SoundCloud could not play this track', true); toSpace({ from: 'polysplayer', event: 'error', id: id, code: 'soundcloud' }); });
+      };
+      document.head.appendChild(api);
+      return;
+    }
+    window.onYouTubeIframeAPIReady = function () {
+      // vq asks for 1080p; the player's size (the page is 1920 x 1080) is what YouTube really goes by
+      var hd = !rw;
+      var vars = { autoplay: 1, mute: sound ? 0 : 1, start: Number(q.get('t')) || 0, rel: 0, playsinline: 1, origin: location.origin };
+      if (hd) vars.vq = 'hd1080';
+      if (loop) { vars.loop = 1; vars.playlist = id; }
+      if (q.get('p')) { vars.listType = 'playlist'; vars.list = q.get('p'); }
+      player = new YT.Player('p', {
+        videoId: id, width: '100%', height: '100%', playerVars: vars,
+        events: {
+          onReady: function (e) {
+            fit();
+            if (hd && e.target.setPlaybackQuality) e.target.setPlaybackQuality('hd1080');
+            // YouTube keeps the last volume and mute in this browser's storage, so a screen left turned down (the
+            // elevator's ride music) or muted would stay that way on the next video: set them every time
+            applySound();
+            e.target.playVideo();
+            // a browser that won't autoplay with sound leaves the video stopped: play it muted rather than not at all
+            if (sound) setTimeout(function () {
+              var s = e.target.getPlayerState();
+              if (s !== 1 && s !== 3 && s !== 2) { say('autoplay with sound refused: playing muted', true); sound = false; applySound(); e.target.playVideo(); }
+            }, 4000);
+          },
+          // 1 playing, 2 paused (keep the frame), 3 buffering (keep what is there); hidden while unstarted (-1),
+          // cued (5) and ended (0)
+          onStateChange: function (e) {
+            say('state ' + e.data);
+            var el = document.getElementById('p');
+            if (e.data === 1) el.classList.add('on');
+            else if (e.data === -1 || e.data === 0 || e.data === 5) el.classList.remove('on');
+          },
+          // and the space is told, so the console can move on to the next video: { from, event: "error", id, code }
+          onError: function (e) { say('Video unavailable (YouTube error ' + e.data + ')', true); toSpace({ from: 'polysplayer', event: 'error', id: id, code: e.data }); }
+        }
+      });
+    };
+    var s = document.createElement('script'); s.src = 'https://www.youtube.com/iframe_api';
+    s.onerror = function () { say('Could not load the YouTube player script', true); };
+    document.head.appendChild(s);
+  })();
+  </script>
+  <!-- the world script, for the world page only: the screens load this same page as their player (?v=), which needs none
+       of it. Written in place, so it still runs before the SDK's bs-loaded, as a plain script tag would. -->
+  <script>if (!new URLSearchParams(location.search).get('v')) document.write('<script src="script.js"><' + '/script>');</script>
+</body>
+</html>
