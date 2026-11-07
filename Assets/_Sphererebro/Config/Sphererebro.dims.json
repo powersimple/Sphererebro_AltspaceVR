@@ -1,0 +1,15 @@
+{
+    "_readme": "THE size of Sphererebro, in metres. Change a number, then run the pipeline (CLAUDE.md): Blender regenerates the geometry and writes Sphererebro.derived.json beside this file; the Unity builder reads that for every position, light and trigger, and writes the world script's dims block. Nothing else holds these numbers. The theatre (ring, seats, dais, desk) is human scale and does not change with the sphere.",
+    "sphereRadius": 50.0,
+    "concourse": {
+        "gap": 0.5,
+        "depth": 12.0,
+        "height": 4.5,
+        "arcDeg": 120.0
+    },
+    "plaza": {
+        "drop": 6.0,
+        "distanceFromConcourse": 14.5,
+        "radius": 12.0
+    }
+}

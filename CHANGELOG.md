@@ -1,6 +1,41 @@
-# Spherebro changelog
+# Sphererebro changelog
 
 Newest first. Each entry: what changed, where, and what is **not** verified. Rules and pipeline: `CLAUDE.md`.
+
+## 2026-11-06 (evening): Phase 0, after the first live upload (Claude; Ben commits and pushes)
+
+First upload worked (world 2047, slug `spherebro`): desk buttons and joystick worked in the headset. Ben's notes, and
+what changed for each. Full plan for what comes next: the spec on Ben's Desktop, `Sphererebro-Spec-2026-11-06.md`.
+
+- **Renamed Sphererebro** (said like "cerebro"): folders (`B:\VRWorlds\AltspaceVR\Sphererebro\Sphererebro_AltspaceVR`),
+  `_Sphererebro`, `SphererebroKit`/`Sphererebro*` classes and menu, scene `Sphererebro.unity`, Blender script and .blend,
+  the facade and bar signs (`SPHEREREBRO`), docs, and the git remote (`powersimple/Sphererebro_AltspaceVR`; GitHub
+  redirects the old name). Asset GUIDs kept (each .meta renamed with its file). The world slug stays `spherebro`.
+  **Ben:** re-add the repo in GitHub Desktop and the project in Unity Hub at the new folder.
+- **Dome size is a setting:** `Assets/_Sphererebro/Config/Sphererebro.dims.json` (sphere radius, concourse, plaza).
+  Blender derives every sphere-scale mesh and writes `Sphererebro.derived.json`; the builder reads it for every position,
+  light and trigger, and writes the `SB_DIMS` block in script.js. Proof: at r 50 the derived numbers equal the old
+  hand-typed ones (spawn z -81, bridge -43.52/-29.55/-15.58). **Not yet tried at another radius.**
+- **Brighter:** concourse and plaza baked lights x2.5, more bounce (indirect 1.4), lighter ceiling and floor; rebaked
+  (lightmap mean 1.16 -> 2.85). Inside the sphere the load look is **House**: key and house lights brighter and on, dome
+  panels glowing softly (dimmer glow than before).
+- **Lighting presets:** desk **LIGHTS** cycles House -> Presenter (house 30%, key up) -> **Lights Out** (every sphere
+  light off, dome dark; ring edge and desk glow stay lit for wayfinding). **HOUSE** jumps back. State key `sb_lx`.
+- **Soft recliners:** rounded (bevelled) cushions, channel-tufted three-bolster back, plush roll arms, pillow headrest,
+  crushed-velvet material with gold piping. 1,244 tris each (68 seats, about 85k, one shared mesh).
+- **Ride the dais:** the SDK has no moving-platform support for a standing player. **RIDE** (desk) attaches the local
+  player to the dais (BS Attached Object, AvatarAttachTo, not a seat); press again or push the stick to step off. Only
+  works while standing on the dais (trigger `Dais_Zone_TRIG`), so nobody is pulled in from the seats. Fallback: two
+  **perches** (stools) on the dais are real seats, which the SDK documents riding a kinematic body.
+- **Orbs removed** (model, materials no longer made, desk keys, script, XRTM trackObjects). Their desk slots are now
+  RIDE and LIGHTS. The old `SB_Show.fbx` was left in Models, unused (not deleted).
+- **Builder keeps the world link** (`__WorldLink`) across rebuilds. A first attempt lost it for two runs; restored to
+  id 2047 / slug `spherebro` and checked.
+- Tests: 37/37 against the mock. Build: 238 renderers, 132,860 triangles, 183 object ids, 1 lightmap.
+
+**Not verified (needs the headset):** RIDE holding a standing player as the dais turns (spike S1) and the perches as
+fallback; whether `BS.Light` intensity changes reach the lights (LIGHTS presets); the brighter look on Quest; the
+dims pipeline at a radius other than 50.
 
 ## 2026-11-06 — first build (Claude, on Ben's Windows machine, Ben AFK)
 
@@ -8,7 +43,7 @@ Newest first. Each entry: what changed, where, and what is **not** verified. Rul
 - The whole world is generated and builds headless with baked concourse lighting. **Nothing has been uploaded and nothing has
   been in a headset.** Ben builds/uploads himself (Builder window).
 - Generated: 8 FBX (57k triangles in total, incl. the hidden video and glow shells), 32 materials (15 reused Polys textures),
-  the scene `Assets/_Spherebro/Scenes/Spherebro.unity` (246 renderers, 75 colliders, 41 lights, 184 BS Object Ids),
+  the scene `Assets/_Sphererebro/Scenes/Sphererebro.unity` (246 renderers, 75 colliders, 41 lights, 184 BS Object Ids),
   `Assets/WebRoot/script.js` (desk + props + XR Time Machine v0.3.3).
 - Script tests: 30/30 pass against a mock of the Banter API (`..\Assets\tests\script_test.html`). Mock only.
 - Review renders: `..\Assets\previews\` (`0x_*.png` Blender workbench, `unity_*.png` Unity cameras).

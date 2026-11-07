@@ -1,0 +1,1879 @@
+{
+    "summaryResult": "Succeeded",
+    "outputPath": "B:/VRWorlds/AltspaceVR/Spherebro/Spherebro_AltspaceVR/AssetCache/spherebro/Android",
+    "totalSizeMB": 11.313474655151368,
+    "platform": "Android",
+    "TimeTaken": "2026-11-06 17:48:51",
+    "SummarizeErrors": "",
+    "steps": [
+        {
+            "name": "Build Asset Bundles",
+            "durationTicks": 300001425,
+            "depth": 0,
+            "messages": []
+        },
+        {
+            "name": "Calculate asset bundles to be built",
+            "durationTicks": 134153,
+            "depth": 1,
+            "messages": []
+        },
+        {
+            "name": "Prebuild Cleanup and Recompile",
+            "durationTicks": 237129924,
+            "depth": 1,
+            "messages": []
+        },
+        {
+            "name": "Compile scripts",
+            "durationTicks": 236594712,
+            "depth": 2,
+            "messages": []
+        },
+        {
+            "name": "Generate and validate platform script types",
+            "durationTicks": 440081,
+            "depth": 2,
+            "messages": []
+        },
+        {
+            "name": "Build Scene AssetBundle(s)",
+            "durationTicks": 46534386,
+            "depth": 1,
+            "messages": []
+        },
+        {
+            "name": "Build bundle: d9e7b5d057aa474cba75de8f92c34dd920261106",
+            "durationTicks": 45581300,
+            "depth": 2,
+            "messages": [
+                {
+                    "type": 2,
+                    "content": "Serialization depth limit 10 exceeded at 'UnityEngine.Events::ArgumentCache.m_ObjectArgument'. There may be an object composition cycle in one or more of your serialized classes. Consider rearranging data or use `[SerializeReference]`. \n\nSerialization hierarchy:\n11: UnityEngine.Events::ArgumentCache.m_ObjectArgument\n10: UnityEngine.Events::PersistentCall.m_Arguments\n9: UnityEngine.Events::PersistentCallGroup.m_Calls\n8: UnityEngine.Events::UnityEventBase.m_PersistentCalls\n7: BS::QuickMenuItem.Click\n6: BS::QuickMenuItem.Children\n5: BS::QuickMenuItem.Children\n4: BS::QuickMenuItem.Children\n3: BS::QuickMenuItem.Children\n2: BS::QuickMenuItem.Children\n1: BS::QuickMenuItem.Children\n0: BS::AddToQuickMenu.QuickMenu\n"
+                },
+                {
+                    "type": 2,
+                    "content": "Serialization depth limit 10 exceeded at 'UnityEngine.Events::ArgumentCache.m_ObjectArgument'. There may be an object composition cycle in one or more of your serialized classes. Consider rearranging data or use `[SerializeReference]`. \n\nSerialization hierarchy:\n11: UnityEngine.Events::ArgumentCache.m_ObjectArgument\n10: UnityEngine.Events::PersistentCall.m_Arguments\n9: UnityEngine.Events::PersistentCallGroup.m_Calls\n8: UnityEngine.Events::UnityEventBase.m_PersistentCalls\n7: BS::QuickMenuItem.Click\n6: BS::QuickMenuItem.Children\n5: BS::QuickMenuItem.Children\n4: BS::QuickMenuItem.Children\n3: BS::QuickMenuItem.Children\n2: BS::QuickMenuItem.Children\n1: BS::QuickMenuItem.Children\n0: BS::AddToQuickMenu.QuickMenu\n"
+                }
+            ]
+        },
+        {
+            "name": "Verify Build setup",
+            "durationTicks": 540508,
+            "depth": 3,
+            "messages": []
+        },
+        {
+            "name": "Prepare assets for target platform",
+            "durationTicks": 147973,
+            "depth": 3,
+            "messages": []
+        },
+        {
+            "name": "Building scenes",
+            "durationTicks": 6805368,
+            "depth": 3,
+            "messages": []
+        },
+        {
+            "name": "Building scene Assets/_Spherebro/Scenes/d9e7b5d057aa474cba75de8f92c34dd920261106.unity",
+            "durationTicks": 6805234,
+            "depth": 4,
+            "messages": [
+                {
+                    "type": 3,
+                    "content": "<color=#4f4f4f>[Banter]</color> <color=#7DF9FF>Removing existing BSStarterUpper if it exists, it will be added at runtime.</color>"
+                },
+                {
+                    "type": 3,
+                    "content": "<color=#4f4f4f>[Banter]</color> <color=#7DF9FF>Stripping Greenfield scene-bundle build marker from shipped scene.</color>"
+                }
+            ]
+        },
+        {
+            "name": "Writing asset files",
+            "durationTicks": 13200755,
+            "depth": 3,
+            "messages": []
+        },
+        {
+            "name": "Packaging assets - archive:/BuildPlayer-d9e7b5d057aa474cba75de8f92c34dd920261106/BuildPlayer-d9e7b5d057aa474cba75de8f92c34dd920261106.sharedAssets",
+            "durationTicks": 13159378,
+            "depth": 4,
+            "messages": []
+        },
+        {
+            "name": "Creating compressed player package",
+            "durationTicks": 10774302,
+            "depth": 3,
+            "messages": []
+        },
+        {
+            "name": "Postprocess built player",
+            "durationTicks": 162778,
+            "depth": 3,
+            "messages": []
+        }
+    ],
+    "summary": {
+        "buildStartTimeTicks": 639296021009276081,
+        "totalTimeTicks": 300001458,
+        "guid": "00000000000000000000000000000000",
+        "platform": 13,
+        "platformGroup": 7,
+        "options": 0,
+        "outputPath": "B:/VRWorlds/AltspaceVR/Spherebro/Spherebro_AltspaceVR/AssetCache/spherebro/Android",
+        "totalSize": 11863038,
+        "totalErrors": 0,
+        "totalWarnings": 2,
+        "result": 1,
+        "buildType": 2,
+        "multiProcessEnabled": false
+    },
+    "files": [
+        {
+            "id": 0,
+            "path": "B:/VRWorlds/AltspaceVR/Spherebro/Spherebro_AltspaceVR/AssetCache/spherebro/Android/d9e7b5d057aa474cba75de8f92c34dd920261106/BuildPlayer-d9e7b5d057aa474cba75de8f92c34dd920261106",
+            "role": "Scene",
+            "size": 2327212
+        },
+        {
+            "id": 1,
+            "path": "B:/VRWorlds/AltspaceVR/Spherebro/Spherebro_AltspaceVR/AssetCache/spherebro/Android/d9e7b5d057aa474cba75de8f92c34dd920261106/BuildPlayer-d9e7b5d057aa474cba75de8f92c34dd920261106.sharedAssets",
+            "role": "SharedAssets",
+            "size": 18160300
+        },
+        {
+            "id": 2,
+            "path": "B:/VRWorlds/AltspaceVR/Spherebro/Spherebro_AltspaceVR/AssetCache/spherebro/Android/d9e7b5d057aa474cba75de8f92c34dd920261106",
+            "role": "AssetBundle",
+            "size": 11858460
+        },
+        {
+            "id": 3,
+            "path": "B:/VRWorlds/AltspaceVR/Spherebro/Spherebro_AltspaceVR/AssetCache/spherebro/Android/d9e7b5d057aa474cba75de8f92c34dd920261106.manifest",
+            "role": "AssetBundleTextManifest",
+            "size": 2763
+        },
+        {
+            "id": 4,
+            "path": "B:/VRWorlds/AltspaceVR/Spherebro/Spherebro_AltspaceVR/AssetCache/spherebro/Android/Android/CAB-e4ba7dbec84ca82e006b0387f14d1c10",
+            "role": "ResourcesFile",
+            "size": 4252
+        },
+        {
+            "id": 5,
+            "path": "B:/VRWorlds/AltspaceVR/Spherebro/Spherebro_AltspaceVR/AssetCache/spherebro/Android/Android",
+            "role": "ManifestAssetBundle",
+            "size": 1605
+        },
+        {
+            "id": 6,
+            "path": "B:/VRWorlds/AltspaceVR/Spherebro/Spherebro_AltspaceVR/AssetCache/spherebro/Android/Android.manifest",
+            "role": "AssetBundleTextManifest",
+            "size": 210
+        }
+    ],
+    "packedAssets": [
+        {
+            "shortPath": "BuildPlayer-d9e7b5d057aa474cba75de8f92c34dd920261106.sharedAssets",
+            "overhead": 156800,
+            "contents": [
+                {
+                    "id": 1,
+                    "type": "UnityEngine.PreloadData",
+                    "packedSize": 37,
+                    "offset": 156656,
+                    "sourceAssetGUID": "00000000000000000000000000000000",
+                    "sourceAssetPath": ""
+                },
+                {
+                    "id": 2,
+                    "type": "UnityEngine.AssetBundle",
+                    "packedSize": 196,
+                    "offset": 156704,
+                    "sourceAssetGUID": "00000000000000000000000000000000",
+                    "sourceAssetPath": ""
+                },
+                {
+                    "id": 3,
+                    "type": "UnityEngine.Material",
+                    "packedSize": 1668,
+                    "offset": 156912,
+                    "sourceAssetGUID": "0ba3092c187b1e348833d9e44e431786",
+                    "sourceAssetPath": "Assets/_Spherebro/Materials/SB_BlackGlass.mat"
+                },
+                {
+                    "id": 4,
+                    "type": "UnityEngine.Material",
+                    "packedSize": 1680,
+                    "offset": 158592,
+                    "sourceAssetGUID": "70575769acbc49b46a6b22833641f473",
+                    "sourceAssetPath": "Assets/_Spherebro/Materials/SB_Blue_EMIT.mat"
+                },
+                {
+                    "id": 5,
+                    "type": "UnityEngine.Material",
+                    "packedSize": 1668,
+                    "offset": 160272,
+                    "sourceAssetGUID": "8aaca33eca226134b8209e8007e23bec",
+                    "sourceAssetPath": "Assets/_Spherebro/Materials/SB_BottleGreen.mat"
+                },
+                {
+                    "id": 6,
+                    "type": "UnityEngine.Material",
+                    "packedSize": 1680,
+                    "offset": 161952,
+                    "sourceAssetGUID": "f6bbb1bd1073971439520eeb6938e0ad",
+                    "sourceAssetPath": "Assets/_Spherebro/Materials/SB_Bronze.mat"
+                },
+                {
+                    "id": 7,
+                    "type": "UnityEngine.Material",
+                    "packedSize": 1684,
+                    "offset": 163632,
+                    "sourceAssetGUID": "67e8a06f4fbb78141af75798878ccd5d",
+                    "sourceAssetPath": "Assets/_Spherebro/Materials/SB_BrushedMetal.mat"
+                },
+                {
+                    "id": 8,
+                    "type": "UnityEngine.Material",
+                    "packedSize": 1680,
+                    "offset": 165328,
+                    "sourceAssetGUID": "8d8f9ee3e949935489b284214ffba0da",
+                    "sourceAssetPath": "Assets/_Spherebro/Materials/SB_ButtonCap.mat"
+                },
+                {
+                    "id": 9,
+                    "type": "UnityEngine.Material",
+                    "packedSize": 1680,
+                    "offset": 167008,
+                    "sourceAssetGUID": "f82d50621faf3ba4d93c1cecb411011b",
+                    "sourceAssetPath": "Assets/_Spherebro/Materials/SB_Carbon.mat"
+                },
+                {
+                    "id": 10,
+                    "type": "UnityEngine.Material",
+                    "packedSize": 1664,
+                    "offset": 168688,
+                    "sourceAssetGUID": "ed087cf65c9c88a459e80868a7454dc9",
+                    "sourceAssetPath": "Assets/_Spherebro/Materials/SB_Ceiling.mat"
+                },
+                {
+                    "id": 11,
+                    "type": "UnityEngine.Material",
+                    "packedSize": 1680,
+                    "offset": 170352,
+                    "sourceAssetGUID": "f3e2a1b7b7bf687429be83d7d0e7a08b",
+                    "sourceAssetPath": "Assets/_Spherebro/Materials/SB_Champagne.mat"
+                },
+                {
+                    "id": 12,
+                    "type": "UnityEngine.Material",
+                    "packedSize": 1676,
+                    "offset": 172032,
+                    "sourceAssetGUID": "080b800897c7ee34895402ecb8a091ea",
+                    "sourceAssetPath": "Assets/_Spherebro/Materials/SB_Deck.mat"
+                },
+                {
+                    "id": 13,
+                    "type": "UnityEngine.Material",
+                    "packedSize": 1684,
+                    "offset": 173712,
+                    "sourceAssetGUID": "b4ec7daad4f15c940b008ec6682a71c9",
+                    "sourceAssetPath": "Assets/_Spherebro/Materials/SB_FloorStone.mat"
+                },
+                {
+                    "id": 14,
+                    "type": "UnityEngine.Material",
+                    "packedSize": 1760,
+                    "offset": 175408,
+                    "sourceAssetGUID": "662fc4dea091621419b651555487cfd8",
+                    "sourceAssetPath": "Assets/_Spherebro/Materials/SB_FluteGlass.mat"
+                },
+                {
+                    "id": 15,
+                    "type": "UnityEngine.Material",
+                    "packedSize": 1752,
+                    "offset": 177168,
+                    "sourceAssetGUID": "4beb699bd776d324f89d46eaf3ac5129",
+                    "sourceAssetPath": "Assets/_Spherebro/Materials/SB_Glass.mat"
+                },
+                {
+                    "id": 16,
+                    "type": "UnityEngine.Material",
+                    "packedSize": 1680,
+                    "offset": 178928,
+                    "sourceAssetGUID": "97cdb4db1ddadad41a84f6039f124452",
+                    "sourceAssetPath": "Assets/_Spherebro/Materials/SB_Gold_EMIT.mat"
+                },
+                {
+                    "id": 17,
+                    "type": "UnityEngine.Material",
+                    "packedSize": 1664,
+                    "offset": 180608,
+                    "sourceAssetGUID": "416b3feb291b6e54a9561cf013e3de07",
+                    "sourceAssetPath": "Assets/_Spherebro/Materials/SB_InlayDark.mat"
+                },
+                {
+                    "id": 18,
+                    "type": "UnityEngine.Material",
+                    "packedSize": 1680,
+                    "offset": 182272,
+                    "sourceAssetGUID": "fa6363c0dc9600547a9fb2f6855a2513",
+                    "sourceAssetPath": "Assets/_Spherebro/Materials/SB_InlayGold.mat"
+                },
+                {
+                    "id": 19,
+                    "type": "UnityEngine.Material",
+                    "packedSize": 1680,
+                    "offset": 183952,
+                    "sourceAssetGUID": "1d7d292797fbd17438f0e5c58feaff55",
+                    "sourceAssetPath": "Assets/_Spherebro/Materials/SB_Leather.mat"
+                },
+                {
+                    "id": 20,
+                    "type": "UnityEngine.Material",
+                    "packedSize": 1680,
+                    "offset": 185632,
+                    "sourceAssetGUID": "b5a311afc0b494b4ea2ccb2c664afd33",
+                    "sourceAssetPath": "Assets/_Spherebro/Materials/SB_Orb_01.mat"
+                },
+                {
+                    "id": 21,
+                    "type": "UnityEngine.Material",
+                    "packedSize": 1680,
+                    "offset": 187312,
+                    "sourceAssetGUID": "cdbd6a22aa99bb54c9f4192f43c37b2b",
+                    "sourceAssetPath": "Assets/_Spherebro/Materials/SB_Orb_02.mat"
+                },
+                {
+                    "id": 22,
+                    "type": "UnityEngine.Material",
+                    "packedSize": 1680,
+                    "offset": 188992,
+                    "sourceAssetGUID": "a1a01ca7aad433343941a8d78a59df76",
+                    "sourceAssetPath": "Assets/_Spherebro/Materials/SB_Orb_03.mat"
+                },
+                {
+                    "id": 23,
+                    "type": "UnityEngine.Material",
+                    "packedSize": 1680,
+                    "offset": 190672,
+                    "sourceAssetGUID": "229db9e77038748408dd2833b18bcdb7",
+                    "sourceAssetPath": "Assets/_Spherebro/Materials/SB_Orb_04.mat"
+                },
+                {
+                    "id": 24,
+                    "type": "UnityEngine.Material",
+                    "packedSize": 1680,
+                    "offset": 192352,
+                    "sourceAssetGUID": "f611ce798b745b046a1d8b6f6ccde064",
+                    "sourceAssetPath": "Assets/_Spherebro/Materials/SB_Orb_05.mat"
+                },
+                {
+                    "id": 25,
+                    "type": "UnityEngine.Material",
+                    "packedSize": 1680,
+                    "offset": 194032,
+                    "sourceAssetGUID": "6838e958a892b8e42a4ea52c9ac71ea9",
+                    "sourceAssetPath": "Assets/_Spherebro/Materials/SB_Orb_06.mat"
+                },
+                {
+                    "id": 26,
+                    "type": "UnityEngine.Material",
+                    "packedSize": 1660,
+                    "offset": 195712,
+                    "sourceAssetGUID": "f57a52c62f7f719409bc41c0b5bc8926",
+                    "sourceAssetPath": "Assets/_Spherebro/Materials/SB_Plant.mat"
+                },
+                {
+                    "id": 27,
+                    "type": "UnityEngine.Material",
+                    "packedSize": 1676,
+                    "offset": 197376,
+                    "sourceAssetGUID": "b8240f31f74c02542b6485e992c5ff19",
+                    "sourceAssetPath": "Assets/_Spherebro/Materials/SB_Rug.mat"
+                },
+                {
+                    "id": 28,
+                    "type": "UnityEngine.Material",
+                    "packedSize": 1684,
+                    "offset": 199056,
+                    "sourceAssetGUID": "5caedde152ffba64f9cc1e2d391f593a",
+                    "sourceAssetPath": "Assets/_Spherebro/Materials/SB_Signage_EMIT.mat"
+                },
+                {
+                    "id": 29,
+                    "type": "UnityEngine.Material",
+                    "packedSize": 1712,
+                    "offset": 200752,
+                    "sourceAssetGUID": "6619f7aef0a61c44a909c464c9257345",
+                    "sourceAssetPath": "Assets/_Spherebro/Materials/SB_SolarPanel.mat"
+                },
+                {
+                    "id": 30,
+                    "type": "UnityEngine.Material",
+                    "packedSize": 1704,
+                    "offset": 202464,
+                    "sourceAssetGUID": "8ed1514858f7c56438640645fd7cc1b9",
+                    "sourceAssetPath": "Assets/_Spherebro/Materials/SB_SolarPanel_Glow.mat"
+                },
+                {
+                    "id": 31,
+                    "type": "UnityEngine.Material",
+                    "packedSize": 1684,
+                    "offset": 204176,
+                    "sourceAssetGUID": "ba4c63b5c69731f45899771fca9484c3",
+                    "sourceAssetPath": "Assets/_Spherebro/Materials/SB_SphereOuter.mat"
+                },
+                {
+                    "id": 32,
+                    "type": "UnityEngine.Material",
+                    "packedSize": 592,
+                    "offset": 205872,
+                    "sourceAssetGUID": "3b32e6744ca24ac4a8fa1f2dea94be6a",
+                    "sourceAssetPath": "Assets/_Spherebro/Materials/SB_SphereScreen.mat"
+                },
+                {
+                    "id": 33,
+                    "type": "UnityEngine.Material",
+                    "packedSize": 1680,
+                    "offset": 206464,
+                    "sourceAssetGUID": "63137fbfdd6ebe542b61fd0472bf871d",
+                    "sourceAssetPath": "Assets/_Spherebro/Materials/SB_WoodWall.mat"
+                },
+                {
+                    "id": 34,
+                    "type": "UnityEngine.Material",
+                    "packedSize": 732,
+                    "offset": 208144,
+                    "sourceAssetGUID": "1f8449c367df19d4e84991480b4bba15",
+                    "sourceAssetPath": "Assets/_Spherebro/Skybox/WebXR Awards Skybox.mat"
+                },
+                {
+                    "id": 35,
+                    "type": "UnityEngine.Material",
+                    "packedSize": 148,
+                    "offset": 208880,
+                    "sourceAssetGUID": "e3265ab4bf004d28a9537516768c1c75",
+                    "sourceAssetPath": "Assets/TextMesh Pro/Fonts/LiberationSans.ttf"
+                },
+                {
+                    "id": 36,
+                    "type": "UnityEngine.Material",
+                    "packedSize": 2016,
+                    "offset": 209040,
+                    "sourceAssetGUID": "2e498d1c8094910479dc3e1b768306a4",
+                    "sourceAssetPath": "Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF - Fallback.asset"
+                },
+                {
+                    "id": 37,
+                    "type": "UnityEngine.Material",
+                    "packedSize": 956,
+                    "offset": 211056,
+                    "sourceAssetGUID": "8f586378b4e144a9851e7b34d9b748ee",
+                    "sourceAssetPath": "Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF.asset"
+                },
+                {
+                    "id": 38,
+                    "type": "UnityEngine.Texture2D",
+                    "packedSize": 626420,
+                    "offset": 212016,
+                    "sourceAssetGUID": "236acfdea6f91f342a3bf0ab0988d4fa",
+                    "sourceAssetPath": "Assets/_Spherebro/Textures/Wood_Aged_1K_albedo.jpg"
+                },
+                {
+                    "id": 39,
+                    "type": "UnityEngine.Texture2D",
+                    "packedSize": 1398256,
+                    "offset": 838448,
+                    "sourceAssetGUID": "24d71a3baa72a0c40b6b26842b3822cc",
+                    "sourceAssetPath": "Assets/_Spherebro/Textures/SolarFloor_Nrm.png"
+                },
+                {
+                    "id": 40,
+                    "type": "UnityEngine.Texture2D",
+                    "packedSize": 626420,
+                    "offset": 2236704,
+                    "sourceAssetGUID": "28cc900fdb0bf5a4782ecc6e4deb8ea0",
+                    "sourceAssetPath": "Assets/_Spherebro/Textures/CleanBronze_Albedo.png"
+                },
+                {
+                    "id": 41,
+                    "type": "UnityEngine.Texture2D",
+                    "packedSize": 524424,
+                    "offset": 2863136,
+                    "sourceAssetGUID": "485e0b77bca3b9b42981be5b657abb1d",
+                    "sourceAssetPath": "Assets/_Spherebro/Skybox/MilkyWayTeal-Dark8K (1).jpg"
+                },
+                {
+                    "id": 42,
+                    "type": "UnityEngine.Texture2D",
+                    "packedSize": 40224,
+                    "offset": 3387568,
+                    "sourceAssetGUID": "49bfc3d247909d54d8d93f8b7f541f4d",
+                    "sourceAssetPath": "Assets/_Spherebro/Textures/Carbon_Albedo.png"
+                },
+                {
+                    "id": 43,
+                    "type": "UnityEngine.Texture2D",
+                    "packedSize": 626420,
+                    "offset": 3427792,
+                    "sourceAssetGUID": "4d06840260c17a848b6d8a22df1a63dc",
+                    "sourceAssetPath": "Assets/_Spherebro/Textures/SolarPanel_Albedo.png"
+                },
+                {
+                    "id": 44,
+                    "type": "UnityEngine.Texture2D",
+                    "packedSize": 1398264,
+                    "offset": 4054224,
+                    "sourceAssetGUID": "5dc87fdaf783a8a4496e14046f6c7bcb",
+                    "sourceAssetPath": "Assets/_Spherebro/Scenes/Spherebro/Lightmap-0_comp_light.exr"
+                },
+                {
+                    "id": 45,
+                    "type": "UnityEngine.Texture2D",
+                    "packedSize": 626420,
+                    "offset": 5452496,
+                    "sourceAssetGUID": "63f2ff0f432fba749907e8bba5230540",
+                    "sourceAssetPath": "Assets/_Spherebro/Textures/SolarFloor_albedo.png"
+                },
+                {
+                    "id": 46,
+                    "type": "UnityEngine.Texture2D",
+                    "packedSize": 168,
+                    "offset": 6078928,
+                    "sourceAssetGUID": "957912aa68270104aa094bec6e60468e",
+                    "sourceAssetPath": "Assets/_Spherebro/Textures/Black4.png"
+                },
+                {
+                    "id": 47,
+                    "type": "UnityEngine.Texture2D",
+                    "packedSize": 1398260,
+                    "offset": 6079104,
+                    "sourceAssetGUID": "b7e983415932d274abff35ef4180abd5",
+                    "sourceAssetPath": "Assets/_Spherebro/Textures/Fabric_Rug_006_NRM.jpg"
+                },
+                {
+                    "id": 48,
+                    "type": "UnityEngine.Texture2D",
+                    "packedSize": 1398256,
+                    "offset": 7477376,
+                    "sourceAssetGUID": "b8041f12597d4e8439abd9cca5af2a34",
+                    "sourceAssetPath": "Assets/_Spherebro/Textures/CleanBronze_Nrm.png"
+                },
+                {
+                    "id": 49,
+                    "type": "UnityEngine.Texture2D",
+                    "packedSize": 1398256,
+                    "offset": 8875632,
+                    "sourceAssetGUID": "c00a265c3be35094d87261c3514a1c04",
+                    "sourceAssetPath": "Assets/_Spherebro/Textures/SolarPanel_Nrm.png"
+                },
+                {
+                    "id": 50,
+                    "type": "UnityEngine.Texture2D",
+                    "packedSize": 1398256,
+                    "offset": 10273888,
+                    "sourceAssetGUID": "c07cf420110b5ba46be706e63999c4d1",
+                    "sourceAssetPath": "Assets/_Spherebro/Textures/TileFloor_Nrm.png"
+                },
+                {
+                    "id": 51,
+                    "type": "UnityEngine.Texture2D",
+                    "packedSize": 626416,
+                    "offset": 11672144,
+                    "sourceAssetGUID": "c1fcc56061350294791812cf174cf2d6",
+                    "sourceAssetPath": "Assets/_Spherebro/Textures/TileFloor_albedo.png"
+                },
+                {
+                    "id": 52,
+                    "type": "UnityEngine.Texture2D",
+                    "packedSize": 124,
+                    "offset": 12298560,
+                    "sourceAssetGUID": "e3265ab4bf004d28a9537516768c1c75",
+                    "sourceAssetPath": "Assets/TextMesh Pro/Fonts/LiberationSans.ttf"
+                },
+                {
+                    "id": 53,
+                    "type": "UnityEngine.Texture2D",
+                    "packedSize": 626420,
+                    "offset": 12298688,
+                    "sourceAssetGUID": "eaaf37bb9d69448489e4cdc2acec9da3",
+                    "sourceAssetPath": "Assets/_Spherebro/Textures/Wood_Aged_1K_normal.jpg"
+                },
+                {
+                    "id": 54,
+                    "type": "UnityEngine.Texture2D",
+                    "packedSize": 40224,
+                    "offset": 12925120,
+                    "sourceAssetGUID": "f418bafb5c4a6cb4ba81495ff7418c0b",
+                    "sourceAssetPath": "Assets/_Spherebro/Textures/Carbon_Normal.png"
+                },
+                {
+                    "id": 55,
+                    "type": "UnityEngine.Texture2D",
+                    "packedSize": 626420,
+                    "offset": 12965344,
+                    "sourceAssetGUID": "f94aff510ed662a46802093435e39578",
+                    "sourceAssetPath": "Assets/_Spherebro/Textures/SolarPanel_metallic.png"
+                },
+                {
+                    "id": 56,
+                    "type": "UnityEngine.Texture2D",
+                    "packedSize": 40224,
+                    "offset": 13591776,
+                    "sourceAssetGUID": "fdf2dcd7d6872134c806afd1a996a255",
+                    "sourceAssetPath": "Assets/_Spherebro/Textures/BrushedMetal_N.png"
+                },
+                {
+                    "id": 57,
+                    "type": "UnityEngine.Texture2D",
+                    "packedSize": 136,
+                    "offset": 13632000,
+                    "sourceAssetGUID": "2e498d1c8094910479dc3e1b768306a4",
+                    "sourceAssetPath": "Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF - Fallback.asset"
+                },
+                {
+                    "id": 58,
+                    "type": "UnityEngine.Texture2D",
+                    "packedSize": 1048712,
+                    "offset": 13632144,
+                    "sourceAssetGUID": "8f586378b4e144a9851e7b34d9b748ee",
+                    "sourceAssetPath": "Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF.asset"
+                },
+                {
+                    "id": 59,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 1476,
+                    "offset": 14680864,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 60,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 932,
+                    "offset": 14682352,
+                    "sourceAssetGUID": "151bc698751a9c8409f4500923e1342f",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Plaza.fbx"
+                },
+                {
+                    "id": 61,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 796,
+                    "offset": 14683296,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 62,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 4360,
+                    "offset": 14684096,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 63,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 880,
+                    "offset": 14688464,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 64,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 1188,
+                    "offset": 14689344,
+                    "sourceAssetGUID": "06bbae48fc891e2419e4151659417bd1",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Bridge.fbx"
+                },
+                {
+                    "id": 65,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 1200,
+                    "offset": 14690544,
+                    "sourceAssetGUID": "06bbae48fc891e2419e4151659417bd1",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Bridge.fbx"
+                },
+                {
+                    "id": 66,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 900,
+                    "offset": 14691744,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 67,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 11460,
+                    "offset": 14692656,
+                    "sourceAssetGUID": "151bc698751a9c8409f4500923e1342f",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Plaza.fbx"
+                },
+                {
+                    "id": 68,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 3604,
+                    "offset": 14704128,
+                    "sourceAssetGUID": "151bc698751a9c8409f4500923e1342f",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Plaza.fbx"
+                },
+                {
+                    "id": 69,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 4360,
+                    "offset": 14707744,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 70,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 912,
+                    "offset": 14712112,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 71,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 21632,
+                    "offset": 14713024,
+                    "sourceAssetGUID": "4f233f8c07fbe6b47a6128472a7cf799",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Sphere.fbx"
+                },
+                {
+                    "id": 72,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 4732,
+                    "offset": 14734656,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 73,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 820,
+                    "offset": 14739392,
+                    "sourceAssetGUID": "06bbae48fc891e2419e4151659417bd1",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Bridge.fbx"
+                },
+                {
+                    "id": 74,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 792,
+                    "offset": 14740224,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 75,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 13948,
+                    "offset": 14741024,
+                    "sourceAssetGUID": "06bbae48fc891e2419e4151659417bd1",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Bridge.fbx"
+                },
+                {
+                    "id": 76,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 792,
+                    "offset": 14754976,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 77,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 3580,
+                    "offset": 14755776,
+                    "sourceAssetGUID": "c2fbe10823448d34cbee65e4c2bb5b02",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Props.fbx"
+                },
+                {
+                    "id": 78,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 4360,
+                    "offset": 14759360,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 79,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 7944,
+                    "offset": 14763728,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 80,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 788,
+                    "offset": 14771680,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 81,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 4360,
+                    "offset": 14772480,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 82,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 3232,
+                    "offset": 14776848,
+                    "sourceAssetGUID": "151bc698751a9c8409f4500923e1342f",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Plaza.fbx"
+                },
+                {
+                    "id": 83,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 2208,
+                    "offset": 14780080,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 84,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 788,
+                    "offset": 14782288,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 85,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 1164,
+                    "offset": 14783088,
+                    "sourceAssetGUID": "06bbae48fc891e2419e4151659417bd1",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Bridge.fbx"
+                },
+                {
+                    "id": 86,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 3316,
+                    "offset": 14784256,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 87,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 912,
+                    "offset": 14787584,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 88,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 4732,
+                    "offset": 14788496,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 89,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 780,
+                    "offset": 14793232,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 90,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 9280,
+                    "offset": 14794016,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 91,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 3208,
+                    "offset": 14803296,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 92,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 4732,
+                    "offset": 14806512,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 93,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 1200,
+                    "offset": 14811248,
+                    "sourceAssetGUID": "06bbae48fc891e2419e4151659417bd1",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Bridge.fbx"
+                },
+                {
+                    "id": 94,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 4360,
+                    "offset": 14812448,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 95,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 15124,
+                    "offset": 14816816,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 96,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 4360,
+                    "offset": 14831952,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 97,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 1736,
+                    "offset": 14836320,
+                    "sourceAssetGUID": "ccfe84c93928eed4db8039f94d1cefd9",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Show.fbx"
+                },
+                {
+                    "id": 98,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 5424,
+                    "offset": 14838064,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 99,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 13744,
+                    "offset": 14843488,
+                    "sourceAssetGUID": "06bbae48fc891e2419e4151659417bd1",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Bridge.fbx"
+                },
+                {
+                    "id": 100,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 4360,
+                    "offset": 14857232,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 101,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 920,
+                    "offset": 14861600,
+                    "sourceAssetGUID": "151bc698751a9c8409f4500923e1342f",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Plaza.fbx"
+                },
+                {
+                    "id": 102,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 32444,
+                    "offset": 14862528,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 103,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 4732,
+                    "offset": 14894976,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 104,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 2132,
+                    "offset": 14899712,
+                    "sourceAssetGUID": "c2fbe10823448d34cbee65e4c2bb5b02",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Props.fbx"
+                },
+                {
+                    "id": 105,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 4360,
+                    "offset": 14901856,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 106,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 1452,
+                    "offset": 14906224,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 107,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 11412,
+                    "offset": 14907680,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 108,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 9276,
+                    "offset": 14919104,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 109,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 4172,
+                    "offset": 14928384,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 110,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 792,
+                    "offset": 14932560,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 111,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 3172,
+                    "offset": 14933360,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 112,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 788,
+                    "offset": 14936544,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 113,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 3604,
+                    "offset": 14937344,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 114,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 808,
+                    "offset": 14940960,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 115,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 792,
+                    "offset": 14941776,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 116,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 14216,
+                    "offset": 14942576,
+                    "sourceAssetGUID": "151bc698751a9c8409f4500923e1342f",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Plaza.fbx"
+                },
+                {
+                    "id": 117,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 12024,
+                    "offset": 14956800,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 118,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 8548,
+                    "offset": 14968832,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 119,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 7372,
+                    "offset": 14977392,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 120,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 792,
+                    "offset": 14984768,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 121,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 1160,
+                    "offset": 14985568,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 122,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 792,
+                    "offset": 14986736,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 123,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 1736,
+                    "offset": 14987536,
+                    "sourceAssetGUID": "ccfe84c93928eed4db8039f94d1cefd9",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Show.fbx"
+                },
+                {
+                    "id": 124,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 796,
+                    "offset": 14989280,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 125,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 788,
+                    "offset": 14990080,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 126,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 3604,
+                    "offset": 14990880,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 127,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 3604,
+                    "offset": 14994496,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 128,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 3604,
+                    "offset": 14998112,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 129,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 4600,
+                    "offset": 15001728,
+                    "sourceAssetGUID": "739383bb1b3b33346b746062f23960c3",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Recliner.fbx"
+                },
+                {
+                    "id": 130,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 3604,
+                    "offset": 15006336,
+                    "sourceAssetGUID": "151bc698751a9c8409f4500923e1342f",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Plaza.fbx"
+                },
+                {
+                    "id": 131,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 4360,
+                    "offset": 15009952,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 132,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 197576,
+                    "offset": 15014320,
+                    "sourceAssetGUID": "4f233f8c07fbe6b47a6128472a7cf799",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Sphere.fbx"
+                },
+                {
+                    "id": 133,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 1736,
+                    "offset": 15211904,
+                    "sourceAssetGUID": "ccfe84c93928eed4db8039f94d1cefd9",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Show.fbx"
+                },
+                {
+                    "id": 134,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 1736,
+                    "offset": 15213648,
+                    "sourceAssetGUID": "ccfe84c93928eed4db8039f94d1cefd9",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Show.fbx"
+                },
+                {
+                    "id": 135,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 9736,
+                    "offset": 15215392,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 136,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 2244,
+                    "offset": 15225136,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 137,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 4732,
+                    "offset": 15227392,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 138,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 7264,
+                    "offset": 15232128,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 139,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 3604,
+                    "offset": 15239392,
+                    "sourceAssetGUID": "151bc698751a9c8409f4500923e1342f",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Plaza.fbx"
+                },
+                {
+                    "id": 140,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 824,
+                    "offset": 15243008,
+                    "sourceAssetGUID": "06bbae48fc891e2419e4151659417bd1",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Bridge.fbx"
+                },
+                {
+                    "id": 141,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 1736,
+                    "offset": 15243840,
+                    "sourceAssetGUID": "ccfe84c93928eed4db8039f94d1cefd9",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Show.fbx"
+                },
+                {
+                    "id": 142,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 824,
+                    "offset": 15245584,
+                    "sourceAssetGUID": "06bbae48fc891e2419e4151659417bd1",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Bridge.fbx"
+                },
+                {
+                    "id": 143,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 4200,
+                    "offset": 15246416,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 144,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 788,
+                    "offset": 15250624,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 145,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 14512,
+                    "offset": 15251424,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 146,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 4732,
+                    "offset": 15265936,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 147,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 3316,
+                    "offset": 15270672,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 148,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 8416,
+                    "offset": 15274000,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 149,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 804,
+                    "offset": 15282416,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 150,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 808,
+                    "offset": 15283232,
+                    "sourceAssetGUID": "06bbae48fc891e2419e4151659417bd1",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Bridge.fbx"
+                },
+                {
+                    "id": 151,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 4360,
+                    "offset": 15284048,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 152,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 11204,
+                    "offset": 15288416,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 153,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 1452,
+                    "offset": 15299632,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 154,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 804,
+                    "offset": 15301088,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 155,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 8492,
+                    "offset": 15301904,
+                    "sourceAssetGUID": "4f233f8c07fbe6b47a6128472a7cf799",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Sphere.fbx"
+                },
+                {
+                    "id": 156,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 4360,
+                    "offset": 15310400,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 157,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 2972,
+                    "offset": 15314768,
+                    "sourceAssetGUID": "4f233f8c07fbe6b47a6128472a7cf799",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Sphere.fbx"
+                },
+                {
+                    "id": 158,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 5424,
+                    "offset": 15317744,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 159,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 788,
+                    "offset": 15323168,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 160,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 21628,
+                    "offset": 15323968,
+                    "sourceAssetGUID": "4f233f8c07fbe6b47a6128472a7cf799",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Sphere.fbx"
+                },
+                {
+                    "id": 161,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 788,
+                    "offset": 15345600,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 162,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 13540,
+                    "offset": 15346400,
+                    "sourceAssetGUID": "06bbae48fc891e2419e4151659417bd1",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Bridge.fbx"
+                },
+                {
+                    "id": 163,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 21564,
+                    "offset": 15359952,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 164,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 4360,
+                    "offset": 15381520,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 165,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 4432,
+                    "offset": 15385888,
+                    "sourceAssetGUID": "151bc698751a9c8409f4500923e1342f",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Plaza.fbx"
+                },
+                {
+                    "id": 166,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 1736,
+                    "offset": 15390320,
+                    "sourceAssetGUID": "ccfe84c93928eed4db8039f94d1cefd9",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Show.fbx"
+                },
+                {
+                    "id": 167,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 4468,
+                    "offset": 15392064,
+                    "sourceAssetGUID": "151bc698751a9c8409f4500923e1342f",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Plaza.fbx"
+                },
+                {
+                    "id": 168,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 3604,
+                    "offset": 15396544,
+                    "sourceAssetGUID": "151bc698751a9c8409f4500923e1342f",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Plaza.fbx"
+                },
+                {
+                    "id": 169,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 2380,
+                    "offset": 15400160,
+                    "sourceAssetGUID": "151bc698751a9c8409f4500923e1342f",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Plaza.fbx"
+                },
+                {
+                    "id": 170,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 3128,
+                    "offset": 15402544,
+                    "sourceAssetGUID": "06bbae48fc891e2419e4151659417bd1",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Bridge.fbx"
+                },
+                {
+                    "id": 171,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 1160,
+                    "offset": 15405680,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 172,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 788,
+                    "offset": 15406848,
+                    "sourceAssetGUID": "93ce14593891ad04b980663abeff1467",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Stage.fbx"
+                },
+                {
+                    "id": 173,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 4732,
+                    "offset": 15407648,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 174,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 3316,
+                    "offset": 15412384,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 175,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 4732,
+                    "offset": 15415712,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 176,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 5424,
+                    "offset": 15420448,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 177,
+                    "type": "UnityEngine.Mesh",
+                    "packedSize": 1476,
+                    "offset": 15425872,
+                    "sourceAssetGUID": "0df054dc41d058b489621bc8f110317a",
+                    "sourceAssetPath": "Assets/_Spherebro/Models/SB_Band.fbx"
+                },
+                {
+                    "id": 178,
+                    "type": "UnityEngine.Shader",
+                    "packedSize": 14776,
+                    "offset": 15427360,
+                    "sourceAssetGUID": "0000000000000000f000000000000000",
+                    "sourceAssetPath": "Resources/unity_builtin_extra"
+                },
+                {
+                    "id": 179,
+                    "type": "UnityEngine.Shader",
+                    "packedSize": 5324,
+                    "offset": 15442144,
+                    "sourceAssetGUID": "36e335017ad71d54fbb10842863188ae",
+                    "sourceAssetPath": "Packages/com.unity.render-pipelines.core/Runtime/RenderPipelineResources/FallbackShader.shader"
+                },
+                {
+                    "id": 180,
+                    "type": "UnityEngine.Shader",
+                    "packedSize": 27792,
+                    "offset": 15447472,
+                    "sourceAssetGUID": "650dd9526735d5b46b79224bc6e94025",
+                    "sourceAssetPath": "Packages/com.unity.render-pipelines.universal/Shaders/Unlit.shader"
+                },
+                {
+                    "id": 181,
+                    "type": "UnityEngine.Shader",
+                    "packedSize": 1596568,
+                    "offset": 15475264,
+                    "sourceAssetGUID": "933532a4fcc9baf4fa0491de14d08ed7",
+                    "sourceAssetPath": "Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader"
+                },
+                {
+                    "id": 182,
+                    "type": "UnityEngine.Shader",
+                    "packedSize": 6072,
+                    "offset": 17071840,
+                    "sourceAssetGUID": "e6e9a19c3678ded42a3bc431ebef7dbd",
+                    "sourceAssetPath": "Packages/com.unity.render-pipelines.universal/Shaders/Utils/FallbackError.shader"
+                },
+                {
+                    "id": 183,
+                    "type": "UnityEngine.Shader",
+                    "packedSize": 24808,
+                    "offset": 17077920,
+                    "sourceAssetGUID": "fe393ace9b354375a9cb14cdbbc28be4",
+                    "sourceAssetPath": "Assets/TextMesh Pro/Shaders/TMP_SDF-Mobile.shader"
+                },
+                {
+                    "id": 184,
+                    "type": "UnityEngine.AnimationClip",
+                    "packedSize": 2508,
+                    "offset": 17102736,
+                    "sourceAssetGUID": "5c26593a101720f42a80bf724329cae6",
+                    "sourceAssetPath": "Assets/_Spherebro/Animation/Esc_Steps_Loop.anim"
+                },
+                {
+                    "id": 185,
+                    "type": "UnityEngine.Cubemap",
+                    "packedSize": 63280,
+                    "offset": 17105248,
+                    "sourceAssetGUID": "4d9381d7c16d16f409a0bdc42a86af5e",
+                    "sourceAssetPath": "Assets/_Spherebro/Scenes/Spherebro/ReflectionProbe-2.exr"
+                },
+                {
+                    "id": 186,
+                    "type": "UnityEngine.Cubemap",
+                    "packedSize": 63280,
+                    "offset": 17168528,
+                    "sourceAssetGUID": "6ffb00eedf22ad4418fca6a892864670",
+                    "sourceAssetPath": "Assets/_Spherebro/Scenes/Spherebro/ReflectionProbe-0.exr"
+                },
+                {
+                    "id": 187,
+                    "type": "UnityEngine.Cubemap",
+                    "packedSize": 63280,
+                    "offset": 17231808,
+                    "sourceAssetGUID": "751dfe0cf85930d4581dc0c701d5b7c6",
+                    "sourceAssetPath": "Assets/_Spherebro/Scenes/Spherebro/ReflectionProbe-4.exr"
+                },
+                {
+                    "id": 188,
+                    "type": "UnityEngine.Cubemap",
+                    "packedSize": 63280,
+                    "offset": 17295088,
+                    "sourceAssetGUID": "a03eb52a92173b64891d7103f2d7c433",
+                    "sourceAssetPath": "Assets/_Spherebro/Scenes/Spherebro/ReflectionProbe-3.exr"
+                },
+                {
+                    "id": 189,
+                    "type": "UnityEngine.Cubemap",
+                    "packedSize": 63280,
+                    "offset": 17358368,
+                    "sourceAssetGUID": "a2990db207abacb49861b1f5d7109aa9",
+                    "sourceAssetPath": "Assets/_Spherebro/Scenes/Spherebro/ReflectionProbe-1.exr"
+                },
+                {
+                    "id": 190,
+                    "type": "UnityEditor.Animations.AnimatorController",
+                    "packedSize": 436,
+                    "offset": 17421648,
+                    "sourceAssetGUID": "6cb071efdd780164ebd1b4d0256230c7",
+                    "sourceAssetPath": "Assets/_Spherebro/Animation/Esc_Steps.controller"
+                },
+                {
+                    "id": 191,
+                    "type": "UnityEditor.MonoScript",
+                    "packedSize": 64,
+                    "offset": 155536,
+                    "sourceAssetGUID": "11447d729a27402f959e77db4c7b32b2",
+                    "sourceAssetPath": "Packages/com.sidequest.creator-sdk/Runtime/Scripts/Scene/Components/BSText.cs"
+                },
+                {
+                    "id": 192,
+                    "type": "UnityEditor.MonoScript",
+                    "packedSize": 72,
+                    "offset": 155600,
+                    "sourceAssetGUID": "1975fd0838af4a85be3bb6459af67590",
+                    "sourceAssetPath": "Packages/com.sidequest.creator-sdk/Runtime/Scripts/Scene/Components/BSObjectId.cs"
+                },
+                {
+                    "id": 193,
+                    "type": "UnityEditor.MonoScript",
+                    "packedSize": 80,
+                    "offset": 155680,
+                    "sourceAssetGUID": "28a9df63a3e24156b00f75de29b0b0c4",
+                    "sourceAssetPath": "Packages/com.sidequest.creator-sdk/Runtime/Scripts/Scene/Components/BSWorldObject.cs"
+                },
+                {
+                    "id": 194,
+                    "type": "UnityEditor.MonoScript",
+                    "packedSize": 164,
+                    "offset": 155760,
+                    "sourceAssetGUID": "474bcb49853aa07438625e644c072ee6",
+                    "sourceAssetPath": "Packages/com.unity.render-pipelines.universal/Runtime/UniversalAdditionalLightData.cs"
+                },
+                {
+                    "id": 195,
+                    "type": "UnityEditor.MonoScript",
+                    "packedSize": 80,
+                    "offset": 155936,
+                    "sourceAssetGUID": "52608dc850184ba7b3b623c0d7caebc5",
+                    "sourceAssetPath": "Packages/com.sidequest.creator-sdk/Runtime/Scripts/Scene/Components/BSAttachedObject.cs"
+                },
+                {
+                    "id": 196,
+                    "type": "UnityEditor.MonoScript",
+                    "packedSize": 72,
+                    "offset": 156016,
+                    "sourceAssetGUID": "5f83f6556b2540afae0c930c1c045f37",
+                    "sourceAssetPath": "Packages/com.sidequest.creator-sdk/Runtime/Scripts/Scene/Components/BSGrababble.cs"
+                },
+                {
+                    "id": 197,
+                    "type": "UnityEditor.MonoScript",
+                    "packedSize": 72,
+                    "offset": 156096,
+                    "sourceAssetGUID": "6a44272fde8817d4fa6116cc71b75c64",
+                    "sourceAssetPath": "Packages/com.sidequest.creator-sdk/Runtime/Scripts/Scene/Components/BSTeleporter.cs"
+                },
+                {
+                    "id": 198,
+                    "type": "UnityEditor.MonoScript",
+                    "packedSize": 96,
+                    "offset": 156176,
+                    "sourceAssetGUID": "71c1514a6bd24e1e882cebbe1904ce04",
+                    "sourceAssetPath": "Packages/com.unity.ugui/Runtime/TMP/TMP_FontAsset.cs"
+                },
+                {
+                    "id": 199,
+                    "type": "UnityEditor.MonoScript",
+                    "packedSize": 64,
+                    "offset": 156272,
+                    "sourceAssetGUID": "7a4cf7bf943011141b483e7d7e09b5de",
+                    "sourceAssetPath": "Packages/com.sidequest.creator-sdk/Runtime/Scripts/Scene/Components/BSSpawn.cs"
+                },
+                {
+                    "id": 200,
+                    "type": "UnityEditor.MonoScript",
+                    "packedSize": 80,
+                    "offset": 156336,
+                    "sourceAssetGUID": "8c2a8ae74fc8449baecb78920bd412cd",
+                    "sourceAssetPath": "Packages/com.sidequest.creator-sdk/Runtime/Scripts/Scene/Components/BSSyncedObject.cs"
+                },
+                {
+                    "id": 201,
+                    "type": "UnityEditor.MonoScript",
+                    "packedSize": 88,
+                    "offset": 156416,
+                    "sourceAssetGUID": "9541d86e2fd84c1d9990edf0852d74ab",
+                    "sourceAssetPath": "Packages/com.unity.ugui/Runtime/TMP/TextMeshPro.cs"
+                },
+                {
+                    "id": 202,
+                    "type": "UnityEditor.MonoScript",
+                    "packedSize": 80,
+                    "offset": 156512,
+                    "sourceAssetGUID": "c4fa06945a04437ebc36cf1e3b7d08ab",
+                    "sourceAssetPath": "Packages/com.sidequest.creator-sdk/Runtime/Scripts/Scene/Components/BSVideoPlayer.cs"
+                },
+                {
+                    "id": 203,
+                    "type": "UnityEditor.MonoScript",
+                    "packedSize": 64,
+                    "offset": 156592,
+                    "sourceAssetGUID": "e0526f16d89d1664eb8c8db93f510f30",
+                    "sourceAssetPath": "Packages/com.sidequest.creator-sdk/Runtime/Scripts/Scene/Components/BSSeat.cs"
+                },
+                {
+                    "id": 204,
+                    "type": "UnityEngine.Font",
+                    "packedSize": 352462,
+                    "offset": 17422096,
+                    "sourceAssetGUID": "e3265ab4bf004d28a9537516768c1c75",
+                    "sourceAssetPath": "Assets/TextMesh Pro/Fonts/LiberationSans.ttf"
+                },
+                {
+                    "id": 205,
+                    "type": "UnityEngine.LightProbes",
+                    "packedSize": 99425,
+                    "offset": 17774560,
+                    "sourceAssetGUID": "96f16aadd3c75284995ecccebfe89039",
+                    "sourceAssetPath": "Assets/_Spherebro/Scenes/Spherebro/LightingData.asset"
+                },
+                {
+                    "id": 206,
+                    "type": "UnityEngine.Object",
+                    "packedSize": 256256,
+                    "offset": 17874000,
+                    "sourceAssetGUID": "13f02375d740c4f409b60e7747c7b862",
+                    "sourceAssetPath": "Assets/_Spherebro/Scenes/Spherebro/OcclusionCullingData.asset"
+                },
+                {
+                    "id": 207,
+                    "type": "UnityEngine.LightingSettings",
+                    "packedSize": 44,
+                    "offset": 18130256,
+                    "sourceAssetGUID": "a6bff951142dd1949ab4b3ea65a237db",
+                    "sourceAssetPath": "Assets/_Spherebro/Settings/Spherebro Lighting.lighting"
+                },
+                {
+                    "id": 208,
+                    "type": "UnityEngine.MonoBehaviour",
+                    "packedSize": 1188,
+                    "offset": 18130304,
+                    "sourceAssetGUID": "2e498d1c8094910479dc3e1b768306a4",
+                    "sourceAssetPath": "Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF - Fallback.asset"
+                },
+                {
+                    "id": 209,
+                    "type": "UnityEngine.MonoBehaviour",
+                    "packedSize": 28796,
+                    "offset": 18131504,
+                    "sourceAssetGUID": "8f586378b4e144a9851e7b34d9b748ee",
+                    "sourceAssetPath": "Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF.asset"
+                }
+            ]
+        },
+        {
+            "shortPath": "CAB-e4ba7dbec84ca82e006b0387f14d1c10",
+            "overhead": 4040,
+            "contents": [
+                {
+                    "id": 1,
+                    "type": "UnityEngine.AssetBundle",
+                    "packedSize": 104,
+                    "offset": 4032,
+                    "sourceAssetGUID": "00000000000000000000000000000000",
+                    "sourceAssetPath": "AssetBundle Object"
+                },
+                {
+                    "id": 2,
+                    "type": "UnityEngine.AssetBundleManifest",
+                    "packedSize": 108,
+                    "offset": 4144,
+                    "sourceAssetGUID": "00000000000000000000000000000000",
+                    "sourceAssetPath": "Built-in AssetBundleManifest: AssetBundleManifest"
+                }
+            ]
+        }
+    ]
+}
