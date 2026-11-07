@@ -8264,7 +8264,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: BS.SDK::BS.BSWorldLink
   worldId: 2047
-  slug: spherebro
+  slug: sphererebro
   lastSyncedAt: 
   syncedGraphs: []
 --- !u!4 &480088608

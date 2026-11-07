@@ -44,6 +44,9 @@ Machine-specific notes go in `CLAUDE.local.md` (gitignored). Read `CHANGELOG.md`
 - Today (dims.json): sphere r 50. Concourse r 50.5-62.5, 120 deg arc (phi 120-240), ceiling 4.5 m. Plaza y -6 at z -77. Bridge 41.9 m in 3
   telescoping segments + drawspan. Ring r 3.4-8.6 (17.2 m across), void r 1.5-3.4, dais r 1.5 (rotating), desk waist 1.05 m.
 - Recliners: 33 at r 5.4 (y 0) + 35 at r 7.1 (y 0.5 riser), each over 330 deg, carve-out 30 deg at 6 o'clock.
+- **Seating layout** (dims.json `"seating"`, 2026-11-07): `"vista"` (live) = 74 recliners in 5 raked rows just inside the
+  portal (back row 3.8 m in from the shell), centre aisle down to a small stage 0.4 m below the front row carrying the
+  dais (at HOME the desk faces the dome); the round ring and the bridge are built but switched off. `"round"` = the reverse.
 
 ## Ben's standing rules (carried from the Polys project; all still apply)
 1. **Ben does every commit and push himself** (all projects on his account): Claude never commits or pushes; it prepares

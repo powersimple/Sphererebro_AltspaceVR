@@ -46,6 +46,17 @@ public static class SphererebroShots
         // the load look (House preset: house lights on, dome panels glowing) and a recliner close up
         Shot(cam, rt, outDir, "unity_11_recliner", new Vector3(-2.9f, 1.25f, 1.55f), new Vector3(-4.68f, 0.5f, 2.7f));
         Shot(cam, rt, outDir, "unity_12_house_default", new Vector3(5.6f, 1.7f, 4.2f), new Vector3(-20f, 12f, -12f));
+        // vista layout (when it's the live one): from the entry landing, from a row 3 seat, and the stage from the front row
+        var mount = GameObject.Find("Vista_Dais_Mount");
+        if (mount != null)
+        {
+            var m = mount.transform.position;   // the dais on the vista stage
+            Shot(cam, rt, outDir, "unity_20_vista_entrance", m + new Vector3(0, 4.35f, -11.8f), m + new Vector3(0, 1f, 6f));
+            Shot(cam, rt, outDir, "unity_21_vista_seated", m + new Vector3(2.2f, 2.3f, -6.7f), new Vector3(0, 12f, 50f));
+            Shot(cam, rt, outDir, "unity_22_vista_stage", m + new Vector3(-3.5f, 2.0f, -5.0f), m + new Vector3(0, 0.8f, 0));
+            inner.SetActive(true); glow.SetActive(false);
+            Shot(cam, rt, outDir, "unity_23_vista_dark_overview", m + new Vector3(16f, 10f, -8f), m + new Vector3(0, 0, -4f));
+        }
         Object.DestroyImmediate(go);
         // diagnostics: are the concourse renderers lightmapped?
         var floor = GameObject.Find("Band_Floor").GetComponent<MeshRenderer>();

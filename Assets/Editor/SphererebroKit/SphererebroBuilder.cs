@@ -36,7 +36,11 @@ public static class SphererebroBuilder
     [Serializable] public class DBridge { public float[] @out; public float inZ, inY, segLength; }
     [Serializable] public class DRescue { public float y; public float[] size; }
     [Serializable] public class DEsc { public float[] stepPitch; }
-    [Serializable] public class Derived { public float sphereRadius, domeClipRadius; public DConcourse concourse; public DPlaza plaza; public DNav nav; public DBridge bridge; public DRescue rescue; public DEsc escalator; }
+    // the vista layout (seats: flat [row, x, y, z, ...]; housePos: flat [x, y, z, ...]: JsonUtility reads no nested arrays)
+    [Serializable] public class DVista { public float[] daisMount, landing, daisDest, keyPos, keyTarget, housePos, seats; public float stageY; public int seatCount; }
+    [Serializable] public class Derived { public float sphereRadius, domeClipRadius; public DConcourse concourse; public DPlaza plaza; public DNav nav; public DBridge bridge; public DRescue rescue; public DEsc escalator; public string seating; public DVista vista; }
+    // which audience layout is live (dims.json "seating"): "vista" (default) or "round". Both are built; the other is switched off.
+    static bool Vista => D.seating != "round";
     static Derived D;
     static Vector3 V(float[] a) => new Vector3(a[0], a[1], a[2]);
 
@@ -70,15 +74,17 @@ public static class SphererebroBuilder
         var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
         WriteWorldLink(link);
         var groups = new Dictionary<string, Transform>();
-        foreach (var g in new[] { "ENVIRONMENT", "SPHERE", "CONCOURSE", "PLAZA", "BRIDGE", "STAGE", "PROPS", "SHOW", "LIGHTING", "NAVIGATION", "SAFETY", "EVENTS" })
+        foreach (var g in new[] { "ENVIRONMENT", "SPHERE", "CONCOURSE", "PLAZA", "BRIDGE", "STAGE", "VISTA", "PROPS", "SHOW", "LIGHTING", "NAVIGATION", "SAFETY", "EVENTS" })
             groups[g] = new GameObject($"=== {g} ===").transform;
         new GameObject("Environment").transform.SetParent(groups["ENVIRONMENT"], false);
+        Log("seating: " + (Vista ? "VISTA (round theatre and bridge off)" : "ROUND (vista off)"));
 
         var sphere = Place("SB_Sphere", groups["SPHERE"]);
         var band = Place("SB_Band", groups["CONCOURSE"]);
         var plaza = Place("SB_Plaza", groups["PLAZA"]);
         var bridge = Place("SB_Bridge", groups["BRIDGE"]);
         var stage = Place("SB_Stage", groups["STAGE"]);
+        var vista = Place("SB_Vista", groups["VISTA"]);
         // SHOW stays as an empty group: the show system (spec phase 3) puts its anchors and assets there
 
         SetupColliders(scene.GetRootGameObjects());
@@ -86,17 +92,20 @@ public static class SphererebroBuilder
         SetupBridge(bridge);
         SetupStage(stage);
         PlaceRecliners(groups["STAGE"]);
+        PlaceVistaRecliners(groups["VISTA"]);
         SetupDesk(stage);
         SetupRide(stage);
+        if (Vista) MoveDaisToVista(stage, groups["VISTA"]);
         PlaceProps(band, groups["PROPS"]);
         SetupEscalator(plaza);
         SetupNavigation(groups["NAVIGATION"], groups["SAFETY"], plaza);
         SetupLighting(groups["LIGHTING"], band, plaza);
         MarkStatic(band, true); MarkStatic(plaza, true);
-        MarkStatic(sphere, false); MarkStatic(stage, false, "Dais_Floor_Rotating");
-        foreach (var z in new[] { sphere, stage, bridge, groups["STAGE"] }) RealtimeOnly(z);
+        MarkStatic(sphere, false); MarkStatic(stage, false, "Dais_Floor_Rotating"); MarkStatic(vista, false);
+        foreach (var z in new[] { sphere, stage, bridge, groups["STAGE"], groups["VISTA"] }) RealtimeOnly(z);
         RenderSettingsSetup(mats);
         WriteScriptDims();
+        SwitchLayout(groups, stage, band);
 
         EditorSceneManager.SaveScene(scene, ScenePath);
         EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
@@ -186,6 +195,7 @@ public static class SphererebroBuilder
             $"    sphereRadius: {F(D.sphereRadius)}, domeClipRadius: {F(D.domeClipRadius)},\n" +
             $"    bridgeOut: {A(D.bridge.@out)}, bridgeInZ: {F(D.bridge.inZ)}, bridgeInY: {F(D.bridge.inY)},\n" +
             $"    spawn: {A(D.nav.spawn)}, bandArrival: {A(D.nav.bandArrival)}, ringDest: {A(D.nav.ringDest)},\n" +
+            $"    seating: \"{(Vista ? "vista" : "round")}\",\n" +
             "};\n" + DimsEnd;
         var js = File.ReadAllText(ScriptPath);
         int s = js.IndexOf(DimsStart, StringComparison.Ordinal), e = js.IndexOf(DimsEnd, StringComparison.Ordinal);
@@ -310,6 +320,71 @@ public static class SphererebroBuilder
             }
         }
         Log("recliners: 33 + 35");
+    }
+
+    // ---- vista seating (Ben, 2026-11-07): the same recliners in a fan of raked rows just inside the portal, every seat facing
+    // the sphere centre (so the far hemisphere), positions from derived.json (the Blender generator computes the rows) -------
+    static void PlaceVistaRecliners(Transform vistaGroup)
+    {
+        var model = AssetDatabase.LoadAssetAtPath<GameObject>($"{Root}/Models/SB_Recliner.fbx");
+        var src = model.GetComponentInChildren<MeshFilter>(true);
+        var srcMr = src.GetComponent<MeshRenderer>();
+        var grp = new GameObject("Recliners Vista").transform; grp.SetParent(vistaGroup, false);
+        var s = D.vista.seats; int n = 0;
+        var perRow = new Dictionary<int, int>();
+        for (int i = 0; i + 3 < s.Length; i += 4)
+        {
+            int row = Mathf.RoundToInt(s[i]); var pos = new Vector3(s[i + 1], s[i + 2], s[i + 3]);
+            perRow[row] = perRow.TryGetValue(row, out var c) ? c + 1 : 1;
+            var go = new GameObject($"Recliner V{row} {perRow[row]:00}");
+            go.transform.SetParent(grp, false);
+            go.transform.position = pos;
+            go.transform.rotation = Quaternion.LookRotation(new Vector3(-pos.x, 0, -pos.z).normalized, Vector3.up);
+            go.AddComponent<MeshFilter>().sharedMesh = src.sharedMesh;
+            var mr = go.AddComponent<MeshRenderer>(); mr.sharedMaterials = srcMr.sharedMaterials;
+            mr.shadowCastingMode = ShadowCastingMode.Off;
+            var body = go.AddComponent<BoxCollider>(); body.center = new Vector3(0, 0.55f, 0.18f); body.size = new Vector3(0.86f, 1.1f, 0.6f);
+            AddSeat(go.transform, "Seat", new Vector3(0, 0.46f, -0.02f), Quaternion.identity, new Vector3(0, 0.1f, 0.0f), new Vector3(0.62f, 0.56f, 0.9f));
+            n++;
+        }
+        Log($"vista recliners: {n} in {perRow.Count} rows ({string.Join(", ", perRow.OrderBy(kv => kv.Key).Select(kv => kv.Value))})");
+    }
+
+    // The dais (floor, desk, buttons, joystick, perches, RIDE zone: all its children) moves onto the vista stage, under a
+    // mount. At HOME (yaw 0) the desk faces the dome, like the audience (Ben, 2026-11-07), and its open side faces the aisle,
+    // so the presenter walks straight in. TURN still works (kept for now; in VR the presenter can turn themselves). The
+    // script turns the dais in its local frame exactly as before. Its walls and gate stay behind with the round theatre
+    // (switched off): Ben, "remove the walls on the side of the dais". BRIDGE and DRAWSPAN have nothing to move here.
+    static void MoveDaisToVista(Transform stage, Transform vistaGroup)
+    {
+        var dais = Find(stage, "Dais_Floor_Rotating");
+        var mount = new GameObject("Vista_Dais_Mount").transform;
+        mount.SetParent(vistaGroup, false);
+        mount.position = V(D.vista.daisMount); mount.rotation = Quaternion.identity;   // HOME: the desk faces the dome
+        dais.SetParent(mount, false);
+        dais.localPosition = Vector3.zero; dais.localRotation = Quaternion.identity;
+        foreach (var key in new[] { "Bridge", "Drawspan" })
+        {
+            var label = Find(dais, "Label_" + key);
+            var tmp = label != null ? label.GetComponent<TextMeshPro>() : null;
+            if (tmp != null) tmp.text = "—";
+        }
+        Log($"vista: dais moved to the stage at {mount.position} (desk facing the dome at HOME); BRIDGE/DRAWSPAN keys blanked");
+    }
+
+    // The layout that isn't live is kept, switched off (Ben: keep it, turn it off; never delete). In vista: the round
+    // ring and its seats, the bridge, and the concourse portal gate (it only stands while the bridge is away; vista has
+    // no bridge, the entry deck is always there). The script finds none of these in vista and doesn't look for them.
+    static void SwitchLayout(Dictionary<string, Transform> groups, Transform stage, Transform band)
+    {
+        if (Vista)
+        {
+            stage.gameObject.SetActive(false);
+            foreach (var t in groups["STAGE"].Cast<Transform>().Where(t => t.name.StartsWith("Recliners Row"))) t.gameObject.SetActive(false);
+            groups["BRIDGE"].gameObject.SetActive(false);
+            var gate = Find(band, "Band_Gate_COL"); if (gate != null) gate.gameObject.SetActive(false);
+        }
+        else groups["VISTA"].gameObject.SetActive(false);
     }
 
     static Vector3 Polar(float r, float phiDeg, float y)
@@ -538,8 +613,9 @@ public static class SphererebroBuilder
         var sp = spawn.gameObject.AddComponent<BS.BSSpawn>();
         var so = new SerializedObject(sp); var r = so.FindProperty("radius"); if (r != null) { r.floatValue = 1.5f; so.ApplyModifiedPropertiesWithoutUndo(); }
         var band = Dest(nav, "Nav_BandArrival", V(D.nav.bandArrival), 0);
-        var ring = Dest(nav, "Nav_RingDest", V(D.nav.ringDest), 0);
-        Dest(nav, "Nav_DaisDest", V(D.nav.daisDest), 0);
+        // in vista the "ring" destination (where rescue lands) is the top of the vista aisle, facing the dome
+        var ring = Dest(nav, "Nav_RingDest", V(Vista ? D.vista.landing : D.nav.ringDest), 0);
+        Dest(nav, "Nav_DaisDest", V(Vista ? D.vista.daisDest : D.nav.daisDest), 0);
         var pad = Find(plaza, "Plaza_Lift_Pad_EMIT");
         Teleporter(nav, "Plaza_Lift_TRIG", pad.position + Vector3.up * 1f, new Vector3(1.6f, 2f, 1.6f), band);
         // anyone who falls into the sphere comes back to the ring landing before reaching the bottom
@@ -582,14 +658,19 @@ public static class SphererebroBuilder
         AddLight(plazaL, "Spawn Glow", LightType.Point, V(D.plaza.spawnGlow), Quaternion.identity, cool, 8f * g, 10f, LightmapBakeType.Baked);
         // sphere: real-time only. A BS Light on each makes it reachable from the script (lighting presets).
         var sphereL = new GameObject("Sphere (realtime)").transform; sphereL.SetParent(lighting, false);
-        var key = AddLight(sphereL, "Dais Key", LightType.Spot, new Vector3(0, 7f, 0.8f), Quaternion.LookRotation(new Vector3(0, -1f, -0.1f)), warm, 26f, 13f, LightmapBakeType.Realtime, 38f);
+        // same names in both layouts (the script finds them by name); in vista the key lights the presenter on the stage from
+        // the dome side (the desk faces the dome) and the three house lights hang over the rows
+        var keyPos = Vista ? V(D.vista.keyPos) : new Vector3(0, 7f, 0.8f);
+        var keyRot = Vista ? Quaternion.LookRotation(V(D.vista.keyTarget) - keyPos) : Quaternion.LookRotation(new Vector3(0, -1f, -0.1f));
+        var key = AddLight(sphereL, "Dais Key", LightType.Spot, keyPos, keyRot, warm, 26f, 13f, LightmapBakeType.Realtime, 38f);
         key.gameObject.AddComponent<BS.BSLight>(); ObjectId(key.gameObject);
         var house = new GameObject("House Lights").transform; house.SetParent(sphereL, false);
         ObjectId(house.gameObject);
         for (int i = 0; i < 3; i++)
         {
-            var pos = Polar(6.3f, 60f + 120f * i, 7f);
-            var l = AddLight(house, $"House {i + 1}", LightType.Spot, pos, Quaternion.LookRotation(new Vector3(0, -1f, 0) + new Vector3(pos.x, 0, pos.z).normalized * 0.15f), amber, 30f, 16f, LightmapBakeType.Realtime, 130f);
+            var pos = Vista ? new Vector3(D.vista.housePos[3 * i], D.vista.housePos[3 * i + 1], D.vista.housePos[3 * i + 2]) : Polar(6.3f, 60f + 120f * i, 7f);
+            var aim = Vista ? Vector3.down : new Vector3(0, -1f, 0) + new Vector3(pos.x, 0, pos.z).normalized * 0.15f;
+            var l = AddLight(house, $"House {i + 1}", LightType.Spot, pos, Quaternion.LookRotation(aim, Vista ? Vector3.forward : Vector3.up), amber, 30f, 16f, LightmapBakeType.Realtime, 130f);
             l.gameObject.AddComponent<BS.BSLight>(); ObjectId(l.gameObject);
         }
         // reflection probes (baked) for the polished concourse and plaza

@@ -2,15 +2,57 @@
 
 Newest first. Each entry: what changed, where, and what is **not** verified. Rules and pipeline: `CLAUDE.md`.
 
+## 2026-11-07: vista seating, a second audience layout (Claude, session Sphererebro2; Ben commits and pushes)
+
+Ben: the in-the-round view is too tight. Keep that layout and the bridge, switched off, and seat the audience near the
+entrance instead, with an aisle down the centre and the rows opened out to look at the whole far side of the sphere.
+Then: the dais goes on a small stage in front of the seats, slightly below the front row, with no walls around it.
+Ben said this one may stay unfinished.
+
+- **Layout switch:** `"seating"` in `Sphererebro.dims.json`, either `"vista"` (now live) or `"round"`. Both layouts are
+  always built, and the other one is switched off (inactive, not deleted). In vista these are off: the ring, its 68 seats,
+  the bridge with its drawspan, the dais walls and gate, and the concourse portal gate.
+- **Vista** (Blender, collection `Vista` -> `SB_Vista.fbx`, 4.6k tris). Every radius is measured in from the shell, so the
+  layout follows the sphere size:
+  - level entry deck through the portal onto a landing (y 0);
+  - **74 recliners** (the same soft model) in 5 raked rows, 1.5 m pitch, 0.45 m rise, rows 8/8/7/7/7 a side;
+  - the rows are arcs concentric with the sphere, 22 deg wide, every seat facing the far hemisphere;
+  - **centre aisle** of 12 steps with gold nosings, walked on an invisible ramp collider, down to stage level;
+  - glass and bronze rails on the sides, the front edge, the landing and the entry, each with a `_COL` wall;
+  - gold edge glow on every row front and the stage rim, for Lights Out.
+- **Dais on the vista stage:** the builder moves the dais with everything on it onto a 2.6 m stage 0.4 m below the front
+  row: desk, buttons, joystick, perches and RIDE zone. The stage has no rail and no dais walls. An invisible edge wall stops
+  falls and is open to the aisle. **At HOME the desk faces the dome** (Ben), like the audience, with its open side to the
+  aisle so the presenter walks straight in. Rotation is kept for now (Ben: less needed, he can turn in VR). TURN, HOME, the joystick, RIDE, LIGHTS and the sphere keys work as before. BRIDGE and DRAWSPAN labels show
+  "—", and pressing either says "No bridge in the vista layout".
+- **Lights in vista:** the key light hits the presenter from the dome side, and the three house lights hang over the
+  rows. Names are unchanged, so the LIGHTS presets still apply. The rescue teleporter now lands at the top of the aisle.
+- **Script:** `SB_DIMS.seating` / `SB.seating`. In vista the script never looks for the bridge, drawspan or gates (each
+  miss would cost an 8 s wait at load), writes no drawspan state when turning, and leaves BRIDGE off the status line.
+- **Tests:** `script_test.html` passes 38/38 (round). The new `script_test.html?seating=vista` passes 33/33, against the
+  mock only.
+- Review shots: `unity_20`–`23` (vista) are added to **Sphererebro > Review Shots**.
+- Builder compile-checked outside Unity (Roslyn against the project's assemblies), 0 errors. **The scene has NOT been
+  rebuilt:** Unity had the project open. Ben runs **Sphererebro > Build World + Bake Lighting**, then Review Shots.
+
+**Not verified:**
+- The Unity build of the vista layout. Only Blender previews have been checked.
+- Anything in the headset:
+  - the aisle ramp's feel;
+  - seat clicks;
+  - the presenter's sightlines;
+  - whether 74 recliners plus the dome hold frame rate on Quest.
+- The round layout after this change (switch `"seating": "round"` to check it).
+
 ## 2026-11-06 (evening): Phase 0, after the first live upload (Claude; Ben commits and pushes)
 
-First upload worked (world 2047, slug `spherebro`): desk buttons and joystick worked in the headset. Ben's notes, and
+First upload worked (world 2047, slug `spherebro` at the time; Ben has since changed it to `sphererebro`): desk buttons and joystick worked in the headset. Ben's notes, and
 what changed for each. Full plan for what comes next: the spec on Ben's Desktop, `Sphererebro-Spec-2026-11-06.md`.
 
 - **Renamed Sphererebro** (said like "cerebro"): folders (`B:\VRWorlds\AltspaceVR\Sphererebro\Sphererebro_AltspaceVR`),
   `_Sphererebro`, `SphererebroKit`/`Sphererebro*` classes and menu, scene `Sphererebro.unity`, Blender script and .blend,
   the facade and bar signs (`SPHEREREBRO`), docs, and the git remote (`powersimple/Sphererebro_AltspaceVR`; GitHub
-  redirects the old name). Asset GUIDs kept (each .meta renamed with its file). The world slug stays `spherebro`.
+  redirects the old name). Asset GUIDs kept (each .meta renamed with its file). The world slug is now `sphererebro` (Ben changed it in the scene's `__WorldLink` after this entry).
   **Ben:** re-add the repo in GitHub Desktop and the project in Unity Hub at the new folder.
 - **Dome size is a setting:** `Assets/_Sphererebro/Config/Sphererebro.dims.json` (sphere radius, concourse, plaza).
   Blender derives every sphere-scale mesh and writes `Sphererebro.derived.json`; the builder reads it for every position,
@@ -30,7 +72,7 @@ what changed for each. Full plan for what comes next: the spec on Ben's Desktop,
 - **Orbs removed** (model, materials no longer made, desk keys, script, XRTM trackObjects). Their desk slots are now
   RIDE and LIGHTS. The old `SB_Show.fbx` was left in Models, unused (not deleted).
 - **Builder keeps the world link** (`__WorldLink`) across rebuilds. A first attempt lost it for two runs; restored to
-  id 2047 / slug `spherebro` and checked.
+  id 2047 and checked (the slug is now `sphererebro`).
 - Tests: 37/37 against the mock. Build: 238 renderers, 132,860 triangles, 183 object ids, 1 lightmap.
 
 **Not verified (needs the headset):** RIDE holding a standing player as the dais turns (spike S1) and the perches as

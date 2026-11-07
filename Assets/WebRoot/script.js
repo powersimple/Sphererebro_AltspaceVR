@@ -8,7 +8,10 @@
 // in the right place. Nothing here writes a transform unless its value changed, so XR Time Machine playback (which moves
 // the same objects) isn't fought while the show is idle.
 //
-// Frame (Unity): origin = sphere centre = dais pivot; the bridge runs to -Z (6 o'clock).
+// Frame (Unity): origin = sphere centre; the bridge (round layout) and the portal are at -Z (6 o'clock).
+// Two audience layouts (SB_DIMS.seating, from dims.json): "round", the in-the-round ring with the dais at the centre and
+// the bridge; "vista", raked rows just inside the portal facing the far side, the dais on a small stage in front of them,
+// no bridge. The builder switches the other layout off, so in vista the bridge, drawspan and gates are never looked for.
 //
 // Size: SB_DIMS below is written by the Unity builder from Config/Sphererebro.derived.json (which the Blender generator
 // makes from Sphererebro.dims.json). Never type a sphere-scale number into this file; use SB_DIMS.
@@ -18,10 +21,12 @@ const SB_DIMS = {
     sphereRadius: 50, domeClipRadius: 49.6,
     bridgeOut: [-43.5167, -29.55, -15.5833], bridgeInZ: -57.6833, bridgeInY: -0.65,
     spawn: [0, -5.98, -81], bandArrival: [0, 0.02, -58.5], ringDest: [0, 0.02, -6.6],
+    seating: "vista",
 };
 // <<< Sphererebro dims
 
 const SB = {
+    seating: SB_DIMS.seating || "round",   // "vista" or "round" (the tests may set it before load)
     turnRate: 6,                 // deg/s for TURN LEFT / TURN RIGHT (one revolution a minute)
     homeRate: 20,                // deg/s when HOME brings the dais back to 0
     stickRate: 14,               // deg/s at full joystick deflection
@@ -148,10 +153,12 @@ if (typeof window !== "undefined" && window.addEventListener) window.addEventLis
     const dais = await find("Dais_Floor_Rotating");
     const status = await find("Desk_Status");
     const statusText = status && status.GetComponent(BS.CT.Text);
-    const segs = await Promise.all(SB.bridge.segs.map(find));
-    const draw = await find(SB.drawspan.name);
+    // vista has no bridge: its pieces are switched off (unfindable), so don't wait 8 s on each of them
+    const vista = SB.seating === "vista";
+    const segs = vista ? [] : await Promise.all(SB.bridge.segs.map(find));
+    const draw = vista ? null : await find(SB.drawspan.name);
     const gates = {};
-    for (const g of SB.bridge.gates.concat(SB.drawspan.gates)) gates[g] = await find(g);
+    if (!vista) for (const g of SB.bridge.gates.concat(SB.drawspan.gates)) gates[g] = await find(g);
     const sph = {};
     for (const [k, n] of Object.entries(SB.sphere)) sph[k] = await find(n);
     const keyLight = await find(SB.lx.keyName);
@@ -159,7 +166,7 @@ if (typeof window !== "undefined" && window.addEventListener) window.addEventLis
     const stick = await find("Desk_Joystick");
     const stickBase = await find("Desk_Joystick_Base");
     const ride = dais && dais.GetComponent(BS.CT.AttachedObject);
-    console.log("[Sphererebro] desk:", !!dais, "bridge", segs.filter(Boolean).length, "lights", [keyLight].concat(houseLights).filter(Boolean).length, "ride", !!ride);
+    console.log("[Sphererebro] desk (" + SB.seating + "):", !!dais, "bridge", segs.filter(Boolean).length, "lights", [keyLight].concat(houseLights).filter(Boolean).length, "ride", !!ride);
 
     // ---- state ------------------------------------------------------------------------------------------------------
     const KEYS = ["dais", "bridge", "draw", "sphere", "lattice", "lx", "video"];
@@ -202,7 +209,7 @@ if (typeof window !== "undefined" && window.addEventListener) window.addEventLis
         else {
             const rate = SBState.daisTurning(state.dais, now) ? Number(String(state.dais).split("|")[1]) : 0;
             const yaw = ((SBState.daisYaw(state.dais, now) % 360) + 360) % 360;
-            t = `${rate ? (rate > 0 ? "TURNING ▶ " : "◀ TURNING ") : ""}${yaw.toFixed(0)}° · BRIDGE ${String(state.bridge || "out").split("|")[0].toUpperCase()}` +
+            t = `${rate ? (rate > 0 ? "TURNING ▶ " : "◀ TURNING ") : ""}${yaw.toFixed(0)}°${vista ? "" : " · BRIDGE " + String(state.bridge || "out").split("|")[0].toUpperCase()}` +
                 ` · ${SB.lx.names[SBState.lx(state.lx, SB.lx)]}${riding ? " · RIDING" : ""}`;
         }
         if (t !== showStatus.last) { statusText.text = t; showStatus.last = t; }
@@ -272,7 +279,7 @@ if (typeof window !== "undefined" && window.addEventListener) window.addEventLis
     const drawOut = () => SBState.moveProgress(state.draw, Date.now(), 1).dir !== "in";
     function turn(rate) {
         const now = Date.now(), patch = { dais: SBState.daisRaw(yawNow(), rate, now, 0) };
-        if (rate && drawOut()) patch.draw = "in|" + now;      // never turn with the drawspan against the dais
+        if (rate && !vista && drawOut()) patch.draw = "in|" + now;      // never turn with the drawspan against the dais
         write(patch);
     }
     function toggleMove(key) {
@@ -307,8 +314,9 @@ if (typeof window !== "undefined" && window.addEventListener) window.addEventLis
         RotR: () => turn(SB.turnRate),
         RotStop: () => turn(0),
         Home: () => write({ dais: SBState.homeMove(yawNow(), SB.homeRate, Date.now()) }),
-        Bridge: () => write({ bridge: toggleMove("bridge") }),
+        Bridge: () => { if (vista) { say("No bridge in the vista layout"); return; } write({ bridge: toggleMove("bridge") }); },
         Drawspan: () => {
+            if (vista) { say("No bridge in the vista layout"); return; }
             const y = ((yawNow() % 360) + 360) % 360;
             if (!drawOut() && Math.min(y, 360 - y) > 0.5) { say("HOME the dais first"); return; }
             if (!drawOut() && SBState.daisTurning(state.dais, Date.now())) { say("STOP the dais first"); return; }
