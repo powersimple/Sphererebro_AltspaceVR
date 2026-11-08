@@ -2,6 +2,24 @@
 
 Newest first. Each entry: what changed, where, and what is **not** verified. Rules and pipeline: `CLAUDE.md`.
 
+## 2026-11-08, overnight: THE TALK, cue by cue, built into XR Time Machine (Claude; Ben commits)
+
+Ben's brief (`V:\Desktop\_Prompt for Claude Code - Sphererebro Overnight Build.md`) plus, mid-run: build the cue engine
+INTO XR Time Machine and test it on the dashboard; big dominating visuals; rich textures; sound; and a 200-year media
+timeline from his 2020Vision assets. Full record: `SPHEREREBRO_STATUS.md`; review with renders: `review/REVIEW.md`.
+- **XR Time Machine 0.4.0: shows.** Cue data in the world's XRTM config (`show: window.SB_TALK`), a **Show tab** on the desk
+  panel (cue, next, Back / Next, Cue 1, Rehearse, End show, jump list), A / X and arrow keys while a show runs, the
+  protected key `xrtm.show` for everyone. Entrances play forward; back, jumps and late arrivals show held poses.
+- **30 cues** (the brief's 1 to 11 with their steps, plus 2T), 44 elements, generated: `tools/talk/choreo.py` (motion) ->
+  `Config/talk_timeline.json` -> `SphererebroTalk.cs` (Unity twins + AnimationClips) and script.js's show block.
+- **Assets:** 15 procedural Blender models with CC0 ambientCG textures (`tools/blender/`, `talk/models/`), text meshes,
+  timeline cards, 30 synthesised sounds (`tools/talk/sounds.py`), placeholder clips (`media/`).
+- **The world** hides its dome shells and lattice while a show runs (event `xrtm-show`), and restores them at the end.
+- **Checks:** show logic 32/32 (`tools/harness/show_test.html`), world tests 60/60 vista, clearance PASS (3 m, 79 motions),
+  every cue's held state inside the Quest budget (`review/PERFORMANCE.md`).
+- **Built** in the open editor (Build World + Bake, 23:45). **Not uploaded. Not seen in a headset.** Video placeholders are
+  not on the media host yet.
+
 ## 2026-11-07, 17:16: unattended build and upload; seam, arch, backlit keys, skybox default (Claude; Ben commits)
 
 Ben was away: "build and upload without me, I should not have to close Unity". All built and uploaded (all three files

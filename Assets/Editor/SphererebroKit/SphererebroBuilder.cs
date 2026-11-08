@@ -172,6 +172,10 @@ public static class SphererebroBuilder
         var vista = Place("SB_Vista", groups["VISTA"]);
         // SHOW: the show system's assets (spec phase 3). First one: the IPN cube (2026-11-07)
         SetupIpnCube(groups["SHOW"]);
+        // THE TALK (10 Nov 2026): the cue-by-cue show XR Time Machine steps through (SphererebroTalk.cs). A failure here is
+        // reported and the rest of the world still builds.
+        try { SphererebroTalk.Build(groups["SHOW"], Log); }
+        catch (Exception e) { Log("TALK BUILD FAILED: " + e); Debug.LogException(e); }
 
         SetupColliders(scene.GetRootGameObjects());
         SetupSphere(sphere, mats);

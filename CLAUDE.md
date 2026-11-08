@@ -24,6 +24,15 @@ Machine-specific notes go in `CLAUDE.local.md` (gitignored). Read `CHANGELOG.md`
   `scripts\install_xrtm.ps1`, `models\Sphererebro.blend` + FBX copies, `tests\script_test.html` + `tests\serve.ps1`,
   `previews\` (review renders). That folder is **outside this git repo** (see CHANGELOG open items).
 
+## The talk (Ben, 10 Nov 2026; overnight build 2026-11-08)
+- Cues: `Assets/_Sphererebro/Config/talk_show.json` (order, text, video). Motion: `tools/talk/choreo.py`. After an edit run
+  `tools/talk/build_show.ps1` (script.js only for cue order/video; text or motion also needs Build World).
+- Unity: `SphererebroTalk*.cs` builds SHOW/Talk (twins Play/Hold/Exit per element). Runtime: XR Time Machine 0.4's Show tab.
+- Assets: `tools/blender/` (build_all.py) -> `talk/models/*.glb` + `Assets/_Sphererebro/Talk/Models/*.fbx`; materials in
+  `tools/blender/talk_materials.json`; CC0 textures `tools/textures/` (CREDITS.md). Sounds: `tools/talk/sounds.py`.
+- Test: `tools/harness/serve.ps1`, then `show_test.html` (logic) and `show.html` (motion, clearance) on localhost:8766.
+  Unattended Unity: `tools/unity_run.ps1 build "exec SphererebroTalkShots.Run"` (review/cues, review/motion).
+
 ## The pipeline (everything is regenerated; change the generators, not the outputs)
 1. **Geometry:** `blender.exe -b --factory-startup --python ..\Assets\scripts\build_sphererebro.py -- ..\Assets\models Assets\_Sphererebro\Models`
    (Blender 5.2). Writes the .blend and FBX into both folders.

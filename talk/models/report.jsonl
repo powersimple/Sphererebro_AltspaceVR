@@ -1,0 +1,26 @@
+{"asset": "white_room", "tris": 2208, "bytes": 50960, "glb": "talk/models/white_room.glb", "note": "inverted sphere r 450, unlit, floor gradient in its emission map", "time": "2026-11-07 22:32"}
+{"asset": "server_rack_hero", "tris": 3760, "bytes": 6645680, "glb": "talk/models/server_rack_hero.glb", "note": "LEDs G265 B68 A12", "time": "2026-11-07 22:32"}
+{"asset": "server_rack_open", "tris": 3760, "bytes": 6647920, "glb": "talk/models/server_rack_open.glb", "note": "LEDs G265 B68 A12; doors open 110 deg", "time": "2026-11-07 22:32"}
+{"asset": "server_rack_locked", "tris": 11670, "bytes": 4482820, "glb": "talk/models/server_rack_locked.glb", "note": "glass doors, tape shelves, padlock on hasp", "time": "2026-11-07 22:32"}
+{"asset": "server_rack_label", "tris": 3998, "bytes": 6666648, "glb": "talk/models/server_rack_label.glb", "note": "LEDs G265 B68 A12; LabelPanel + LabelAnchor", "time": "2026-11-07 22:32"}
+{"asset": "electricity_bill", "tris": 2972, "bytes": 1607796, "glb": "talk/models/electricity_bill.glb", "note": "origin at top centre; strip hangs to z -61; Numbers panel x -3.0..0.6", "time": "2026-11-07 22:33"}
+{"asset": "stamp", "tris": 2008, "bytes": 9566144, "glb": "talk/models/stamp.glb", "note": "height 8.66 m; face 5.4x3.0 m at z=0 (rim raised 0.11)", "time": "2026-11-07 22:33"}
+{"asset": "light_beam", "tris": 1048, "bytes": 25508, "glb": "talk/models/light_beam.glb", "note": "unit arch (0,0,0)->(0,1,0), peak 0.35; Beam + Halo", "time": "2026-11-07 22:33"}
+{"asset": "curved_screen", "tris": 1072, "bytes": 1105988, "glb": "talk/models/curved_screen.glb", "note": "40 x 22 m arc, r 30, concave to +Y; Screen UV 0..1 (u=0 at +X)", "time": "2026-11-07 22:33"}
+{"asset": "radio_1920s", "tris": 5524, "bytes": 11696428, "glb": "talk/models/radio_1920s.glb", "note": "cathedral radio, real size 0.40 x 0.29 x 0.475 m; parts Cabinet, Cloth, Dial, Knobs", "time": "2026-11-07 22:33"}
+{"asset": "tv_midcentury", "tris": 7440, "bytes": 9085400, "glb": "talk/models/tv_midcentury.glb", "note": "1950s console TV, real size 0.78 x 0.51 x 1.05 m; parts Cabinet, Screen, Grille, Knobs, Legs", "time": "2026-11-07 22:33"}
+{"asset": "web_monitor_1990s", "tris": 3558, "bytes": 2251148, "glb": "talk/models/web_monitor_1990s.glb", "note": "beige CRT 0.37 x 0.42 x 0.38 m on a swivel foot + 101-key keyboard; parts Monitor, Screen, Keyboard", "time": "2026-11-07 22:33"}
+{"asset": "feed_tile", "tris": 4432, "bytes": 1524136, "glb": "talk/models/feed_tile.glb", "note": "10 portrait 9:16 tiles 1.08 x 1.92 x 0.06 m, 1.5 m apart along X, each origin at its own base centre", "time": "2026-11-07 22:33"}
+{"asset": "devices", "tris": 3952, "bytes": 4895184, "glb": "talk/models/devices.glb", "note": "Phone 0.072 x 0.15 m upright, Laptop 0.33 m open 110 deg (child Laptop_Lid, hinge origin), Headset 0.19 m visor", "time": "2026-11-07 22:34"}
+{"asset": "water_tank", "tris": 2826, "bytes": 1580304, "glb": "talk/models/water_tank.glb", "note": "Glass/Rings/Water; Water origin at its bottom (z 0.3), fill by scale Z 0..1, top cap = surface", "time": "2026-11-07 22:34"}
+{"asset": "gas_plant", "tris": 7954, "bytes": 7490644, "glb": "talk/models/gas_plant.glb", "note": "hall 40x22x16, 2 HRSG + 2 stacks 55 m, footprint X -24..30 / Y -27..26; ten in a row at >= 56 m pitch", "time": "2026-11-07 22:34"}
+{"asset": "hall_library", "tris": 10146, "bytes": 18310164, "glb": "talk/models/hall_library.glb", "note": "", "time": "2026-11-07 22:34"}
+{"asset": "hall_museum", "tris": 4924, "bytes": 9174720, "glb": "talk/models/hall_museum.glb", "note": "", "time": "2026-11-07 22:34"}
+{"asset": "hall_classroom", "tris": 6312, "bytes": 11511468, "glb": "talk/models/hall_classroom.glb", "note": "", "time": "2026-11-07 22:34"}
+{"asset": "hall_studio", "tris": 6208, "bytes": 11951148, "glb": "talk/models/hall_studio.glb", "note": "", "time": "2026-11-07 22:34"}
+{"asset": "talk_text", "tris": 36648, "bytes": 1447204, "glb": "talk/models/talk_text.glb", "note": "all on-screen words, one mesh per word", "time": "2026-11-07 22:34"}
+{"asset": "talk_text_lod1", "tris": 14638, "bytes": 631856, "glb": "talk/models/talk_text_lod1.glb", "note": "LOD1 (decimate 0.4)", "time": "2026-11-07 22:34"}
+{"asset": "server_rack_far", "tris": 1610, "bytes": 6496784, "glb": "talk/models/server_rack_far.glb", "note": "server_rack_hero decimated to ~30% (LEDs whole), for distant racks", "time": "2026-11-07 23:00"}
+{"asset": "server_rack_far_open", "tris": 1610, "bytes": 6496748, "glb": "talk/models/server_rack_far_open.glb", "note": "server_rack_open decimated to ~30% (LEDs whole), for distant racks", "time": "2026-11-07 23:00"}
+{"asset": "talk_text", "tris": 36648, "bytes": 1447204, "glb": "talk/models/talk_text.glb", "note": "all on-screen words, one mesh per word", "time": "2026-11-07 23:19"}
+{"asset": "talk_text_lod1", "tris": 14638, "bytes": 631856, "glb": "talk/models/talk_text_lod1.glb", "note": "LOD1 (decimate 0.4)", "time": "2026-11-07 23:19"}

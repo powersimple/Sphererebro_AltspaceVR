@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Talk show simulator</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; color: #ddd; font: 13px/1.4 ui-monospace, Consolas, monospace; overflow: hidden; }
+  #ui { position: absolute; left: 8px; top: 8px; background: #000a; padding: 8px 10px; border-radius: 10px; max-width: 520px; }
+  #ui button { background: #333; color: #eee; border: 0; border-radius: 14px; padding: 4px 12px; margin: 2px; cursor: pointer; }
+  #log { white-space: pre-wrap; max-height: 50vh; overflow: auto; color: #9c9; }
+</style>
+<script type="importmap">{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }</script>
+</head>
+<body>
+<div id="ui">
+  <div><b>Talk show simulator</b> (same tracks Unity plays; GLB assets; Unity coordinates)</div>
+  <div id="cue">loading…</div>
+  <div>
+    <button id="back">◀ Back</button><button id="next">Next ▶</button><button id="reh">Rehearse</button>
+    <button id="seat">Front seat</button><button id="wide">Wide</button><button id="clear">Clearance test</button><button id="perf">Perf + motion run</button>
+  </div>
+  <div id="log"></div>
+</div>
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+
+const BASE = "../../";
+const log = (s) => { const d = document.getElementById("log"); d.textContent += s + "\n"; d.scrollTop = 1e9; console.log(s); };
+const save = (path, body) => fetch("/save?path=" + encodeURIComponent(path), { method: "POST", body });
+const TL = await (await fetch(BASE + "Assets/_Sphererebro/Config/talk_timeline.json")).json();
+const CARDS = await (await fetch(BASE + "talk/gen/tl_cards.json")).json();
+const S = { cues: TL.cues, elements: TL.elements };
+
+// ---------------------------------------------------------------- renderer, Unity frame
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(innerWidth, innerHeight); renderer.setPixelRatio(1);
+renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x05060a);
+const unity = new THREE.Group(); unity.scale.set(1, 1, -1); scene.add(unity);          // Unity (left-handed) -> three
+scene.add(new THREE.AmbientLight(0xffffff, 0.35));
+const camera = new THREE.PerspectiveCamera(95, innerWidth / innerHeight, 0.1, 2500);
+const U = (x, y, z) => new THREE.Vector3(x, y, -z);
+function view(eye, at, fov) { camera.position.copy(U(...eye)); camera.lookAt(U(...at)); camera.fov = fov; camera.updateProjectionMatrix(); }
+const SEAT_VIEW = [[0, -1.15, -40.1], [0, 1.0, 0], 95], WIDE_VIEW = [[0, 9, -49], [0, 0, 0], 85];
+view(...SEAT_VIEW);
+// the audience (boxes), the presenter's stage
+const A = TL.audience;
+const seatGroup = new THREE.Group(); unity.add(seatGroup);
+{ const [lo, hi] = A.seatBox; const g = new THREE.BoxGeometry(hi[0] - lo[0], 1.0, hi[2] - lo[2]); const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: 0x5a1414 }));
+  m.position.set((lo[0] + hi[0]) / 2, lo[1] - 0.2, (lo[2] + hi[2]) / 2); seatGroup.add(m); }
+
+// ---------------------------------------------------------------- assets
+const loader = new GLTFLoader();
+const glbs = {};
+async function glb(name) { if (!glbs[name]) glbs[name] = loader.loadAsync(BASE + "talk/models/" + name + ".glb").then((g) => g.scene).catch(() => null); return glbs[name]; }
+function asUnity(obj) { const w = new THREE.Group(); obj.scale.x *= -1; w.add(obj); return w; }   // GLB (x,z,-y) -> Unity (-x,z,-y)
+const textObjs = {};
+async function textMesh(name) { const t = await glb("talk_text"); if (!t) return null; let f = null; t.traverse((o) => { if (o.name === name) f = o; }); return f; }
+const MAT = (hex, opts = {}) => new THREE.MeshBasicMaterial({ color: hex, transparent: true, ...opts });
+
+async function make(node, make, elId) {
+  if (make.asset) {
+    const g = await glb(make.asset); let obj;
+    if (!g) obj = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), MAT(0xff00ff));
+    else {
+      obj = g.clone(true);
+      if (make.part) { let p = null; obj.traverse((o) => { if (o.name === make.part) p = o; }); if (p) { obj = p.clone(true); obj.position.set(0, 0, 0); } }
+    }
+    const w = asUnity(obj); node.add(w); return;
+  }
+  if (make.merge) {
+    for (const it of make.merge) {
+      const g = await glb(it.asset); if (!g) continue;
+      const c = asUnity(g.clone(true)); c.position.set(...it.p); c.rotation.set(0, THREE.MathUtils.degToRad(it.yaw), 0, "YXZ"); node.add(c);
+    }
+    return;
+  }
+  if (make.special === "envsphere") {
+    const tex = { TK_EnvDark: 0x06070c, TK_WarmRoom: 0x8a5a33 }[make.mat] ?? 0x222222;
+    node.add(new THREE.Mesh(new THREE.SphereGeometry(make.radius, 48, 24), MAT(tex, { side: THREE.BackSide, depthWrite: false })));
+  } else if (make.special === "stars") {
+    const n = make.count, pos = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) { const z = Math.random() * 2 - 1, p = Math.random() * 6.283, r = Math.sqrt(1 - z * z); pos.set([make.radius * r * Math.cos(p), make.radius * z, make.radius * r * Math.sin(p)], i * 3); }
+    const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    node.add(new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size: 0.15, transparent: true })));
+  } else if (make.special === "floor") {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(make.size, make.size), new THREE.MeshStandardMaterial({ color: 0xdddddf, roughness: 0.5, transparent: true }));
+    m.rotation.x = -Math.PI / 2; m.position.y = make.y; node.add(m);
+  } else if (make.special === "feedsector") {
+    const cols = Math.floor((Math.PI / 180) * (make.a1 - make.a0) * make.radius / (make.tileW + make.gapW));
+    const rows = Math.ceil((make.y1 - make.y0 + 6.6) / 2.2);
+    const geo = new THREE.PlaneGeometry(make.tileW, make.tileH);
+    const im = new THREE.InstancedMesh(geo, new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }), cols * rows);
+    const M = new THREE.Matrix4(), col = new THREE.Color(); let k = 0;
+    for (let c = 0; c < cols; c++) for (let r = 0; r < rows; r++) {
+      const a = THREE.MathUtils.degToRad(make.a0 + (make.a1 - make.a0) * (c + 0.5) / cols);
+      M.makeRotationY(a); M.setPosition(make.radius * Math.sin(a), make.y0 - 6.6 + r * 2.2 + make.tileH / 2, make.radius * Math.cos(a));
+      im.setMatrixAt(k, M); im.setColorAt(k, col.setHSL(0.55 + 0.25 * Math.random(), 0.6, 0.35 + 0.3 * Math.random())); k++;
+    }
+    node.add(im);
+  } else if (make.special === "shatter") {
+    const n = 2000, pos = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) { const a = THREE.MathUtils.degToRad(-make.arc + 2 * make.arc * Math.random()); pos.set([make.radius * Math.sin(a), make.y0 + Math.random() * (make.y1 - make.y0), make.radius * Math.cos(a)], i * 3); }
+    const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    node.add(new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size: 0.2 })));
+  } else if (make.light) {
+    const L = make.light; const c = new THREE.Color(...L.color);
+    const l = L.type === "directional" ? new THREE.DirectionalLight(c, L.intensity) : L.type === "spot" ? new THREE.SpotLight(c, L.intensity * 6, L.range, THREE.MathUtils.degToRad(L.angle / 2), 0.4, 1) : new THREE.PointLight(c, L.intensity * 6, L.range, 1);
+    node.add(l); node.userData.light = l; node.userData.baseI = l.intensity / Math.max(1e-6, L.intensity);
+  } else if (make.text) {
+    const key = make.sub ? make.text + "sub" : make.text;
+    for (let w = 0; ; w++) {
+      const src = await textMesh(`${key}_L${make.line || 0}_W${String(w).padStart(2, "0")}`); if (!src) break;
+      const wrap = new THREE.Group(); wrap.name = "W" + String(w).padStart(2, "0");
+      const m = asUnity(src.clone(true)); m.scale.multiplyScalar(make.size);
+      // talk_text GLB positions are in the glTF frame: x mirrored
+      wrap.position.set(-src.position.x * make.size, 0, 0); m.children[0].position.set(0, 0, 0);
+      if (make.arc) { const th = wrap.position.x / make.arc; wrap.position.set(make.arc * Math.sin(th), 0, -make.arc + make.arc * Math.cos(th)); wrap.rotation.y = th; }
+      m.traverse((o) => { if (o.isMesh) o.material = MAT(make.mat === "TK_TextGold" ? 0xffc766 : make.mat === "TK_StampInk" ? 0x9e1010 : make.mat === "TK_TextInk" ? 0x111111 : 0xf3efe6); });
+      wrap.add(m); node.add(wrap);
+    }
+  } else if (make.glyph) {
+    const key = make.glyph === "$" ? "glyph_dollar" : make.glyph === "." ? "glyph_point" : "glyph_" + make.glyph;
+    const src = await textMesh(key); if (src) { const m = asUnity(src.clone(true)); m.children[0].position.set(0, 0, 0); m.scale.multiplyScalar(make.size); m.traverse((o) => { if (o.isMesh) o.material = MAT(0x111111); }); node.add(m); }
+  } else if (make.timeline === "card") {
+    const c = CARDS.cards.find((x) => x.i === make.card);
+    const tex = await new THREE.TextureLoader().loadAsync(BASE + `talk/gen/tl_cards_${c.atlas}.png`); tex.colorSpace = THREE.SRGBColorSpace;
+    tex.repeat.set(c.u1 - c.u0, c.v1 - c.v0); tex.offset.set(c.u0, c.v0);
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(make.w, make.h), new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide }));
+    m.scale.x = -1; node.add(m);
+  } else if (make.timeline === "ribbon") {
+    for (let k = 0; k < make.segments; k++) {
+      const pts = [];
+      for (let i = 0; i <= 8; i++) { const f = (k + i / 8) / make.segments; const a = THREE.MathUtils.degToRad(make.a0 + (make.a1 - make.a0) * f); pts.push(new THREE.Vector3(make.center[0] + make.radius * Math.sin(a), make.h0, make.center[2] + make.radius * Math.cos(a))); }
+      const seg = new THREE.Group(); seg.name = "Seg" + String(k).padStart(2, "0");
+      seg.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 16, 0.25, 6), MAT(0xffd9a0, { opacity: 0.85 })));
+      node.add(seg);
+    }
+  } else if (make.timeline === "comet") {
+    node.add(new THREE.Mesh(new THREE.SphereGeometry(0.4, 12, 8), MAT(0xffe0a0)));
+  }
+}
+
+// ---------------------------------------------------------------- twins (same rules as the Unity builder)
+const twins = {};    // id -> {play, hold, exit} groups with node maps
+async function buildTwin(id, el, kind) {
+  const root = new THREE.Group(); root.name = `Talk_${id}_${kind}`; root.visible = false; unity.add(root);
+  const nodes = {};
+  const sorted = [...el.nodes].sort((a, b) => a.path.split("/").length - b.path.split("/").length);
+  const ensure = (path) => {
+    if (nodes[path]) return nodes[path];
+    const parentPath = path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : null;
+    const parent = parentPath ? ensure(parentPath) : root;
+    const name = path.slice(path.lastIndexOf("/") + 1);
+    let found = parent.children.find((c) => c.name === name);
+    if (!found) { found = new THREE.Group(); found.name = name; parent.add(found); }
+    nodes[path] = found; return found;
+  };
+  for (const n of sorted) {
+    const g = ensure(n.path);
+    await make(g, n.make, id);
+    pose(g, n.rest, n.make);
+  }
+  if (kind !== "play") for (const [p, h] of Object.entries(el.hold)) pose(ensure(p), h, null);
+  const tracks = kind === "play" ? el.play.tracks : kind === "exit" ? el.exit.tracks : {};
+  const tnodes = {}; for (const p of Object.keys(tracks)) tnodes[p] = ensure(p);
+  return { root, nodes, tracks, tnodes, dur: kind === "play" ? el.play.dur : kind === "exit" ? el.exit.dur : 0, loops: el.loops.map((l) => ({ ...l, node: ensure(l.path) })) };
+}
+const D2R = Math.PI / 180;
+function pose(o, p, make) {
+  if (!p) return;
+  if (p.p) o.position.set(...p.p);
+  if (p.e) o.rotation.set(p.e[0] * D2R, p.e[1] * D2R, p.e[2] * D2R, "YXZ");
+  const ms = make && make.scale ? (Array.isArray(make.scale) ? make.scale : [make.scale, make.scale, make.scale]) : [1, 1, 1];
+  if (p.s !== undefined) { const s = Array.isArray(p.s) ? p.s : [p.s, p.s, p.s]; o.scale.set(s[0] * ms[0], s[1] * ms[1], s[2] * ms[2]); }
+  else if (make && make.scale) o.scale.set(...ms);
+  if (p.on !== undefined) o.visible = p.on > 0.5;
+  if (p.i !== undefined && o.userData.light) o.userData.light.intensity = p.i * o.userData.baseI;
+}
+function sample(keys, t, step) {
+  if (t <= keys[0][0]) return keys[0].slice(1);
+  if (t >= keys[keys.length - 1][0]) return keys[keys.length - 1].slice(1);
+  let lo = 0, hi = keys.length - 1;
+  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (keys[m][0] <= t) lo = m; else hi = m; }
+  const a = keys[lo], b = keys[hi];
+  if (step) return a.slice(1);
+  const u = (t - a[0]) / (b[0] - a[0]);
+  return a.slice(1).map((v, i) => v + (b[i + 1] - v) * u);
+}
+function evalTwin(tw, t) {
+  for (const [p, tr] of Object.entries(tw.tracks)) {
+    const o = tw.tnodes[p];
+    for (const [k, keys] of Object.entries(tr)) {
+      if (!keys.length) continue;
+      const v = sample(keys, t, k === "on");
+      if (k === "p") o.position.set(v[0], v[1], v[2]);
+      else if (k === "e") o.rotation.set(v[0] * D2R, v[1] * D2R, v[2] * D2R, "YXZ");
+      else if (k === "s") o.scale.set(v[0], v[1] ?? v[0], v[2] ?? v[0]);
+      else if (k === "on") o.visible = v[0] > 0.5;
+      else if (k === "i") o.traverse((x) => { if (x.userData.light) x.userData.light.intensity = v[0] * x.userData.baseI; });
+      else if (k === "a") o.traverse((x) => { if (x.material) { x.material.transparent = true; x.material.opacity = v[0]; } });
+    }
+  }
+  for (const l of tw.loops) {
+    const lt = t % l.dur;
+    for (const [sub, tr] of Object.entries(l.tracks)) {
+      const o = sub === "" ? l.node : l.node.getObjectByName(sub) || l.node;
+      if (tr.e) { const v = sample(tr.e, lt); o.rotation.set(v[0] * D2R, v[1] * D2R, v[2] * D2R, "YXZ"); }
+      if (tr.p) { const v = sample(tr.p, lt); o.position.set(...v); }
+    }
+  }
+}
+
+log("building twins…");
+for (const [id, el] of Object.entries(S.elements)) {
+  twins[id] = { play: await buildTwin(id, el, "play"), hold: await buildTwin(id, el, "hold"), exit: el.exit ? await buildTwin(id, el, "exit") : null };
+}
+log(`built ${Object.keys(twins).length} elements`);
+
+// ---------------------------------------------------------------- the cue engine (XR Time Machine's rules)
+let cue = 0; const state = {};   // id -> {mode, t0}
+const liveAt = (i) => { const L = new Set(); for (let k = 0; k < i; k++) { for (const e of S.cues[k].off) L.delete(e); for (const e of S.cues[k].on) L.add(e); } return L; };
+let simTime = 0;
+function go(i, fresh) {
+  i = Math.max(0, Math.min(S.cues.length, i));
+  const now = liveAt(i), before = liveAt(cue);
+  for (const id of Object.keys(S.elements)) {
+    const isLive = now.has(id), wasLive = before.has(id);
+    if (fresh && i === cue + 1) {
+      if (isLive && !wasLive) state[id] = { mode: "play", t0: simTime };
+      else if (!isLive && wasLive) state[id] = twins[id].exit ? { mode: "exit", t0: simTime } : null;
+    } else state[id] = isLive ? { mode: "hold", t0: simTime } : null;
+  }
+  cue = i;
+  const c = S.cues[i - 1];
+  document.getElementById("cue").textContent = i ? `Cue ${c.id} (${i}/${S.cues.length}): ${c.name}` : "House";
+}
+function step(dt) {
+  simTime += dt;
+  for (const [id, tw] of Object.entries(twins)) {
+    const st = state[id];
+    for (const k of ["play", "hold", "exit"]) if (tw[k]) tw[k].root.visible = !!st && st.mode === k;
+    if (!st) continue;
+    const t = simTime - st.t0;
+    if (st.mode === "exit" && t > tw.exit.dur + 0.3) { state[id] = null; tw.exit.root.visible = false; continue; }
+    evalTwin(tw[st.mode], st.mode === "hold" ? 1e6 : t);
+  }
+}
+document.getElementById("next").onclick = () => go(cue + 1, true);
+document.getElementById("back").onclick = () => go(cue - 1, false);
+document.getElementById("seat").onclick = () => view(...SEAT_VIEW);
+document.getElementById("wide").onclick = () => view(...WIDE_VIEW);
+let rehearse = null;
+document.getElementById("reh").onclick = () => { if (rehearse) { clearInterval(rehearse); rehearse = null; } else rehearse = setInterval(() => go(cue + 1, true), 20000); };
+addEventListener("keydown", (e) => { if (e.key === "ArrowRight") go(cue + 1, true); if (e.key === "ArrowLeft") go(cue - 1, false); if (e.key === "Home") go(1, false); });
+let last = performance.now(), auto = true;
+function frame() {
+  const t = performance.now(); if (auto) step((t - last) / 1000); last = t;
+  renderer.render(scene, camera); requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+// ---------------------------------------------------------------- clearance: every moving node of every entrance and exit
+// (AABB of the node's meshes, world space, every 1/15 s) against every seat's 3 m volume (a seat's occupant box grown 3 m)
+function clearance() {
+  const seats = [];
+  const vs = TL.elements; // seats from the audience box: rows across x -7.8..7.8, z -46.3..-39.7
+  const [lo, hi] = A.seatBox;
+  const zone = new THREE.Box3(new THREE.Vector3(lo[0] - 0.45, lo[1], lo[2] - 0.45), new THREE.Vector3(hi[0] + 0.45, hi[1] + 0.3, hi[2] + 0.45));
+  const grown = zone.clone().expandByScalar(A.clearance);
+  const results = [];
+  const box = new THREE.Box3(), tmp = new THREE.Box3();
+  unity.updateMatrixWorld(true);
+  for (const [id, tw] of Object.entries(twins)) {
+    for (const kind of ["play", "exit"]) {
+      const T = tw[kind]; if (!T || !T.dur) continue;
+      let worst = Infinity, at = 0, who = "";
+      T.root.visible = true;
+      for (let t = 0; t <= T.dur + 0.01; t += 1 / 15) {
+        evalTwin(T, t); T.root.updateMatrixWorld(true);
+        T.root.traverse((o) => {
+          if (!o.isMesh && !o.isPoints && !o.isInstancedMesh) return;
+          let vis = true; for (let p = o; p && p !== T.root; p = p.parent) if (!p.visible) { vis = false; break; }
+          if (!vis) return;
+          box.setFromObject(o);
+          // into Unity coordinates (z flipped)
+          tmp.set(new THREE.Vector3(box.min.x, box.min.y, -box.max.z), new THREE.Vector3(box.max.x, box.max.y, -box.min.z));
+          let d = distBoxBox(tmp, zone);
+          // a rotated object's box is loose: when it is near, measure triangle by triangle (each triangle's own box: never optimistic)
+          if (d < A.clearance && o.isMesh && o.geometry.attributes.position) d = Math.max(d, triDist(o, zone));
+          if (d < worst) { worst = d; at = t; who = o.parent?.parent?.name || o.name; }
+        });
+      }
+      T.root.visible = false;
+      results.push({ id, kind, worst, at, who });
+    }
+  }
+  return results;
+}
+function triDist(o, zone) {
+  const pos = o.geometry.attributes.position, idx = o.geometry.index, n = idx ? idx.count : pos.count, M = o.matrixWorld;
+  const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3(), tb = new THREE.Box3(); let best = Infinity;
+  const U3 = (v) => { v.applyMatrix4(M); v.z = -v.z; return v; };
+  for (let k = 0; k < n; k += 3) {
+    const i0 = idx ? idx.getX(k) : k, i1 = idx ? idx.getX(k + 1) : k + 1, i2 = idx ? idx.getX(k + 2) : k + 2;
+    U3(a.fromBufferAttribute(pos, i0)); U3(b.fromBufferAttribute(pos, i1)); U3(c.fromBufferAttribute(pos, i2));
+    tb.makeEmpty(); tb.expandByPoint(a); tb.expandByPoint(b); tb.expandByPoint(c);
+    // big triangles: split their box into 4 by the edge midpoints (still conservative, much tighter)
+    const d = distBoxBox(tb, zone);
+    if (d < best) {
+      if (tb.getSize(new THREE.Vector3()).length() > 4) {
+        const ab = a.clone().add(b).multiplyScalar(0.5), bc = b.clone().add(c).multiplyScalar(0.5), ca = c.clone().add(a).multiplyScalar(0.5);
+        for (const [p, q, r] of [[a, ab, ca], [ab, b, bc], [ca, bc, c], [ab, bc, ca]]) { tb.makeEmpty(); tb.expandByPoint(p); tb.expandByPoint(q); tb.expandByPoint(r); best = Math.min(best, distBoxBox(tb, zone)); }
+      } else best = d;
+    }
+  }
+  return best;
+}
+function distBoxBox(a, b) {
+  const dx = Math.max(0, a.min.x - b.max.x, b.min.x - a.max.x), dy = Math.max(0, a.min.y - b.max.y, b.min.y - a.max.y), dz = Math.max(0, a.min.z - b.max.z, b.min.z - a.max.z);
+  return Math.hypot(dx, dy, dz);
+}
+document.getElementById("clear").onclick = async () => {
+  const r = clearance();
+  const fails = r.filter((x) => x.worst < A.clearance && !["env_dark", "env_white", "env_warm", "stars", "shatter"].includes(x.id));
+  let md = "# Clearance test (3 m around every seat)\n\nRun " + new Date().toISOString() + " by tools/harness/show.html: every entrance and exit of every element, sampled 15 times a second;\n" +
+    "each visible mesh's world box against the seating block (all 76 seats, the occupants' heads included) grown by 3 m.\n" +
+    "Environment shells (the dark dome, the white room, the dusk dome, the star field, the shatter particles) surround the audience by design and are not moving objects; they are listed but excluded.\n\n" +
+    `Result: ${fails.length ? "**" + fails.length + " FAIL**" : "**PASS**"}: ${r.length} motions checked.\n\n| Element | Motion | Closest approach (m) | At (s) | Part |\n|---|---|---:|---:|---|\n`;
+  for (const x of r.sort((a, b) => a.worst - b.worst)) md += `| ${x.id} | ${x.kind} | ${x.worst === Infinity ? "-" : x.worst.toFixed(2)} | ${x.at.toFixed(1)} | ${x.who} |\n`;
+  await save("review/CLEARANCE.md", md);
+  log(`clearance: ${fails.length ? "FAIL " + fails.map((f) => f.id + "/" + f.kind + " " + f.worst.toFixed(2)).join(", ") : "PASS"} (${r.length} motions)`);
+  window.__clearance = { fails, r };
+};
+// perf + motion frames: run the show cue by cue in simulated time, render the front-seat view, time frames, save stills
+document.getElementById("perf").onclick = async () => {
+  auto = false; const rows = []; go(0, false);
+  const snapAt = { "1": [3, 14], "2": [6, 14, 24], "2T": [8, 20, 40], "3": [3, 7], "4": [0.6, 3], "4B": [2, 5, 8, 11, 14, 20], "4C": [3, 8], "5": [2, 5], "6": [3, 8], "6B": [6, 12], "7": [6, 15], "8": [1.6, 2.3], "9": [1, 4, 8], "9B": [2], "10": [3] };
+  for (let i = 1; i <= S.cues.length; i++) {
+    go(i, true); const c = S.cues[i - 1];
+    const dur = Math.max(4, ...c.on.map((e) => S.elements[e].play.dur));
+    let frames = 0, ms = 0, worst = 0, t = 0;
+    const shots = snapAt[c.id] || [];
+    while (t < Math.min(dur, 45)) {
+      step(1 / 30); t += 1 / 30;
+      const t0 = performance.now(); renderer.render(scene, camera); renderer.getContext().finish(); const f = performance.now() - t0;
+      frames++; ms += f; worst = Math.max(worst, f);
+      if (shots.length && t >= shots[0]) {
+        shots.shift();
+        await save(`review/motion/${String(i).padStart(2, "0")}_${c.id}_t${t.toFixed(0).padStart(2, "0")}.png`, renderer.domElement.toDataURL("image/png"));
+      }
+    }
+    const info = renderer.info.render;
+    rows.push({ i, id: c.id, name: c.name, avg: ms / frames, worst, calls: info.calls, tris: info.triangles });
+    log(`${c.id}: ${(ms / frames).toFixed(1)} ms avg, ${worst.toFixed(1)} worst, ${info.calls} calls, ${info.triangles} tris`);
+  }
+  let md = "# Harness frame times (Windows PC, browser, three.js)\n\nNot the headset: a relative check that no cue spikes. Same assets and tracks as Unity; three.js draws each mesh separately (more calls than Unity's merged waves).\n\n| # | Cue | Name | Avg ms | Worst ms | Calls | Triangles |\n|---|---|---|---:|---:|---:|---:|\n";
+  for (const r of rows) md += `| ${r.i} | ${r.id} | ${r.name} | ${r.avg.toFixed(1)} | ${r.worst.toFixed(1)} | ${r.calls} | ${r.tris} |\n`;
+  await save("review/HARNESS_FRAMES.md", md);
+  auto = true; window.__perf = rows; log("perf + motion run done");
+};
+window.__ready = true; log("ready: Next / arrow keys; Clearance test; Perf + motion run");
+window.__go = go;
+</script>
+</body>
+</html>

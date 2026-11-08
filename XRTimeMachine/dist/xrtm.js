@@ -300,7 +300,7 @@ const XRTMCore = (() => {
     const C = XRTMCore;
 
     const XRTM = {
-        version: "0.3.4",
+        version: "0.4.0",
         enabled: true,
         helperUrl: "http://localhost:47800",   // xrtm-helper.ps1 on Windows
         toggleKeyCode: 290,                     // Unity KeyCode F9
@@ -1285,7 +1285,7 @@ const XRTMCore = (() => {
 
     // ---------- UI: the panel (permitted users only, local to their device) ----------
 
-    async function buildPanel(l, recorder, conductor) {
+    async function buildPanel(l, recorder, conductor, show = null) {
         const U = XRTM.ui;
         const fs = (n) => `${Math.round(n * U.fontScale)}px`;
         // Built into the world (a desk) when ui.anchor names an object there; else it opens in front of the player.
@@ -1317,12 +1317,59 @@ const XRTMCore = (() => {
         sub.text = `Spatial recorder prototype v${XRTM.version}`;
 
         const tabs = el(BS.UIVisualElement, { flexDirection: "row", marginBottom: "14px" });
+        const tabShow = show ? button("Show", { flexGrow: "1", marginRight: "6px" }, tabs) : null;
         const tabSeq = button("Sequences", { flexGrow: "1", marginRight: "6px" }, tabs);
         const tabRec = button("Record", { flexGrow: "1", marginRight: "6px" }, tabs);
         const tabPlay = button("Playback", { flexGrow: "1" }, tabs);
 
-        // --- the Sequences tab: a presentation's sequences, one big button each (Sphererebro, 2026-11-07). A sequence
-        // is a recording on this device; a tap plays it for everyone, from the start. ---
+        // --- the Show tab (v0.4): the presenter's cue controls. Only the presenter's device builds this panel, so
+        // nothing here is ever seen by the audience. Round-ended pill keys (Ben: no square buttons). ---
+        const showPane = el(BS.UIVisualElement, { flexDirection: "column" });
+        const cueNow = el(BS.UILabel, { fontSize: fs(34), color: "#ffffff", marginBottom: "4px" }, showPane);
+        const cueName = el(BS.UILabel, { fontSize: fs(26), color: "#f2c46b", marginBottom: "10px" }, showPane);
+        const cueNext = el(BS.UILabel, { fontSize: fs(20), color: "#9aa0a6", marginBottom: "16px" }, showPane);
+        const cueRow = el(BS.UIVisualElement, { flexDirection: "row", marginBottom: "10px" }, showPane);
+        const cueBack = button("◀  Back", { flexGrow: "1", height: "96px", fontSize: fs(28), backgroundColor: "#37474f", borderRadius: "48px", marginRight: "8px" }, cueRow);
+        const cueGo = button("Next  ▶", { flexGrow: "2", height: "96px", fontSize: fs(32), backgroundColor: "#b8860b", borderRadius: "48px" }, cueRow);
+        const cueRow2 = el(BS.UIVisualElement, { flexDirection: "row", marginBottom: "10px" }, showPane);
+        const cueHome = button("Cue 1", { flexGrow: "1", height: "56px", fontSize: fs(22), borderRadius: "28px", marginRight: "6px" }, cueRow2);
+        const cueRehearse = button("Rehearse", { flexGrow: "1", height: "56px", fontSize: fs(22), borderRadius: "28px", marginRight: "6px" }, cueRow2);
+        const cueHouse = button("End show", { flexGrow: "1", height: "56px", fontSize: fs(22), borderRadius: "28px", backgroundColor: "#3e2723" }, cueRow2);
+        const cueHelp = el(BS.UILabel, { fontSize: fs(16), color: "#9aa0a6", marginBottom: "8px" }, showPane);
+        cueHelp.text = "Next: A (right hand) or Right arrow.  Back: X (left hand) or Left arrow.  Home: cue 1.  R: rehearse (every 20 s).";
+        const cueList = el(BS.UIScrollView, { height: `${U.panelHeight - 640}px`, width: "100%" }, showPane);
+        cueList.horizontalScrolling = false;
+        const cueRows = [];
+        function refreshShow() {
+            if (!show) return;
+            const i = show.i, c = show.cue(i), n = show.cue(i + 1);
+            cueNow.text = i === 0 ? "House" : `Cue ${c.id}  ·  ${i} of ${show.count}`;
+            cueName.text = i === 0 ? "No show running. Next starts cue 1." : c.name;
+            cueNext.text = i >= show.count ? "Last cue." : `Next: ${n.id}  ${n.name}`;
+            cueRehearse.text = show.rehearsing ? "Stop rehearsal" : "Rehearse";
+            cueRehearse.style.backgroundColor = show.rehearsing ? "#6a1b9a" : "#37474f";
+            cueRows.forEach((b, k) => { b.style.backgroundColor = k + 1 === i ? "#b8860b" : "#263238"; });
+        }
+        if (show) {
+            for (let k = 1; k <= show.count; k++) {
+                const c = show.cue(k);
+                const b = button(`${c.id}   ${c.name}`, { height: "44px", fontSize: fs(18), marginBottom: "4px", borderRadius: "22px", backgroundColor: "#263238" }, cueList);
+                click(b, () => show.goto(k), "cue jump");
+                cueRows.push(b);
+            }
+            click(cueGo, () => show.next(), "cue next");
+            click(cueBack, () => show.back(), "cue back");
+            click(cueHome, () => show.home(), "cue home");
+            click(cueRehearse, () => show.rehearseToggle(), "cue rehearse");
+            let houseArmed = false;
+            click(cueHouse, () => {
+                if (!houseArmed) { houseArmed = true; cueHouse.text = "Sure? Tap again"; l.later(() => { houseArmed = false; cueHouse.text = "End show"; }, 3000); return; }
+                return show.house();
+            }, "cue house");
+            show.setUi(refreshShow);
+        }
+
+        // --- the Sequences tab: a presentation's sequences, one big button each (Sphererebro, 2026-11-07). A sequence        // is a recording on this device; a tap plays it for everyone, from the start. ---
         const seqTab = el(BS.UIVisualElement, { flexDirection: "column" });
         const seqNow = el(BS.UILabel, { fontSize: fs(22), color: "#e0e0e0", marginBottom: "8px" }, seqTab);
         const seqList = el(BS.UIScrollView, { height: `${U.panelHeight - 420}px`, width: "100%", marginBottom: "8px" }, seqTab);
@@ -1378,16 +1425,20 @@ const XRTMCore = (() => {
         let tab = "record";
         function showTab(next) {
             tab = next;
+            showPane.visible = tab === "show";
             seqTab.visible = tab === "seq";
             recTab.visible = tab === "record";
             playTab.visible = tab === "play";
             // the library and the off switch belong to Record and Playback; Sequences is just the buttons
-            for (const e of [libTitle, list, offBtn]) e.visible = tab !== "seq";
+            for (const e of [libTitle, list, offBtn]) e.visible = tab !== "seq" && tab !== "show";
+            if (tabShow) tabShow.style.backgroundColor = tab === "show" ? "#b8860b" : "#37474f";
+            if (tab === "show") refreshShow();
             tabSeq.style.backgroundColor = tab === "seq" ? "#6a1b9a" : "#37474f";
             tabRec.style.backgroundColor = tab === "record" ? "#c62828" : "#37474f";
             tabPlay.style.backgroundColor = tab === "play" ? "#2e7d32" : "#37474f";
             refresh();
         }
+        if (tabShow) click(tabShow, () => showTab("show"), "tab");
         click(tabSeq, () => showTab("seq"), "tab");
         click(tabRec, () => showTab("record"), "tab");
         click(tabPlay, () => showTab("play"), "tab");
@@ -1578,7 +1629,7 @@ const XRTMCore = (() => {
         const toggle = anchor
             ? async () => { open = !open; onToggle(open); const s = open ? size : 0; await obj.SetLocalScale(new BS.Vector3(s, s, s)); }
             : await placeInFront(l, obj, size, onToggle);
-        showTab(anchor ? "seq" : "record");
+        showTab(show ? "show" : anchor ? "seq" : "record");
         return { toggle, refresh, refreshPlay };
     }
 
@@ -1709,12 +1760,231 @@ const XRTMCore = (() => {
             Math.cos(hx) * Math.cos(hy) * Math.cos(hz) + Math.sin(hx) * Math.sin(hy) * Math.sin(hz));
     }
 
+    // ---------- the show: cue-by-cue staging (v0.4, Sphererebro talk, 2026-11-08) ----------
+    //
+    // A world gives XRTM a show (XRTM_CONFIG.show): a list of CUES and the ELEMENTS they bring on and take off. Every
+    // element is a set of scene objects the world built ("twins"): `play` (its Animator plays the entrance whenever it is
+    // switched on), `hold` (the final pose, still), and optionally `exit` (its Animator plays the way out). The motion is
+    // all Unity's (the SDK: per-frame motion belongs in Unity); the show only switches objects, so it costs nothing per frame.
+    // The presenter (owner or moderator) steps through it from the Show tab, the arrow keys, or A / X on the controllers;
+    // the cue is the protected key "xrtm.show" {i, at, by}, so everyone in the space sees the same cue, and late arrivals
+    // see where the show is (in its held pose). Going back, or jumping, shows each live element's held pose at once.
+    // Cue 0 is "house": the world as it is without the show.
+    function createShow(l) {
+        const S = XRTM.show;
+        if (!S || !Array.isArray(S.cues) || !S.elements) return null;
+        const key = "xrtm.show";
+        const objs = {};                    // name -> BS.GameObject
+        let ready = false, rootObj = null;
+        let shown = new Map();              // element -> "play" | "hold" | "exit"
+        let applied = -1, appliedAt = 0;
+        const timers = [];
+        const exitTimers = {}, swapTimers = {};
+        const clearTimers = () => { for (const t of timers.splice(0)) clearTimeout(t); };
+        const later = (fn, ms) => timers.push(l.later(fn, ms, "show timer"));
+
+        // which elements are live after cue i (cue 1 .. i applied in order)
+        function liveAt(i) {
+            const live = new Set();
+            for (let k = 0; k < Math.min(i, S.cues.length); k++) {
+                for (const e of S.cues[k].off || []) live.delete(e);
+                for (const e of S.cues[k].on || []) live.add(e);
+            }
+            return live;
+        }
+        // the video after cue i: the last cue at or before i that says something about video
+        function videoAt(i) {
+            let v = null;
+            for (let k = 0; k < Math.min(i, S.cues.length); k++) {
+                const c = S.cues[k].video;
+                if (c === "stop") v = null; else if (c && c.clip) v = { ...c, cue: k + 1 };
+            }
+            return v;
+        }
+        const nameOf = (e, kind) => S.elements[e]?.[kind];
+        async function set(name, on) {
+            const o = name && objs[name];
+            if (!o) return;
+            if (o._xrtmOn === on) return;
+            o._xrtmOn = on;
+            await o.SetActive(on);
+        }
+        async function setRestart(name) {      // switch off and on again: its Animator plays from the start
+            const o = name && objs[name];
+            if (!o) return;
+            if (o._xrtmOn) { await o.SetActive(false); }
+            o._xrtmOn = true;
+            await o.SetActive(true);
+        }
+
+        async function init() {
+            const names = [S.root, ...S.videos || []];
+            for (const e of Object.keys(S.elements)) for (const k of ["play", "hold", "exit"]) if (S.elements[e][k]) names.push(S.elements[e][k]);
+            const found = await Promise.all(names.map((n) => scene.Find(n).catch(() => null)));
+            names.forEach((n, i) => { if (found[i]) objs[n] = found[i]; });
+            const missing = names.filter((n) => !objs[n]);
+            if (missing.length) log(`show: ${missing.length} objects not in the scene (first: ${missing.slice(0, 4).join(", ")})`);
+            rootObj = objs[S.root];
+            // everything off, then the root comes home from where it waits (10 km below the world)
+            for (const n of names) if (n !== S.root && objs[n]) { objs[n]._xrtmOn = true; await set(n, false); }
+            if (rootObj) await rootObj.SetPosition(new BS.Vector3(...(S.home || [0, 0, 0])));
+            ready = true;
+            log(`show ready: ${S.cues.length} cues, ${Object.keys(S.elements).length} elements`);
+            await apply(read(), true);
+        }
+
+        function read() {
+            const s = readJson(key);
+            return s && Number.isFinite(s.i) ? s : { i: 0, at: 0 };
+        }
+
+        // the heart: make the scene match cue `i` (from `prev`)
+        async function apply(state, arriving = false) {
+            if (!ready) return;
+            const i = Math.max(0, Math.min(S.cues.length, state.i | 0));
+            // the echo of our own write (and repeats): already there, leave every running entrance alone
+            if (i === applied && !arriving) { ui?.(); return; }
+            const prev = applied;
+            const fresh = !arriving && prev >= 0 && i === prev + 1 && Date.now() - (state.at || 0) < 4000;
+            const now = liveAt(i), before = prev >= 0 ? liveAt(prev) : new Set();
+            clearTimers();
+            for (const e of Object.keys(S.elements)) {
+                const el = S.elements[e];
+                const isLive = now.has(e), wasLive = before.has(e);
+                if (fresh) {
+                    if (isLive && !wasLive) {                           // enters: its entrance plays
+                        clearTimeout(exitTimers[e]); delete exitTimers[e];
+                        await setRestart(el.play); await set(el.hold, false); await set(el.exit, false);
+                        shown.set(e, "play");
+                        // once the entrance ends, the identical held pose takes over (merged by the builder: fewer draw calls)
+                        if (el.swap) {
+                            clearTimeout(swapTimers[e]);
+                            swapTimers[e] = l.later(async () => {
+                                delete swapTimers[e];
+                                if (shown.get(e) !== "play") return;
+                                await set(el.hold, true); await set(el.play, false); shown.set(e, "hold");
+                            }, (el.playDur || 0) * 1000 + 600, "show swap");
+                        }
+                    } else if (!isLive && wasLive) {                    // leaves: its exit plays, then it is gone
+                        clearTimeout(swapTimers[e]); delete swapTimers[e];
+                        await set(el.play, false); await set(el.hold, false);
+                        if (el.exit) {
+                            await setRestart(el.exit); shown.set(e, "exit");
+                            // not cleared by the next cue: a quick double press must still switch the exit off
+                            clearTimeout(exitTimers[e]);
+                            exitTimers[e] = l.later(() => { delete exitTimers[e]; set(el.exit, false); if (shown.get(e) === "exit") shown.delete(e); }, (el.exitDur || 0) * 1000 + 300, "show exit");
+                        } else shown.delete(e);
+                    }
+                    // staying: left exactly as it is (an entrance still running keeps running)
+                } else {
+                    // going back, jumping, arriving: every live element in its final pose, at once
+                    clearTimeout(exitTimers[e]); delete exitTimers[e]; clearTimeout(swapTimers[e]); delete swapTimers[e];
+                    await set(el.play, false); await set(el.exit, false);
+                    await set(el.hold, isLive);
+                    if (isLive) shown.set(e, "hold"); else shown.delete(e);
+                }
+            }
+            applied = i; appliedAt = Date.now();
+            await applyVideo(i, fresh, state);
+            // the world can make room for the show (Sphererebro hides its dome shells and lattice while a show runs)
+            try { window.dispatchEvent(new CustomEvent("xrtm-show", { detail: { i, cue: i ? S.cues[i - 1].id : "0" } })); } catch (e) { }
+            ui?.();
+        }
+
+        let videoNow = null;
+        async function applyVideo(i, fresh, state) {
+            const v = videoAt(i);
+            const want = v ? `Talk_Video_${v.surface}_${v.layout || "mono"}` : null;
+            for (const n of S.videos || []) if (n !== want) await set(n, false);
+            if (!v) { videoNow = null; return; }
+            const url = /^https?:/.test(v.clip) ? v.clip : (S.mediaBase || "") + v.clip;
+            const surfaceEl = Object.keys(S.elements).find((e) => S.elements[e].video?.surface === v.surface);
+            const delay = fresh && v.cue === i && surfaceEl && S.cues[i - 1].on?.includes(surfaceEl) ? (S.elements[surfaceEl].video.delay || 0) * 1000 : 0;
+            const start = async () => {
+                await set(want, true);
+                const o = objs[want]; if (!o) return;
+                const vp = o.GetComponent?.(BS.CT.VideoPlayer);
+                if (!vp) { log("show: no video player on", want); return; }
+                if (videoNow === url + "|" + want + "|" + v.cue) return;      // the same clip, still playing: leave it
+                videoNow = url + "|" + want + "|" + v.cue;
+                vp.loop = false; vp.volume = 1; vp.url = url;
+                // late arrivals (and a jump back to a video cue) pick up where the clip is (once it has loaded)
+                if (!fresh && v.cue === i && state.at) {
+                    const into = (Date.now() - state.at) / 1000;
+                    if (into > 2) l.later(() => { try { vp.time = into + 1; } catch (e) { } }, 1000, "video seek");
+                }
+            };
+            if (delay > 0) later(start, delay); else await start();
+        }
+
+        // presenter
+        const may = { known: false, yes: false };
+        async function canDrive() { if (!may.known) { may.yes = await mayRecord(); may.known = true; } return may.yes; }
+        async function go(i) {
+            if (!(await canDrive())) return;
+            i = Math.max(0, Math.min(S.cues.length, i));
+            const state = { i, at: Date.now(), by: scene.localUser?.name || "presenter" };
+            await scene.SpaceStateSet(key, JSON.stringify(state), { protected: true });
+            await apply(state);
+        }
+        let rehearse = null;
+        const ctl = {
+            get i() { return applied < 0 ? read().i : applied; },
+            get count() { return S.cues.length; },
+            cue: (i) => (i >= 1 && i <= S.cues.length ? S.cues[i - 1] : { id: "0", name: "House (no show)" }),
+            next: () => go(ctl.i + 1),
+            back: () => go(ctl.i - 1),
+            home: () => go(1),
+            house: () => { ctl.stopRehearsal(); return go(0); },
+            goto: (i) => go(i),
+            get rehearsing() { return !!rehearse; },
+            rehearseToggle() {
+                if (rehearse) return ctl.stopRehearsal();
+                const secs = S.rehearsalSeconds || 20;
+                if (ctl.i === 0 || ctl.i >= S.cues.length) go(1);
+                rehearse = l.every(() => {
+                    if (ctl.i >= S.cues.length) { ctl.stopRehearsal(); return; }
+                    go(ctl.i + 1);
+                }, secs * 1000, "rehearsal");
+                ui?.();
+            },
+            stopRehearsal() { if (rehearse) { clearInterval(rehearse); rehearse = null; } ui?.(); },
+            elements: () => Object.fromEntries(shown),
+            onChange: null,
+        };
+        let ui = null;
+        ctl.setUi = (fn) => { ui = fn; };
+
+        l.on("space-state", (e) => { if (e.detail.changes.some((c) => c.path === key)) apply(read()); }, "show cue");
+        // presenter inputs: arrows / Home / R on a keyboard; A (right) next and X (left) back while a show is running
+        l.on("key-press", async (e) => {
+            const k = e.detail.key;
+            const KC = BS.KeyCode || {};
+            if (!(await canDrive())) return;
+            if (k === (KC.RightArrow ?? 275)) ctl.next();
+            else if (k === (KC.LeftArrow ?? 276)) ctl.back();
+            else if (k === (KC.Home ?? 278)) ctl.home();
+            else if (k === (KC.R ?? 114)) ctl.rehearseToggle();
+        }, "show keys");
+        l.on("button-pressed", async (e) => {
+            if (ctl.i === 0) return;          // only while a show is running: A and X do their usual jobs otherwise
+            const d = e.detail || {};
+            if (d.button !== BS.ButtonType?.PRIMARY) return;
+            if (!(await canDrive())) return;
+            if (d.side === BS.HandSide?.RIGHT) ctl.next(); else if (d.side === BS.HandSide?.LEFT) ctl.back();
+        }, "show buttons");
+        XRTM.showControl = ctl;
+        init().catch((e) => log("show init failed:", e));
+        return ctl;
+    }
+
     // ---------- start ----------
 
     async function start(l) {
         watchRecordings(l); // everyone: the notice
         const viewer = createViewer(l);
         watchPlayState(l, viewer); // everyone: playback
+        const show = createShow(l); // everyone: the show's cues
 
         // Permitted players clear a recording or playback left behind by a device that left without stopping.
         l.on("user-left", async (e) => {
@@ -1732,7 +2002,7 @@ const XRTMCore = (() => {
         let ui;
         const recorder = createRecorder(l, () => ui?.refresh());
         const conductor = createConductor(l, viewer, () => ui?.refreshPlay());
-        ui = await buildPanel(l, recorder, conductor);
+        ui = await buildPanel(l, recorder, conductor, show);
         await openers(l, ui.toggle);
 
         // Leaving the space ends the recording and the playback cleanly.

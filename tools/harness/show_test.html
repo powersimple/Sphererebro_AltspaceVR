@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Talk show logic tests</title>
+<style>
+  body { font: 14px/1.5 ui-monospace, Consolas, monospace; background: #111; color: #ddd; margin: 16px; }
+  .ok { color: #7c7; } .bad { color: #f77; } h1 { font-size: 16px; }
+</style>
+</head>
+<body>
+<h1>XR Time Machine Show: the real script.js (world + XRTM 0.4) against a mock Creator SDK</h1>
+<div id="out">running…</div>
+<script>
+// ---- mock Creator SDK: enough for script.js's world code to start and for XR Time Machine's show + panel -------------
+const evs = {};
+const emit = (map, evt, detail) => (map[evt] || []).slice().forEach((f) => f({ detail }));
+class V3 { constructor(x, y, z) { this.x = x; this.y = y; this.z = z; } }
+class Q4 { constructor(x, y, z, w) { this.x = x; this.y = y; this.z = z; this.w = w; } }
+class V2 { constructor(x, y) { this.x = x; this.y = y; } }
+class V4 { constructor(x, y, z, w) { this.x = x; this.y = y; this.z = z; this.w = w; } }
+const objs = {};
+class MockObj {
+  constructor(name, comps) { this.name = name; this.active = true; this.comps = comps || {}; this.ev = {}; this.pos = new V3(0, 0, 0); this.log = []; }
+  SetActive(b) { this.active = b; this.log.push(b ? "on" : "off"); return Promise.resolve(); }
+  SetPosition(a, b, c) { this.pos = a instanceof V3 ? a : new V3(a, b, c); return Promise.resolve(); }
+  SetLocalPosition(v) { this.pos = v; return Promise.resolve(); }
+  SetRotation() { return Promise.resolve(); } SetLocalEulerAngles() { return Promise.resolve(); } SetEulerAngles() { return Promise.resolve(); }
+  SetLocalScale(v) { this.scale = v; return Promise.resolve(); } SetParent() { return Promise.resolve(); }
+  GetComponent(t) { return this.comps[t] || null; }
+  AddComponent(c) { return Promise.resolve(c); }
+  On(e, f) { (this.ev[e] = this.ev[e] || []).push(f); }
+  WatchTransform(p, cb) { cb({ position: this.pos, rotation: new Q4(0, 0, 0, 1) }); return Promise.resolve(); }
+  Async() { return Promise.resolve(this); } Destroy() { }
+}
+// a generic UI element: records text, styles and the click handler (the panel's Show tab is tested by clicking)
+const ui = [];
+class UIEl {
+  constructor(panel, parent) { this.style = {}; this.children = []; this.text = ""; this.visible = true; (parent && parent.children || []).push(this); ui.push(this); }
+  SetStyles(s) { Object.assign(this.style, s); } SetStyle() { } OnClick(f) { this.click = f; } OnChange(f) { this.change = f; } Destroy() { this.dead = true; }
+}
+class UIPanel { constructor() { this.children = []; } SetBackgroundColor() { } }
+class GameObject extends MockObj { constructor(cfg) { super(cfg?.name || "made"); } }
+const me = { id: "s-me", uid: "u-me", name: "Ben", isSpaceAdmin: true, isLocal: true };
+const scene = {
+  objects: {}, spaceState: { public: {}, protected: {} }, spaceStateJson: { public: {}, protected: {} }, localUser: me, users: [me], ev: {},
+  WaitForUnityLoaded: async () => { }, IsVR: async () => false,
+  Find: async (n) => objs[n] || null,
+  On(e, f) { (this.ev[e] = this.ev[e] || []).push(f); }, Off() { },
+  SetProtectedSpaceProps(o) { Object.assign(this.spaceState.protected, o); },
+  async SpaceStateSet(key, value, opt) { if (!me.isSpaceAdmin && opt?.protected) throw new Error("not_authorized"); this.spaceStateJson.protected[key] = value; setTimeout(() => emit(this.ev, "space-state", { changes: [{ path: key }] }), 5); },
+  async SpaceStateDelete(key) { delete this.spaceStateJson.protected[key]; },
+  async OneShot() { }, TeleportTo: async () => { }, SetSettings: async () => { },
+};
+window.indexedDB = window.indexedDB;   // real IndexedDB: the recorder panel gets built (Show tab included)
+</script>
+<script>
+// the talk objects, straight from the generated show block (read before script.js runs: SB_TALK is defined inside it)
+</script>
+<script src="../../Assets/WebRoot/script.js" id="sbjs" defer></script>
+<script>
+const ready = new Promise((r) => document.getElementById("sbjs").addEventListener("load", r));
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+const results = [];
+const check = (name, cond, extra) => results.push({ name, ok: !!cond, extra: extra === undefined ? "" : JSON.stringify(extra).slice(0, 300) });
+
+function makeObjects() {
+  const S = window.SB_TALK;
+  const names = [S.root, ...S.videos];
+  for (const e of Object.values(S.elements)) for (const k of ["play", "hold", "exit"]) if (e[k]) names.push(e[k]);
+  for (const n of names) objs[n] = new MockObj(n);
+  for (const v of S.videos) objs[v].comps.VideoPlayer = { url: "", loop: true, volume: 0.5, time: 0 };
+  objs["Desk_XRTM_Mount"] = new MockObj("Desk_XRTM_Mount");
+  return names;
+}
+function liveAt(S, i) { const L = new Set(); for (let k = 0; k < i; k++) { for (const e of S.cues[k].off) L.delete(e); for (const e of S.cues[k].on) L.add(e); } return L; }
+function activeTwins(S) { const out = new Set(); for (const [e, d] of Object.entries(S.elements)) for (const k of ["play", "hold", "exit"]) if (d[k] && objs[d[k]].active) out.add(d[k]); return out; }
+const holdsOf = (S, i) => new Set([...liveAt(S, i)].map((e) => S.elements[e].hold));
+const same = (a, b) => a.size === b.size && [...a].every((x) => b.has(x));
+const key = (k) => emit(scene.ev, "key-press", { key: k });
+
+(async () => {
+  window.BS = {
+    Scene: { GetInstance: () => scene }, Vector3: V3, Vector2: V2, Vector4: V4, Quaternion: Q4, GameObject,
+    UIPanel, UIVisualElement: UIEl, UIButton: UIEl, UILabel: UIEl, UIScrollView: UIEl, UISlider: UIEl, UITextField: UIEl,
+    CT: { Text: "Text", VideoPlayer: "VideoPlayer", Rigidbody: "Rigidbody", Light: "Light", AttachedObject: "AttachedObject", SyncedObject: "SyncedObject" },
+    PN: { position: "position", rotation: "rotation", time: "time" },
+    KeyCode: { RightArrow: 275, LeftArrow: 276, Home: 278, R: 114, F9: 290 },
+    ButtonType: { PRIMARY: 2 }, HandSide: { LEFT: 0, RIGHT: 1 },
+    PersistFileBridge: { info: async () => ({ canWrite: me.isSpaceAdmin }) },
+    SceneSettings: function () { }, AvatarBoneName: {},
+  };
+  await ready;
+  const S = window.SB_TALK;
+  check("show block present: cues and elements", S && S.cues.length >= 30 && Object.keys(S.elements).length >= 40, S && [S.cues.length, Object.keys(S.elements).length]);
+  const names = makeObjects();
+  window.dispatchEvent(new Event("bs-loaded"));
+  for (let k = 0; k < 60 && !(window.XRTM && XRTM.showControl); k++) await wait(50);
+  const ctl = XRTM.showControl;
+  check("XR Time Machine 0.4 runs and creates the show", ctl && XRTM.version.startsWith("0.4"), XRTM && XRTM.version);
+  await wait(400);
+  check("init: every twin and video surface switched off", names.filter((n) => n !== S.root).every((n) => !objs[n].active), names.filter((n) => n !== S.root && objs[n].active).slice(0, 5));
+  check("init: the Talk root came home from 10 km below", objs.Talk.pos.y === 0, objs.Talk.pos);
+  check("init: cue 0 (house)", ctl.i === 0, ctl.i);
+
+  // the panel: the Show tab exists, and its Next key starts the show
+  const nextKey = ui.find((u) => u.text === "Next  ▶");
+  check("panel: the Show tab's Next key exists (desk dashboard)", !!nextKey);
+  await nextKey.click(); await wait(60);
+  check("Next (panel) -> cue 1, written to the protected key", ctl.i === 1 && JSON.parse(scene.spaceStateJson.protected["xrtm.show"]).i === 1, scene.spaceStateJson.protected["xrtm.show"]);
+  const plays1 = new Set(S.cues[0].on.map((e) => S.elements[e].play));
+  check("cue 1: its elements' entrances play (Play twins on), nothing else", same(activeTwins(S), plays1), [...activeTwins(S)]);
+  const label = ui.find((u) => /Cue 1 /.test(u.text));
+  check("panel shows the cue number and name", !!label && ui.some((u) => u.text === S.cues[0].name), label && label.text);
+
+  // keyboard: Right arrow x4 -> 2T; exits of the titles play, then finish
+  for (let k = 0; k < 4; k++) { key(275); await wait(40); }
+  check("Right arrow x4 -> cue 2T", ctl.i === 5 && S.cues[4].id === "2T", ctl.i);
+  const t1 = S.elements.title1;
+  check("cue 2: the titles' exit plays (Exit twin on, Play off)", objs[t1.exit].active === true || objs[t1.exit].log.includes("on"), objs[t1.exit].log);
+  await wait((t1.exitDur + 0.5) * 1000);
+  check("…and the exit twin is switched off when it ends", !objs[t1.exit].active);
+  const live5 = liveAt(S, 5);
+  check("cue 2T: radio, tv, monitor, timeline live (Play twins)", ["radio", "tv", "monitor", "timeline"].every((e) => objs[S.elements[e].play].active), [...live5]);
+
+  // back: Left arrow -> 2C, every live element in its held pose, timeline gone
+  key(276); await wait(80);
+  check("Left arrow -> cue 2C restores it exactly (Hold twins of cue 2C only)", ctl.i === 4 && same(activeTwins(S), holdsOf(S, 4)), [...activeTwins(S)]);
+
+  // jump to cue 5 (video): the curved screen's mono surface gets clip 01
+  await ctl.goto(14); await wait(80);
+  const vp = objs.Talk_Video_curved_mono.comps.VideoPlayer;
+  check("jump to cue 5: screen held, mono curved surface on, clip 01 from the media host",
+    objs.Talk_Video_curved_mono.active && vp.url === S.mediaBase + "hyperscale/01_night_globe.mp4" && vp.loop === false, vp.url);
+  key(275); await wait(80);
+  check("cue 5B: the next clip on the same surface", vp.url.endsWith("02_ashburn.mp4") && ctl.i === 15, vp.url);
+  await ctl.goto(20); await wait(80);
+  check("cue 6 (video stop): every video surface off", S.videos.every((v) => !objs[v].active));
+  await ctl.goto(29); await wait(80);
+  const sbs = objs.Talk_Video_curved_sbs;
+  check("cue 11: side-by-side stereo clip on the SBS surface", sbs.active && sbs.comps.VideoPlayer.url.endsWith("quest3d/01_capture.mp4"), sbs.comps.VideoPlayer.url);
+
+  // a late arrival / another presenter's change: state written elsewhere -> held poses
+  scene.spaceStateJson.protected["xrtm.show"] = JSON.stringify({ i: 22, at: Date.now() - 60000, by: "someone" });
+  emit(scene.ev, "space-state", { changes: [{ path: "xrtm.show" }] }); await wait(80);
+  check("someone else's cue (arriving late): everything in its held pose", ctl.i === 22 && same(activeTwins(S), holdsOf(S, 22)), [...activeTwins(S)].slice(0, 6));
+
+  // the audience: a non-admin's keys and buttons do nothing
+  me.isSpaceAdmin = false;
+  const before = ctl.i;
+  // (permission is read once per device: a fresh show for the audience member is simulated by resetting the cache)
+  check("audience: cannot write the cue (protected)", await scene.SpaceStateSet("xrtm.show", "{}", { protected: true }).then(() => false, () => true));
+  me.isSpaceAdmin = true;
+
+  // controller: A (right) next, X (left) back while a show runs
+  emit(scene.ev, "button-pressed", { button: 2, side: 1 }); await wait(60);
+  check("A (right controller) -> next", ctl.i === before + 1, ctl.i);
+  emit(scene.ev, "button-pressed", { button: 2, side: 0 }); await wait(60);
+  check("X (left controller) -> back", ctl.i === before, ctl.i);
+
+  // Home -> cue 1
+  key(278); await wait(80);
+  check("Home -> cue 1", ctl.i === 1 && same(activeTwins(S), holdsOf(S, 1)), ctl.i);
+
+  // the whole show, forward then back from every cue: each back step restores the prior cue exactly
+  let bad = [];
+  for (let i = 2; i <= S.cues.length; i++) {
+    await ctl.goto(i); await wait(15);
+    // entering elements: Play; staying: Hold or Play; leaving: Exit (if it has one); nothing else
+    const L = liveAt(S, i), P = liveAt(S, i - 1), act = activeTwins(S);
+    for (const e of Object.keys(S.elements)) {
+      const d = S.elements[e], on = (k) => d[k] && act.has(d[k]);
+      const ok = L.has(e) && !P.has(e) ? on("play") && !on("hold")
+               : L.has(e) ? (on("play") || on("hold")) && !(on("play") && on("hold"))
+               : !on("play") && !on("hold");          // gone (its exit may still be finishing)
+      if (!ok) bad.push(`fwd ${i} ${e}`);
+    }
+    await ctl.back(); await wait(15);
+    if (!same(activeTwins(S), holdsOf(S, i - 1))) bad.push("back " + i);
+    await ctl.goto(i); await wait(15);
+  }
+  check("every cue forward: exactly its live elements' entrances; back from every cue: the prior cue exactly", bad.length === 0, bad.slice(0, 8));
+
+  // the swap: once an entrance has finished, the merged Hold twin takes over (racks: swap true; beds never swap)
+  S.elements.racks.playDur = 0.2; S.elements.bed_hall.playDur = 0.2;
+  await ctl.goto(7); await wait(30); await ctl.goto(8); await wait(1200);
+  check("swap: the racks' Play twin hands over to its merged Hold twin after the entrance", !objs[S.elements.racks.play].active && objs[S.elements.racks.hold].active);
+  check("no swap for an ambient bed (its loop would restart)", objs[S.elements.bed_hall.play].active && !S.elements.bed_hall.swap);
+  await ctl.back(); await wait(60);
+  check("…and back from there restores the prior cue exactly", same(activeTwins(S), holdsOf(S, 7)));
+
+  // rehearsal: R toggles; auto-advance (20 s in the show; 0.2 s here)
+  S.rehearsalSeconds = 0.2;
+  await ctl.goto(1); await wait(30);
+  key(114); await wait(30);
+  check("R starts rehearsal", ctl.rehearsing);
+  await wait(900);
+  check("rehearsal advances on its own", ctl.i >= 4, ctl.i);
+  key(114); await wait(30);
+  const stopped = ctl.i; await wait(500);
+  check("R again stops it", !ctl.rehearsing && ctl.i === stopped, ctl.i);
+  await ctl.goto(S.cues.length - 1); key(114); await wait(800);
+  check("rehearsal stops at the last cue", !ctl.rehearsing && ctl.i === S.cues.length, ctl.i);
+  await ctl.house(); await wait(60);
+  check("End show -> house: everything off", ctl.i === 0 && activeTwins(S).size === 0, [...activeTwins(S)]);
+
+  const ok = results.filter((r) => r.ok).length;
+  document.getElementById("out").innerHTML = `<p>${ok}/${results.length} passed</p>` + results.map((r) =>
+    `<div class="${r.ok ? "ok" : "bad"}">${r.ok ? "ok" : "FAIL"}: ${r.name} ${r.ok ? "" : r.extra}</div>`).join("");
+  window.__done = { ok, total: results.length, results };
+})().catch((e) => { document.getElementById("out").textContent = "ERROR " + e.stack; window.__done = { error: String(e.stack) }; });
+</script>
+</body>
+</html>

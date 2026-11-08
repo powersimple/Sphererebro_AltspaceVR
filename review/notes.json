@@ -1,0 +1,39 @@
+{
+  "summary": [
+    "All 30 cues (the brief's cues 1 to 11 with their B/C/... steps, plus Ben's 2T timeline) are built in the Unity scene and step from XR Time Machine's Show tab on the desk dashboard (or arrow keys / A and X). Built in the open editor; not uploaded; not yet seen in a headset.",
+    "Every cue's held state is inside the Quest budget (under 200,000 talk triangles, at most 62 draw calls; review/PERFORMANCE.md). During the rack fly-in (cue 4B, about 25 s) the unmerged waves cost more, about 140 draw calls, before the merged pose takes over.",
+    "Clearance: PASS. No moving object comes within 3 m of any seat in any entrance or exit (review/CLEARANCE.md). The closest pass is the commons halls rising beside the front rows.",
+    "Show logic: 32/32 checks against the real script.js with a mock SDK: forward through every cue plays exactly its entrances; back from every cue restores the prior cue exactly; late arrivals and other presenters' changes show held poses; only the owner/moderators can drive; rehearsal auto-advances and stops at the end."
+  ],
+  "works": [
+    "Cue engine inside XR Time Machine 0.4 (generic: any world can give it cues and objects). Cue state is the protected key xrtm.show, so everyone in the space sees the same cue.",
+    "Presenter-only Show tab on the desk dashboard: cue number and name, next cue, Back / Next (round pill keys), Cue 1, Rehearse, End show, a jump list of every cue. A (right) next and X (left) back while a show runs; arrows, Home and R on a keyboard.",
+    "All motion is Unity animation (no per-frame script traffic): racks in waves of nine at ~40 m/s easing to a stop, overhead and side passes, the label racks turning their panels and swaying, the bill unrolling with its odometer, tanks filling, stamps, doors opening, beams growing, halls rising.",
+    "Sound is in the animations too: 30 synthesised sounds (rack landings, whooshes, rumble, paper, odometer, water, shatter, chimes, beds) plus Ben's Om bowl in the cue 1 bed. Beds fade in and out with their cues.",
+    "Video: the curved screen (and dome 360 / front-half 180 surfaces) in mono, side-by-side and top-bottom stereo; a stereo shader picks each eye's half; audio comes from the screen.",
+    "Cue 2T: Ben's 200-year media timeline as a comet running a ribbon around the audience; every event's card blooms large, then settles as a small tile.",
+    "Going back or arriving late shows the final pose at once; going forward plays each entrance. The world hides its dome shells and lattice while a show runs and puts them back at the end."
+  ],
+  "doesnt": [
+    "NOT SEEN IN A HEADSET. Everything here was checked in the Unity editor (renders below), a browser simulator and logic tests. Frame rate on Quest is unknown.",
+    "The video slots play placeholders, and only after they are uploaded to the media host (events/ImmersiveX2026/talk/...). The world streams video from there, not from media/.",
+    "The stereo shader (SB/StereoVideo) is custom; if the app ever shows it magenta, the mono surface still works (cue data: layout mono).",
+    "Racks read as dark monoliths in the white room (by design they are silhouettes), with LEDs twinkling; their door detail shows close up.",
+    "asset.world will be larger (the talk's textures and meshes); the size is only known after the Builder's build.",
+    "Real figures and names on screen are only the brief's own text; the timeline text is Ben's 2019 file (two spelling fixes)."
+  ],
+  "logic": "32/32 (tools/harness/show_test.html)",
+  "cues": {
+    "1": "The dome goes dark, a slow star field; the statement forms word by word on a 14 m arc above the presenter, then 'So who will?' in gold.",
+    "2": "The 20 m cathedral radio drifts in from the far left in warm light, turning to show its form, crosses the front and settles left.",
+    "2T": "Ben's timeline: the comet runs 1746 -> 2019; each card blooms beside it, then shrinks onto the ribbon.",
+    "3": "The feed wall rises all round, sector by sector, scrolling upward, closing in front of the trio. Cool blue light.",
+    "4": "The wall bursts into white particles; everything fades to the white room; silence.",
+    "4B": "Ten waves of 50 m racks fly in from the white horizon and lock into rows down a data hall; the nearest pass high beside the seats, two fly straight overhead and climb away. Heavy landings, LEDs on in sequence.",
+    "5": "The front racks part; the curved screen rises; clip 01 plays (5B to 5F step through 02 to 06).",
+    "6": "The bill unrolls from the top of the dome; its odometer climbs (no faster than 3 steps a second) to $333.44, then 'per megawatt-day'.",
+    "7": "The locked rack (tape reels behind glass, padlock lit) drifts in to 10 m from the front row, flanked by two racks.",
+    "9": "Racks open their doors front to back; the white room gives way to dusk; the four commons halls rise; beams of light arc from the racks to them.",
+    "10": "The halls glow brighter; 'So who will?' returns."
+  }
+}

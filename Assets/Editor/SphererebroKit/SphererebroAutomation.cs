@@ -47,6 +47,17 @@ public static class SphererebroAutomation
         Log("request: " + what);
         try
         {
+            // "exec Class.Method": run a static editor method (review shots, checks), e.g. exec SphererebroTalkShots.Run
+            if (what.StartsWith("exec "))
+            {
+                var spec = File.Exists(RequestPath + ".exec") ? File.ReadAllText(RequestPath + ".exec").Trim() : what.Substring(5).Trim();
+                var dot = spec.LastIndexOf('.');
+                var type = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType(spec.Substring(0, dot), false, true)).FirstOrDefault(t => t != null);
+                var m = type?.GetMethod(spec.Substring(dot + 1), BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.IgnoreCase);
+                if (m == null) { Log("EXEC: no static method " + spec); return; }
+                Log("exec " + spec); m.Invoke(null, null); Log("exec done: " + spec);
+                return;
+            }
             if (what.Contains("build"))
             {
                 if (!SphererebroBuilder.BuildForAutomation(true)) { Log("BUILD REFUSED (the builder's scripts were newer than Unity's compiled copy)"); return; }
