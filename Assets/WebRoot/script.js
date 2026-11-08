@@ -9,7 +9,7 @@
 // the same objects) isn't fought while the show is idle.
 //
 // Frame (Unity): origin = sphere centre; the bridge (round layout) and the portal are at -Z (6 o'clock).
-// Two audience layouts (SB_DIMS.seating, from dims.json): "round", the in-the-round ring with the dais at the centre and
+// Two audience layouts (whichever the scene holds: Build World from dims.json "seating", or the Seating menu): "round", the in-the-round ring with the dais at the centre and
 // the bridge; "vista", raked rows just inside the portal facing the far side, the dais on a small stage in front of them,
 // no bridge. The builder switches the other layout off, so in vista the bridge, drawspan and gates are never looked for.
 //
@@ -22,15 +22,38 @@ const SB_DIMS = {
     bridgeOut: [-43.5167, -29.55, -15.5833], bridgeInZ: -57.6833, bridgeInY: -0.65,
     spawn: [0, -5.98, -81], bandArrival: [0, 0.02, -58.5], ringDest: [0, 0.02, -6.6],
     seating: "vista",
+    escalator: { foot: [1.2, -5.7487, -77], top: [1.2, 0.05, -62] },
 };
 // <<< Sphererebro dims
 
+// The media host (set up by the Mac session, 2026-11-07). THE one place its hostname lives: from Monday 2026-11-09
+// video moves to Bunny CDN, same paths, so only this line changes. Files are versioned (_v1, _v2) and cached immutable
+// for a year: never reuse a name, bump the version.
+const MEDIA_BASE = "https://media.immersivepublic.network/";
+const MEDIA_EVENT = "events/ImmersiveX2026/";   // one folder per event: video/ and assets/models/ under it
+
 const SB = {
-    seating: SB_DIMS.seating || "round",   // "vista" or "round" (the tests may set it before load)
+    // the dome video test (spike S6): 60 s equirect grids, FRONT red at the centre, BACK cyan at the seam, LEFT green at
+    // 1/4, RIGHT orange at 3/4, UP yellow, DOWN magenta. VIDEO shows the first; VIDEO again steps to the next bitrate.
+    media: {
+        base: MEDIA_BASE, event: MEDIA_EVENT,
+        // the Milky Way drift (2026-11-07, rendered on Windows): a 120 s seamless loop, the sky turning 3 deg/s. ONE file at
+        // the lowest bitrate that still looks good (Ben: "650 MB is too much"): 4096 x 2048 at 8 Mbps, about 120 MB, VMAF 91
+        // against a near-lossless reference (10 Mbps: 94, 6 Mbps: 87; smaller frames scored worse at the same bitrate),
+        // with a silent AAC track (Quest's decoder can stall on a file with no audio). Bars and tone are gone for good.
+        clips: ["ipn_milkyway_drift_4096x2048_8M_v1.mp4"].map((f) => MEDIA_BASE + MEDIA_EVENT + "video/" + f),
+        names: ["4096x2048 8M"],
+        titles: ["Milky Way drift"],
+    },
+    seating: null,              // null: read it from the scene (Vista_Dais_Mount there = "vista"); the tests set it
     turnRate: 6,                 // deg/s for TURN LEFT / TURN RIGHT (one revolution a minute)
     homeRate: 20,                // deg/s when HOME brings the dais back to 0
-    stickRate: 14,               // deg/s at full joystick deflection
-    stickRange: 0.06,            // metres of joystick travel for full deflection
+    stickRate: 14,               // deg/s at full joystick twist
+    stickRange: 0.06,            // metres of joystick travel for full deflection (forward/back, left/right)
+    // driving the platform with the joystick (2026-11-07): twist = rotate, forward/back = drive, left/right = slide; on
+    // its own level only, inside the sphere (maxR from the centre), never into the seats (the fan beyond fanR within
+    // fanHalfDeg of 6 o'clock). HOME glides back to the dock at homeSpeed and turns to face the dome.
+    drive: { speed: 1.5, homeSpeed: 3, twistRange: 35, tiltRange: 30, deadZone: 0.2, maxR: 44, fanR: 38.4, fanHalfDeg: 13, followRadius: 1.45, followGap: 0.25 },
     tickMs: 33,                  // animation tick (about 30 per second)
     bridge: {                    // telescoping segments, local = world (the bridge group sits at the origin)
         segs: ["Bridge_Seg_01", "Bridge_Seg_02", "Bridge_Seg_03"],
@@ -54,8 +77,23 @@ const SB = {
         keyBase: 26, houseBase: 30,      // the intensities the builder gives them (SphererebroBuilder.SetupLighting)
     },
     sphere: { inner: "Sphere_Shell_Inner", glow: "Sphere_Shell_Glow", screen: "Sphere_Screen", lattice: "Sphere_Lattice" },
-    sphereVideo: "",             // an equirectangular .mp4 for the sphere (set here, or SB.setVideo(url) from the console)
-    props: { flutes: 40, bottles: 40, returnSeconds: 10, homeRadius: 0.15, pollMs: 500 },
+    // the dome's default video (VIDEO plays it): the Milky Way drift at 18M. The other bitrates: SB.setVideo() with a file
+    // name from SB.media.clips, until the playlist console exists.
+    sphereVideo: MEDIA_BASE + MEDIA_EVENT + "video/ipn_milkyway_drift_4096x2048_8M_v1.mp4",
+    bannedVideo: /ipn_grid_/,      // bars and tone: never again (and deleted from the host)
+    sphereDefault: "stars",        // the dome at load and after VIDEO: the 8K skybox (every shell off), nothing rotating
+    videoMenu: { width: 560, height: 420, scale: 0.05 },   // the VIDEO submenu panel: 560 px = 0.28 m at 0.05
+    loadTimeoutS: 30, loadRingDegPerS: 90,                 // the loading ring: gives up after 30 s; a quarter turn a second
+    escalatorSpeed: 0.9,                                   // m/s along the slope: about 18 s from the plaza to the concourse
+    // the IPN cube show (2026-11-07): the desk's IPN CUBE key runs it once, for everyone. Positions in Unity metres; the
+    // cube sits halfway between the audience (row 3, z -43.2) and the far wall (z 49.6). Timings in seconds.
+    show: {
+        cube: "IPN_Cube", lights: ["Cube Key", "Cube Rim A", "Cube Rim B"],
+        centre: [0, 1.0, 3.2],
+        appear: 1.5, holdImmersive: 2.5, toUpright: 2.5, holdUpright: 1.5, toP: 2.0, holdP: 2.0, toN: 2.5, holdN: 2.0, tumble: 6.5,
+        tumbleTo: [0, 4.0, 60.0], tumbleTurns: 1.5,
+    },
+    props: { glasses: 40, bottles: 40, returnSeconds: 10, homeRadius: 0.15, pollMs: 500 },   // stemless wine glasses (2026-11-07)
 };
 window.SB = SB;
 
@@ -139,8 +177,112 @@ const SBState = {
     // lighting preset id from state (House when unset or unknown), and the next one for the LIGHTS key
     lx(raw, cfg) { return cfg.order.indexOf(raw) >= 0 ? raw : "house"; },
     lxNext(raw, cfg) { const o = cfg.order; return o[(o.indexOf(SBState.lx(raw, cfg)) + 1) % o.length]; },
+
+    // ---- driving the platform (2026-11-07, Ben): the dais moves on its own level only. "drive" = "x|z|vx|vz|t0|tEnd" in
+    // the dais's parent frame (the vista dock, or the sphere centre in the round layout), metres and m/s, Date.now() ms;
+    // tEnd 0 = until changed. Yaw stays in "dais" (daisYaw above). Pure, so the tests can check it.
+    driveRaw(x, z, vx, vz, t0, tEnd) { return [x, z, vx, vz].map((v) => Number(v.toFixed(3))).concat([Math.round(t0), tEnd ? Math.round(tEnd) : 0]).join("|"); },
+    driveParse(raw) {
+        const p = String(raw || "").split("|").map(Number);
+        return p.length >= 6 && p.every(Number.isFinite) ? { x: p[0], z: p[1], vx: p[2], vz: p[3], t0: p[4], tEnd: p[5] } : { x: 0, z: 0, vx: 0, vz: 0, t0: 0, tEnd: 0 };
+    },
+    // keep a point (parent frame) inside the sphere and out of the seating fan; parent = the parent's world (x, z)
+    driveClamp(x, z, cfg, parent) {
+        let wx = parent[0] + x, wz = parent[1] + z, r = Math.hypot(wx, wz);
+        if (r > cfg.maxR) { wx *= cfg.maxR / r; wz *= cfg.maxR / r; r = cfg.maxR; }
+        if (cfg.fanR) {
+            const phi = (Math.atan2(wx, wz) * 180 / Math.PI + 360) % 360;   // compass angle: 0 = +Z, 180 = the seats' side
+            if (r > cfg.fanR && Math.abs(phi - 180) < cfg.fanHalfDeg) { wx *= cfg.fanR / r; wz *= cfg.fanR / r; }
+        }
+        return { x: wx - parent[0], z: wz - parent[1] };
+    },
+    drivePos(raw, t, cfg, parent) {
+        const d = SBState.driveParse(raw), tt = d.tEnd > 0 ? Math.min(t, d.tEnd) : t, dt = Math.max(0, tt - d.t0) / 1000;
+        return SBState.driveClamp(d.x + d.vx * dt, d.z + d.vz * dt, cfg, parent);
+    },
+    driveMoving(raw, t) { const d = SBState.driveParse(raw); return (d.vx !== 0 || d.vz !== 0) && !(d.tEnd > 0 && t >= d.tEnd); },
+    // back to the dock (0, 0) at `speed`, as a timed move
+    driveHome(x, z, speed, t) {
+        const dist = Math.hypot(x, z);
+        if (dist < 0.01) return SBState.driveRaw(0, 0, 0, 0, t, 0);
+        return SBState.driveRaw(x, z, -x / dist * speed, -z / dist * speed, t, t + dist / speed * 1000);
+    },
+    // joystick to velocity: forward/back and slide in the platform's own frame (yaw deg), turned into the parent frame
+    driveVelocity(kForward, kRight, yawDeg, speed) {
+        const a = yawDeg * Math.PI / 180, fx = Math.sin(a), fz = Math.cos(a), rx = Math.cos(a), rz = -Math.sin(a);
+        return { vx: (fx * kForward + rx * kRight) * speed, vz: (fz * kForward + rz * kRight) * speed };
+    },
+
+    // ---- the IPN cube show: pure, so the tests can check every pose ------------------------------------------------
+    // Quaternions [x, y, z, w], Unity's convention (Quaternion.AngleAxis: positive = clockwise looking along the axis).
+    qAxis(ax, deg) {
+        const l = Math.hypot(ax[0], ax[1], ax[2]) || 1, h = deg * Math.PI / 360, s = Math.sin(h);
+        return [ax[0] / l * s, ax[1] / l * s, ax[2] / l * s, Math.cos(h)];
+    },
+    qMul(a, b) {
+        return [a[3] * b[0] + a[0] * b[3] + a[1] * b[2] - a[2] * b[1], a[3] * b[1] - a[0] * b[2] + a[1] * b[3] + a[2] * b[0],
+                a[3] * b[2] + a[0] * b[1] - a[1] * b[0] + a[2] * b[3], a[3] * b[3] - a[0] * b[0] - a[1] * b[1] - a[2] * b[2]];
+    },
+    qSlerp(a, b, t) {
+        let d = a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3], bb = b;
+        if (d < 0) { d = -d; bb = b.map((v) => -v); }
+        if (d > 0.9995) { const r = a.map((v, i) => v + (bb[i] - v) * t), l = Math.hypot(...r); return r.map((v) => v / l); }
+        const th = Math.acos(d), s = Math.sin(th), wa = Math.sin((1 - t) * th) / s, wb = Math.sin(t * th) / s;
+        return a.map((v, i) => wa * v + wb * bb[i]);
+    },
+    // rotate a vector by a quaternion (for the tests: which way does a face point?)
+    qRotate(q, v) {
+        const p = SBState.qMul(SBState.qMul(q, [v[0], v[1], v[2], 0]), [-q[0], -q[1], -q[2], q[3]]);
+        return [p[0], p[1], p[2]];
+    },
+    // The model's faces as imported (identity rotation): I/IMMERSIVE up (+Y), P/PUBLIC toward +X+Z, N/NETWORK toward -X+Z.
+    // The audience is at -Z. Poses: IMMERSIVE = the top turned to face the audience; UPRIGHT = top up, the P/N corner toward
+    // the audience; P and N = that face square to the audience.
+    cubePoses() {
+        const Y = [0, 1, 0], X = [1, 0, 0], A = SBState.qAxis;
+        return { immersive: SBState.qMul(A(X, -90), A(Y, 180)), upright: A(Y, 180), p: A(Y, 135), n: A(Y, 225) };
+    },
+    showLength(cfg) { return cfg.appear + cfg.holdImmersive + cfg.toUpright + cfg.holdUpright + cfg.toP + cfg.holdP + cfg.toN + cfg.holdN + cfg.tumble; },
+    // the cube at t seconds into the show: { on, p: [x,y,z], q: [x,y,z,w], s: scale }
+    cubePose(cfg, t) {
+        const P = SBState.cubePoses(), c = cfg.centre, io = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+        if (!(t >= 0) || t >= SBState.showLength(cfg)) return { on: false, p: c, q: P.immersive, s: 0 };
+        const steps = [["appear", null], ["holdImmersive", null], ["toUpright", ["immersive", "upright"]], ["holdUpright", null],
+                       ["toP", ["upright", "p"]], ["holdP", null], ["toN", ["p", "n"]], ["holdN", null]];
+        let k = t, q = P.immersive;
+        for (const [name, move] of steps) {
+            const d = cfg[name];
+            if (k < d) {
+                const f = k / d;
+                if (name === "appear") return { on: true, p: c, q, s: 1 - Math.pow(1 - f, 3) };
+                if (move) q = SBState.qSlerp(P[move[0]], P[move[1]], io(f));
+                return { on: true, p: c, q, s: 1 };
+            }
+            k -= d;
+            if (move) q = P[move[1]];
+        }
+        // tumble away through the far wall: accelerate, turning about a skewed axis
+        const f = clamp(k / cfg.tumble, 0, 1), e = f * f * f;
+        const p = c.map((v, i) => v + (cfg.tumbleTo[i] - v) * e);
+        return { on: true, p, q: SBState.qMul(SBState.qAxis([1, 0.35, 0.2], 360 * cfg.tumbleTurns * f * f), P.n), s: 1 };
+    },
 };
 if (typeof module !== "undefined") module.exports = { SB, SBState };
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Scene settings (2026-11-07, Ben: "can you point at an object and summon it?"): force grab on, so a player can point at
+// a glass or bottle and pull it to their hand. SetSettings sends every setting, the rest at the SDK defaults (nothing
+// else here sets them); sent early, as the SDK asks.
+if (typeof window !== "undefined" && window.addEventListener) window.addEventListener("bs-loaded", async () => {
+    try {
+        const scene = BS.Scene.GetInstance();
+        if (!BS.SceneSettings || !scene.SetSettings) return;
+        const s = new BS.SceneSettings();
+        s.EnableForceGrab = true;
+        await scene.SetSettings(s);
+        console.log("[Sphererebro] force grab on");
+    } catch (e) { console.log("[Sphererebro] settings", e); }
+});
 
 // ---------------------------------------------------------------------------------------------------------------------
 // The desk
@@ -154,7 +296,16 @@ if (typeof window !== "undefined" && window.addEventListener) window.addEventLis
     const status = await find("Desk_Status");
     const statusText = status && status.GetComponent(BS.CT.Text);
     // vista has no bridge: its pieces are switched off (unfindable), so don't wait 8 s on each of them
+    // the layout is whatever the scene holds (Build World or the Seating menu): the vista mount is findable only while
+    // the vista layout is on
+    let mountObj = null;
+    try { mountObj = await scene.Find("Vista_Dais_Mount"); } catch (e) { }
+    if (!SB.seating) SB.seating = mountObj ? "vista" : "round";
     const vista = SB.seating === "vista";
+    // the dais's parent in world space (the drive limits are worked out there): the vista dock, or the sphere centre
+    let driveParent = [0, 0], driveParentY = 0;
+    if (vista && mountObj && mountObj.WatchTransform) await mountObj.WatchTransform([BS.PN.position], (t) => { if (t && t.position) { driveParent = [t.position.x, t.position.z]; driveParentY = t.position.y; } });
+    const driveCfg = () => ({ maxR: SB.drive.maxR, fanR: vista ? SB.drive.fanR : 0, fanHalfDeg: SB.drive.fanHalfDeg });
     const segs = vista ? [] : await Promise.all(SB.bridge.segs.map(find));
     const draw = vista ? null : await find(SB.drawspan.name);
     const gates = {};
@@ -163,13 +314,19 @@ if (typeof window !== "undefined" && window.addEventListener) window.addEventLis
     for (const [k, n] of Object.entries(SB.sphere)) sph[k] = await find(n);
     const keyLight = await find(SB.lx.keyName);
     const houseLights = await Promise.all(SB.lx.houseNames.map(find));
-    const stick = await find("Desk_Joystick");
+    const stick = await find("Desk_Joystick");                 // the visible stick (leans to show the deflection)
+    const grip = await find("Desk_Joystick_Grip");             // the invisible grip the hand holds
     const stickBase = await find("Desk_Joystick_Base");
-    const ride = dais && dais.GetComponent(BS.CT.AttachedObject);
-    console.log("[Sphererebro] desk (" + SB.seating + "):", !!dais, "bridge", segs.filter(Boolean).length, "lights", [keyLight].concat(houseLights).filter(Boolean).length, "ride", !!ride);
+
+    const cube = await find(SB.show.cube);                     // the IPN cube show: hidden until IPN CUBE is pressed
+    const cubeLights = await Promise.all(SB.show.lights.map(find));
+    const videoMount = await find("Desk_Video_Mount");         // the VIDEO submenu's place on the desk
+    const loadRing = await find("Sphere_Load_Ring_EMIT");      // the video loading meter
+    const escCar = await find("Esc_Carriage");                 // the escalator ride
+    console.log("[Sphererebro] desk (" + SB.seating + "):", !!dais, "bridge", segs.filter(Boolean).length, "lights", [keyLight].concat(houseLights).filter(Boolean).length);
 
     // ---- state ------------------------------------------------------------------------------------------------------
-    const KEYS = ["dais", "bridge", "draw", "sphere", "lattice", "lx", "video"];
+    const KEYS = ["dais", "drive", "bridge", "draw", "sphere", "lattice", "lx", "video", "show"];
     const state = {};
     function readState() {
         const s = scene.spaceState || {};
@@ -200,7 +357,9 @@ if (typeof window !== "undefined" && window.addEventListener) window.addEventLis
 
     // ---- status line --------------------------------------------------------------------------------------------------
     let flashUntil = 0, flashText = "";
-    function say(t) { flashText = t; flashUntil = Date.now() + 2500; showStatus(); }
+    // Desk_Status draws nothing since 2026-11-07 (no text over the dash); messages still land there for the coming
+    // admin-only notification panel, and in the console
+    function say(t) { console.log("[Sphererebro] desk:", t); flashText = t; flashUntil = Date.now() + 2500; showStatus(); }
     function showStatus() {
         if (!statusText) return;
         const now = Date.now();
@@ -210,7 +369,7 @@ if (typeof window !== "undefined" && window.addEventListener) window.addEventLis
             const rate = SBState.daisTurning(state.dais, now) ? Number(String(state.dais).split("|")[1]) : 0;
             const yaw = ((SBState.daisYaw(state.dais, now) % 360) + 360) % 360;
             t = `${rate ? (rate > 0 ? "TURNING ▶ " : "◀ TURNING ") : ""}${yaw.toFixed(0)}°${vista ? "" : " · BRIDGE " + String(state.bridge || "out").split("|")[0].toUpperCase()}` +
-                ` · ${SB.lx.names[SBState.lx(state.lx, SB.lx)]}${riding ? " · RIDING" : ""}`;
+                ` · ${SB.lx.names[SBState.lx(state.lx, SB.lx)]}`;
         }
         if (t !== showStatus.last) { statusText.text = t; showStatus.last = t; }
     }
@@ -224,10 +383,11 @@ if (typeof window !== "undefined" && window.addEventListener) window.addEventLis
         const l = o._sbLight || (o._sbLight = o.GetComponent(BS.CT.Light));
         if (l && v > 0 && o._sbIntensity !== v) { o._sbIntensity = v; try { l.intensity = v; } catch (e) { } }
     }
-    let riding = false;
+
     function apply() {
-        // the dome shows its softly glowing panels by default (2026-11-06: "too dark"); LIGHTS OUT darkens them too
-        const chosen = state.sphere || "panels";
+        // the dome by default: the 8K skybox (every shell off, so the sky shows), Ben 2026-11-07: "make that skybox I gave
+        // you the default", nothing rotating. PANELS (the purple grid) and DARK stay on their keys; LIGHTS OUT darkens panels.
+        const chosen = state.sphere || SB.sphereDefault;
         const mode = SBState.lx(state.lx, SB.lx) === "out" && chosen === "panels" ? "dark" : chosen;
         setActive(sph.inner, mode === "dark");
         setActive(sph.glow, mode === "panels");
@@ -236,13 +396,39 @@ if (typeof window !== "undefined" && window.addEventListener) window.addEventLis
         const p = SB.lx[SBState.lx(state.lx, SB.lx)];
         setLight(keyLight, SB.lx.keyBase * p.key);
         for (const h of houseLights) setLight(h, SB.lx.houseBase * p.house);
+        // the old bars-and-tone grids must never play again (Ben, 2026-11-07): a saved choice of one (space state outlives a
+        // script change) is ignored, and cleared from the space by anyone allowed to write it
+        if (state.video && SB.bannedVideo.test(state.video)) {
+            state.video = "";
+            if (admin) { try { scene.SetProtectedSpaceProps({ sb_video: "" }); } catch (e) { } }
+        }
         if (mode === "video" && sph.screen) {
             const url = state.video || SB.sphereVideo;
             const vp = sph.screen.GetComponent(BS.CT.VideoPlayer);
-            if (vp && url && vp._sbUrl !== url) { vp._sbUrl = url; vp.loop = true; vp.volume = 1; vp.url = url; }
+            if (vp && url && vp._sbUrl !== url) { vp._sbUrl = url; vp.loop = true; vp.volume = 1; vp.url = url; startLoading(url); }
             if (!url) say("No sphere video: SB.setVideo(url)");
         }
+        if (mode !== "video" && loading) stopLoading();
+        if (!loading) setActive(loadRing, false);
+        showCube(Date.now());
         showStatus();
+    }
+
+    // ---- the IPN cube show: "show" = "cube|<start ms>"; everyone animates from the same start (late joiners too). The
+    // cube and its three lights are on only while it runs (realtime lights cost a frame on Quest; SDK performance doc).
+    function showStart() { const [what, t0] = String(state.show || "").split("|"); return what === "cube" ? Number(t0) : NaN; }
+    function showCube(now) {
+        if (!cube) return;
+        const pose = SBState.cubePose(SB.show, (now - showStart()) / 1000);
+        setActive(cube, pose.on);
+        for (const l of cubeLights) setActive(l, pose.on);
+        if (!pose.on) return;
+        const k = pose.p.concat(pose.q, [pose.s]).map((v) => v.toFixed(4)).join(",");
+        if (k === showCube.last) return;
+        showCube.last = k;
+        cube.SetPosition(new BS.Vector3(pose.p[0], pose.p[1], pose.p[2]));
+        cube.SetRotation(new BS.Quaternion(pose.q[0], pose.q[1], pose.q[2], pose.q[3]));
+        if (cube.SetLocalScale) cube.SetLocalScale(new BS.Vector3(pose.s, pose.s, pose.s));
     }
 
     // ---- the tick: dais yaw, bridge, drawspan, orbs ------------------------------------------------------------------
@@ -255,10 +441,63 @@ if (typeof window !== "undefined" && window.addEventListener) window.addEventLis
         setter(new BS.Vector3(v.x, v.y, v.z));
     }
     function moveGates(names, open) { for (const n of names) setActive(gates[n], !open); }
+
+    // ---- moving the platform, and keeping the people standing on it with it (2026-11-07). The SDK has no moving-platform
+    // support for standing players, and attaching them (RIDE) failed in the headset. So: (1) the dais moves PHYSICALLY,
+    // through its kinematic Rigidbody (MovePosition/MoveRotation), which gives it a real velocity, so friction may carry
+    // whoever stands on it; (2) if it doesn't, each player's own client moves its own player along: when the platform
+    // has left them more than SB.drive.followGap from their spot on it, a short TeleportTo puts them back on that spot,
+    // turned with the platform. Any number of people; nothing shared. HEADSET TEST PENDING.
+    const daisRb = dais && dais.GetComponent(BS.CT.Rigidbody);
+    let platform = null;   // { x, y, z, yaw } in world space, now
+    function movePlatform(now) {
+        const yaw = SBState.daisYaw(state.dais, now), dp = SBState.drivePos(state.drive, now, driveCfg(), driveParent);
+        platform = { x: driveParent[0] + dp.x, y: driveParentY, z: driveParent[1] + dp.z, yaw };
+        if (daisRb && typeof daisRb.MovePosition === "function") {
+            const k = `${platform.x.toFixed(3)},${platform.z.toFixed(3)},${yaw.toFixed(2)}`;
+            if (k === movePlatform.last) return;
+            movePlatform.last = k;
+            const h = yaw * Math.PI / 360;
+            daisRb.MovePosition(new BS.Vector3(platform.x, platform.y, platform.z));
+            daisRb.MoveRotation(new BS.Quaternion(0, Math.sin(h), 0, Math.cos(h)));
+        } else {   // no Rigidbody (the tests' mock): set the local transform
+            put(dais, "dais", { x: 0, y: yaw, z: 0 }, (v) => dais.SetLocalEulerAngles(v));
+            put(dais, "drivepos", { x: dp.x, y: 0, z: dp.z }, (v) => dais.SetLocalPosition(v));
+        }
+    }
+    // the follow: works from the head (the SDK gives scripts the head and hands, not the body); the body-to-head offset
+    // is learned after the first correction
+    let head = null, headAt = 0, anchor = null, headOffset = null, lastFollow = 0, followBusy = false;
+    scene.On("pose-update", (e) => { const d = e && e.detail; if (d && d.head) { head = d.head; headAt = Date.now(); } });
+    function followPlatform(now) {
+        if (!platform || !head || !head.position || followBusy || now - lastFollow < 150 || !scene.TeleportTo) return;
+        const moving = SBState.daisTurning(state.dais, now) || SBState.driveMoving(state.drive, now);
+        const hp = head.position, dx = hp.x - platform.x, dz = hp.z - platform.z, a = platform.yaw * Math.PI / 180;
+        const onIt = Math.hypot(dx, dz) < SB.drive.followRadius && hp.y > platform.y - 0.3 && hp.y < platform.y + 2.6;
+        if (!moving) { anchor = null; return; }
+        if (!anchor) { if (onIt) anchor = { lx: dx * Math.cos(a) - dz * Math.sin(a), lz: dx * Math.sin(a) + dz * Math.cos(a), yaw0: platform.yaw }; return; }
+        // where this head belongs now: its spot on the platform, carried and turned with it
+        const ex = platform.x + anchor.lx * Math.cos(a) + anchor.lz * Math.sin(a), ez = platform.z - anchor.lx * Math.sin(a) + anchor.lz * Math.cos(a);
+        if (Math.hypot(hp.x - ex, hp.z - ez) < SB.drive.followGap) return;
+        const off = headOffset || { x: 0, z: 0 };
+        const q = head.rotation || { x: 0, y: 0, z: 0, w: 1 }, headYaw = Math.atan2(2 * (q.w * q.y + q.x * q.z), 1 - 2 * (q.y * q.y + q.x * q.x)) * 180 / Math.PI;
+        const turn = platform.yaw - anchor.yaw0; anchor.yaw0 = platform.yaw;
+        const to = { x: ex - off.x, z: ez - off.z };
+        followBusy = true; lastFollow = now;
+        Promise.resolve(scene.TeleportTo(new BS.Vector3(to.x, platform.y + 0.03, to.z), headYaw + turn, false))
+            .then(() => setTimeout(() => {   // learn the body-to-head offset from where the head landed
+                if (head && head.position && Date.now() - headAt < 500) {
+                    const ox = head.position.x - to.x, oz = head.position.z - to.z, m = Math.hypot(ox, oz);
+                    headOffset = m <= 0.5 ? { x: ox, z: oz } : null;   // more than 0.5 m: not an offset, a missed move; forget it
+                }
+                followBusy = false;
+            }, 120), () => { followBusy = false; });
+    }
     function tick() {
         const now = Date.now();
         try {
-            if (dais) put(dais, "dais", { x: 0, y: SBState.daisYaw(state.dais, now), z: 0 }, (v) => dais.SetLocalEulerAngles(v));
+            if (dais) { movePlatform(now); followPlatform(now); }
+
             const b = SBState.moveProgress(state.bridge, now, SB.bridge.dropS + SB.bridge.slideS);
             segs.forEach((seg, i) => {
                 const p = SBState.segmentPose(SB.bridge.out[i], SB.bridge.inZ, SB.bridge.inY, SB.bridge.dropS, SB.bridge.slideS, b.s);
@@ -269,6 +508,11 @@ if (typeof window !== "undefined" && window.addEventListener) window.addEventLis
             const dp = SBState.segmentPose(SB.drawspan.outZ, SB.drawspan.inZ, SB.drawspan.inY, SB.drawspan.dropS, SB.drawspan.slideS, d.s);
             put(draw, "draw", { x: 0, y: dp.y, z: dp.z }, (v) => draw.SetLocalPosition(v));
             moveGates(SB.drawspan.gates, d.s === 0);
+            showCube(now);
+            if (loading && loadRing) {
+                put(loadRing, "ring", { x: 0, y: 0, z: -((now / 1000) * SB.loadRingDegPerS) % 360 }, (v) => loadRing.SetLocalEulerAngles(v));
+                if (now % 500 < SB.tickMs) checkLoading(now);
+            }
             if (now % 500 < SB.tickMs) showStatus();
         } catch (e) { console.log("[Sphererebro] tick", e); }
     }
@@ -286,34 +530,124 @@ if (typeof window !== "undefined" && window.addEventListener) window.addEventLis
         const now = Date.now(), cur = SBState.moveProgress(state[key], now, 1);
         return (cur.dir === "in" ? "out" : "in") + "|" + now;
     }
-    // RIDE: puts the LOCAL player on the dais (BS Attached Object, AvatarAttachTo, on the dais itself) so they turn with
-    // it; press again, or push the move stick, to step off. It only ever moves whoever pressed it, so it needs no
-    // moderator rights and writes no shared state. Headset test pending (spec spike S1); the perches are the fallback.
-    let onDais = false;
-    // the zone is a child of the dais, which has the Rigidbody: accept either name as the object reported
-    const isDaisZone = (e) => { const n = e && e.detail && e.detail.object && e.detail.object.name; return n === "Dais_Zone_TRIG" || n === "Dais_Floor_Rotating"; };
+    // the escalator's foot trigger starts the ride up (the local player only)
+    const isEscFoot = (e) => { const n = e && e.detail && e.detail.object && e.detail.object.name; return n === "Esc_Foot_TRIG"; };
     const me = scene.localUser;
     if (me && me.On) {
-        me.On("trigger-enter", (e) => { if (isDaisZone(e)) onDais = true; });
-        me.On("trigger-exit", (e) => {
-            if (!isDaisZone(e)) return;
-            onDais = false;
-            if (riding) { riding = false; showStatus(); }   // stepped (or pushed the stick) off: no longer riding
+        me.On("trigger-enter", (e) => {
+            if (isEscFoot(e)) escalatorRide().catch((x) => console.log("[Sphererebro] escalator", x));
         });
     }
-    async function toggleRide() {
-        if (!ride) { say("RIDE not available here"); return; }
-        if (!riding && !onDais) { say("Stand on the dais to RIDE"); return; }
-        try {
-            if (riding) { await ride.Detach(scene.localUser.uid); riding = false; say("Off the dais"); }
-            else { await ride.Attach(scene.localUser.uid); riding = true; say("RIDING: push the stick to step off"); }
-        } catch (e) { riding = false; say("RIDE failed"); console.log("[Sphererebro] ride", e); }
+    // ---- the VIDEO submenu (2026-11-07): a small panel on the desk's video mount, drawn on the presser's own device only.
+    // One row per video (SB.media), plus Off. Panels hide by shrinking (a UIPanel switched off is never drawn again).
+    var vmenu = null;   // var, not let: apply() can run before this line (no temporal dead zone)
+    async function videoMenu(open) {
+        if (!videoMount || !BS.UIPanel || !admin) return;
+        if (!vmenu) {
+            const S = SB.videoMenu;
+            const obj = new BS.GameObject({ name: "Video Menu Panel", parent: videoMount, localPosition: new BS.Vector3(0, 0, 0), localScale: new BS.Vector3(0, 0, 0) });
+            const panel = await obj.AddComponent(new BS.UIPanel({ resolution: new BS.Vector2(S.width, S.height), enableHaptics: true }));
+            panel.SetBackgroundColor(new BS.Vector4(0.05, 0.05, 0.06, 0.94));
+            const root = new BS.UIVisualElement(panel);
+            root.SetStyles({ width: "100%", height: "100%", padding: "16px", flexDirection: "column" });
+            const title = new BS.UILabel(panel, root);
+            title.SetStyles({ fontSize: "26px", color: "#f4d7a1", marginBottom: "10px" });
+            title.text = "Dome video";
+            const rows = [];
+            const pick = (url) => { if (url) SB.setVideo(url); else write({ sphere: SB.sphereDefault }); refresh(); if (!url) videoMenu(false); };
+            const item = (text, url) => {
+                const b = new BS.UIButton(panel, root);
+                b.SetStyles({ height: "52px", fontSize: "22px", color: "#ffffff", backgroundColor: "#1c1f26", borderRadius: "26px", marginBottom: "8px" });
+                b.text = text; b.OnClick(() => { try { pick(url); } catch (e) { console.log("[Sphererebro] pick", e); } });
+                rows.push({ b, url });
+            };
+            SB.media.clips.forEach((u, i) => item(SB.media.titles[i] || u.split("/").pop(), u));
+            item("Off", "");
+            function refresh() {
+                const cur = (state.sphere === "video") ? (state.video || SB.sphereVideo) : "";
+                for (const r of rows) r.b.SetStyles({ backgroundColor: r.url === cur ? "#5b4321" : "#1c1f26" });
+            }
+            vmenu = { obj, refresh };
+        }
+        vmenu.refresh();
+        const s = open ? SB.videoMenu.scale : 0;
+        await vmenu.obj.SetLocalScale(new BS.Vector3(s, s, s));
     }
+
+    // ---- the loading ring (2026-11-07): while a new dome video loads, a ring of glowing segments turns in front of the
+    // audience; it goes once the video is really playing (its time moves), or after SB.loadTimeoutS with a note.
+    var loading = null;   // { url, since, t0 } (var: apply() can run before this line)
+    function startLoading(url) {
+        loading = { url, since: Date.now(), t0: null }; setActive(loadRing, true);
+        // a file that isn't on the server yet (2026-11-07: a world uploaded before its video was synced showed only black):
+        // ask the host first and say so, rather than spinning for 30 s (the host allows CORS)
+        if (typeof fetch === "function" && /^https?:/.test(url)) {
+            fetch(url, { method: "HEAD", cache: "no-store" }).then((r) => {
+                if (!r.ok && loading && loading.url === url) stopLoading(`Video not on the server (${r.status}): sync the media server`);
+            }).catch(() => { });
+        }
+    }
+    function stopLoading(note) { loading = null; setActive(loadRing, false); if (note) say(note); }
+    async function checkLoading(now) {
+        if (!loading) return;
+        if (!sph.screen || !sph.screen._sbActive) { stopLoading(); return; }
+        if (now - loading.since > SB.loadTimeoutS * 1000) { stopLoading("The video didn't start: check its URL"); return; }
+        const vp = sph.screen.GetComponent(BS.CT.VideoPlayer);
+        if (!vp || typeof vp.GetProperty !== "function" || !BS.PN || !BS.PN.time) return;
+        if (loading.busy) return;
+        loading.busy = true;
+        try {
+            const t = Number(await vp.GetProperty(BS.PN.time));
+            if (loading && loading.t0 === null) loading.t0 = t;
+            else if (loading && t > loading.t0 + 0.2) stopLoading();
+        } catch (e) { } finally { if (loading) loading.busy = false; }
+    }
+
+    // ---- the escalator ride (2026-11-07): step into the trigger at the foot and the carriage carries you up (see the
+    // builder's SetupEscalator). Local to this player; push the stick to step off.
+    var escRiding = false, escCooldown = 0, escPos = null;
+    const escCfg = SB_DIMS.escalator;
+    if (escCar) await escCar.WatchTransform([BS.PN.position], (t) => { escPos = t.position; });
+    async function escalatorRide() {
+        if (escRiding || Date.now() < escCooldown || !escCfg) return;
+        const att = escCar && escCar.GetComponent(BS.CT.AttachedObject), rb = escCar && escCar.GetComponent(BS.CT.Rigidbody);
+        const [fx, fy, fz] = escCfg.foot, [tx, ty, tz] = escCfg.top;
+        const len = Math.hypot(tx - fx, ty - fy, tz - fz), v = SB.escalatorSpeed;
+        if (!att || !rb || typeof att.Attach !== "function") {   // fallback: straight to the top
+            const yaw = Math.atan2(tx - fx, tz - fz) * 180 / Math.PI;
+            if (scene.TeleportTo) await scene.TeleportTo(new BS.Vector3(tx, ty + 0.05, tz), yaw, true);
+            escCooldown = Date.now() + 3000; return;
+        }
+        escRiding = true;
+        try {
+            rb.velocity = new BS.Vector3(0, 0, 0);
+            await escCar.SetPosition(fx, fy, fz);
+            await att.Attach(scene.localUser.uid);
+            const vel = new BS.Vector3((tx - fx) / len * v, (ty - fy) / len * v, (tz - fz) / len * v);
+            const t0 = Date.now();
+            while (Date.now() - t0 < (len / v) * 1000 + 3000) {
+                rb.velocity = vel;                             // re-applied: the rider's joint drags on it
+                await new Promise((r) => setTimeout(r, 250));
+                if (escPos && Math.hypot(escPos.x - fx, escPos.y - fy, escPos.z - fz) >= len) break;
+            }
+        } catch (e) { console.log("[Sphererebro] escalator", e); }
+        try { rb.velocity = new BS.Vector3(0, 0, 0); await att.Detach(scene.localUser.uid); } catch (e) { }
+        try { await escCar.SetPosition(fx, fy, fz); } catch (e) { }
+        escRiding = false; escCooldown = Date.now() + 3000;
+    }
+
+    // RIDE is gone, button and feature (2026-11-07, Ben: "that feature was a mess... a failure"): attaching a standing
+    // player to the moving dais didn't work in the headset. Whoever drives sits on the pilot stool at the centre of the
+    // dais (a seat: the SDK documents seats riding a moving body); the two perches behind take passengers.
     const actions = {
         RotL: () => turn(-SB.turnRate),
         RotR: () => turn(SB.turnRate),
         RotStop: () => turn(0),
-        Home: () => write({ dais: SBState.homeMove(yawNow(), SB.homeRate, Date.now()) }),
+        // HOME: back to the dock on the stage, facing out (the dome), from wherever it was driven
+        Home: () => {
+            const now = Date.now(), p = SBState.drivePos(state.drive, now, driveCfg(), driveParent);
+            write({ dais: SBState.homeMove(yawNow(), SB.homeRate, now), drive: SBState.driveHome(p.x, p.z, SB.drive.homeSpeed, now) });
+        },
         Bridge: () => { if (vista) { say("No bridge in the vista layout"); return; } write({ bridge: toggleMove("bridge") }); },
         Drawspan: () => {
             if (vista) { say("No bridge in the vista layout"); return; }
@@ -324,41 +658,92 @@ if (typeof window !== "undefined" && window.addEventListener) window.addEventLis
         },
         House: () => write({ lx: "house" }),
         Lights: () => write({ lx: SBState.lxNext(state.lx, SB.lx) }),
-        Ride: () => toggleRide(),
-        XRTM: () => { if (window.XRTM && window.XRTM.toggle) window.XRTM.toggle(); else say("XR Time Machine is off"); },
+        XRTM: () => {
+            if (window.XRTM && window.XRTM.toggle) window.XRTM.toggle();
+            else say(window.XRTM && window.XRTM.state === "on" ? "XR Time Machine: owners and moderators only" : "XR Time Machine is off");
+        },
         SphereDark: () => write({ sphere: state.sphere === "dark" ? "stars" : "dark" }),
         SpherePanels: () => write({ sphere: "panels" }),
         SphereLattice: () => write({ lattice: state.lattice === "0" ? "1" : "0" }),
-        SphereVideo: () => write({ sphere: "video" }),
+        // VIDEO: on and off (2026-11-07, Ben: pressing it again restarted the video, "obnoxious"). Off = back to the panels.
+        // Choosing what plays belongs to the playlist console (coming); SB.setVideo() from the console meanwhile.
+        // VIDEO: the dome to video (or back to the panels) AND its submenu opens (or closes) on the desk: the videos to pick
+        SphereVideo: () => {
+            const on = (state.sphere || "panels") !== "video";
+            write({ sphere: on ? "video" : SB.sphereDefault });
+            videoMenu(on).catch((e) => console.log("[Sphererebro] video menu", e));
+        },
+        // IPN CUBE: the cube show, once, for everyone. Pressed while it runs: ignored (it finishes on its own).
+        Show: () => {
+            const t = (Date.now() - showStart()) / 1000;
+            if (t >= 0 && t < SBState.showLength(SB.show)) { say("The cube show is running"); return; }
+            write({ show: "cube|" + Date.now() });
+        },
     };
     for (const name of Object.keys(actions)) {
         const btn = await find("Desk_Btn_" + name);
         if (btn) btn.On("click", () => { try { actions[name](); } catch (e) { console.log("[Sphererebro] " + name, e); } });
     }
-    SB.setVideo = (url) => write({ video: url, sphere: "video" });
+    // a full url, or a file name in this event's video folder on the media host ("ipn_grid_2880x1440_10M_v1.mp4")
+    SB.setVideo = (url) => {
+        if (SB.bannedVideo.test(url)) { say("That video is retired"); return; }
+        write({ video: /^https?:/.test(url) ? url : MEDIA_BASE + MEDIA_EVENT + "video/" + url, sphere: "video" });
+    };
     SB.actions = actions;
-    SB.isRiding = () => riding;
 
-    // ---- joystick: push left/right to turn; released, it springs back and the dais holds where it is --------------------
-    if (stick && stickBase) {
-        let held = false, basePos = null, baseRot = null, lastSent = 0;
-        await stickBase.WatchTransform([BS.PN.position, BS.PN.rotation], (t) => { basePos = t.position; baseRot = t.rotation; });
-        await stick.WatchTransform([BS.PN.position], (t) => {
-            if (!held || !basePos || !baseRot) return;
-            // offset in the desk's own frame: x = right as the presenter faces 12 o'clock on the desk
-            const dx = t.position.x - basePos.x, dz = t.position.z - basePos.z;
-            const q = baseRot, yaw = Math.atan2(2 * (q.w * q.y + q.x * q.z), 1 - 2 * (q.y * q.y + q.x * q.x));
-            const right = dx * Math.cos(yaw) - dz * Math.sin(yaw);
-            const k = clamp(right / SB.stickRange, -1, 1);
-            const rate = Math.abs(k) < 0.2 ? 0 : Math.round(k * SB.stickRate * 2) / 2;
-            const cur = SBState.daisTurning(state.dais, Date.now()) ? Number(String(state.dais).split("|")[1]) : 0;
-            if (rate !== cur && Date.now() - lastSent > 250) { lastSent = Date.now(); turn(rate); }
+
+    // ---- joystick: drive the platform (2026-11-07, Ben). The hand grabs an invisible, free grip at the knob (so the fist
+    // follows the real hand); what counts is how the hand has TURNED since it took hold, in the desk's own frame:
+    // tilt forward/back (pitch) = drive forward/back, tilt left/right (roll) = slide left/right, twist (yaw) = rotate.
+    // The visible stick leans to show it. On its own level only. Released: the platform stops where it is, the grip
+    // snaps back to the knob, the stick stands up (HOME takes the platform back to the dock).
+    if (grip && stickBase) {
+        let held = false, basePos = null, baseRot = null, q0 = null, gripOff = null, lastSent = 0, lastLean = 0, last = { r: 0, vx: 0, vz: 0 };
+        const Q = SBState, A = (q) => [q.x, q.y, q.z, q.w], conj = (a) => [-a[0], -a[1], -a[2], a[3]], deg = 180 / Math.PI;
+        const dz = (k) => (Math.abs(k) < SB.drive.deadZone ? 0 : Math.round(k * 10) / 10);   // quantised: fewer writes
+        const gripRb = grip.GetComponent(BS.CT.Rigidbody);
+        await stickBase.WatchTransform([BS.PN.position, BS.PN.rotation], (t) => { if (t.position) basePos = t.position; if (t.rotation) baseRot = t.rotation; });
+        await grip.WatchTransform([BS.PN.position, BS.PN.rotation], (t) => {
+            if (!t.position || !t.rotation || !basePos || !baseRot) return;
+            const qb = A(baseRot);
+            if (!held) {   // where the grip sits on the knob, in the desk's frame (to put it back on release)
+                const o = Q.qRotate(conj(qb), [t.position.x - basePos.x, t.position.y - basePos.y, t.position.z - basePos.z]);
+                if (!gripOff) gripOff = o;
+                return;
+            }
+            const q = A(t.rotation);
+            if (!q0) { q0 = q; return; }
+            const d = Q.qMul(Q.qMul(conj(qb), Q.qMul(q, conj(q0))), qb);   // the hand's turn since the grab, desk frame
+            const up = Q.qRotate(d, [0, 1, 0]), fw = Q.qRotate(d, [0, 0, 1]);
+            const pitch = Math.atan2(up[2], up[1]) * deg, roll = Math.atan2(up[0], up[1]) * deg, twist = Math.atan2(fw[0], fw[2]) * deg;
+            const kFwd = dz(clamp(pitch / SB.drive.tiltRange, -1, 1));
+            const kRight = dz(clamp(roll / SB.drive.tiltRange, -1, 1));
+            const kTwist = dz(clamp(twist / SB.drive.twistRange, -1, 1));
+            const now = Date.now();
+            if (stick && now - lastLean > 60) {   // the visible stick leans with it
+                lastLean = now;
+                stick.SetLocalEulerAngles(new BS.Vector3(kFwd * 20, kTwist * 30, -kRight * 20));
+            }
+            if (now - lastSent < 250) return;
+            const rate = Math.round(kTwist * SB.stickRate * 2) / 2;
+            const v = SBState.driveVelocity(kFwd, kRight, yawNow(), SB.drive.speed);
+            if (rate === last.r && Math.abs(v.vx - last.vx) < 0.05 && Math.abs(v.vz - last.vz) < 0.05) return;
+            lastSent = now; last = { r: rate, vx: v.vx, vz: v.vz };
+            const p = SBState.drivePos(state.drive, now, driveCfg(), driveParent);
+            write({ dais: SBState.daisRaw(yawNow(), rate, now, 0), drive: SBState.driveRaw(p.x, p.z, v.vx, v.vz, now, 0) });
         });
-        stick.On("grab", () => { held = true; });
-        stick.On("drop", async () => {
-            held = false;
-            turn(0);
-            if (basePos) await stick.SetPosition(basePos.x, basePos.y, basePos.z);
+        grip.On("grab", () => { held = true; q0 = null; if (gripRb) gripRb.isKinematic = false; });   // free while held
+        grip.On("drop", async () => {
+            held = false; q0 = null; last = { r: 0, vx: 0, vz: 0 };
+            const now = Date.now(), p = SBState.drivePos(state.drive, now, driveCfg(), driveParent);
+            write({ dais: SBState.daisRaw(yawNow(), 0, now, 0), drive: SBState.driveRaw(p.x, p.z, 0, 0, now, 0) });
+            if (stick) stick.SetLocalEulerAngles(new BS.Vector3(0, 0, 0));
+            if (gripRb) { gripRb.velocity = new BS.Vector3(0, 0, 0); gripRb.angularVelocity = new BS.Vector3(0, 0, 0); gripRb.isKinematic = true; }
+            if (basePos && baseRot) {   // back on the knob, riding the dais again
+                const o = gripOff ? Q.qRotate(A(baseRot), gripOff) : [0, 0.165, 0];
+                await grip.SetPosition(basePos.x + o[0], basePos.y + o[1], basePos.z + o[2]);
+                if (grip.SetRotation) await grip.SetRotation(baseRot);
+            }
         });
     }
 
@@ -375,7 +760,7 @@ if (typeof window !== "undefined" && window.addEventListener) window.addEventLis
     await sceneRegistered(scene);
     const cfg = SB.props;
     const names = [];
-    for (let i = 1; i <= cfg.flutes; i++) names.push("Champagne Flute " + String(i).padStart(2, "0"));
+    for (let i = 1; i <= cfg.glasses; i++) names.push("Wine Glass " + String(i).padStart(2, "0"));
     for (let i = 1; i <= cfg.bottles; i++) names.push("Beer Bottle " + String(i).padStart(2, "0"));
     let found = 0;
     for (const n of names) {
@@ -424,13 +809,17 @@ if (typeof window !== "undefined" && window.addEventListener) window.addEventLis
 window.XRTM_CONFIG = {
     enabled: true,          // false: XR Time Machine does nothing in this world (or: node XRTimeMachine/install.mjs --off)
     trackObjects: [         // the show: what the desk moves, recorded in rehearsal and replayed for the audience
-        "Dais_Floor_Rotating",
+        "Dais_Floor_Rotating", "IPN_Cube",
         "Bridge_Seg_01", "Bridge_Seg_02", "Bridge_Seg_03", "Bridge_Drawspan",
     ],
+    // built into the desk (Ben, 2026-11-07: "not stuck in the floor"): the desk's XR TIME MACHINE key opens it on the
+    // mount above the desk front, on the Sequences tab, one button per sequence (recording). Owners and moderators only,
+    // drawn on their own device: the audience never sees it.
+    ui: { anchor: "Desk_XRTM_Mount", anchorScale: 0.06 },
 };
 // <<< XR Time Machine config
 
-// >>> XR Time Machine recorder v0.3.3 (built by XRTimeMachine/install.mjs from XRTimeMachine/src; edit those, not this block)
+// >>> XR Time Machine recorder v0.3.4 (built by XRTimeMachine/install.mjs from XRTimeMachine/src; edit those, not this block)
 (function () {
 "use strict";
 // XR Time Machine core: platform-agnostic and world-agnostic. Plain JavaScript, no libraries.
@@ -733,7 +1122,7 @@ const XRTMCore = (() => {
     const C = XRTMCore;
 
     const XRTM = {
-        version: "0.3.3",
+        version: "0.3.4",
         enabled: true,
         helperUrl: "http://localhost:47800",   // xrtm-helper.ps1 on Windows
         toggleKeyCode: 290,                     // Unity KeyCode F9
@@ -774,6 +1163,9 @@ const XRTMCore = (() => {
         // Sizes, kept here because panel readability on a device is still unverified.
         ui: {
             panelScale: 0.1,                    // world size of the panel: 560 px wide = 0.56 m at 0.1
+            anchor: null,                       // a scene object's name (a desk mount): the panel is built into it
+                                                // there, opening on the Sequences tab, instead of in front of the player
+            anchorScale: 0.06,                  // its size there: 560 px = 0.34 m
             panelWidth: 560,
             panelHeight: 960,
             fontScale: 1,                       // multiplies every font size on the panel
@@ -1718,7 +2110,13 @@ const XRTMCore = (() => {
     async function buildPanel(l, recorder, conductor) {
         const U = XRTM.ui;
         const fs = (n) => `${Math.round(n * U.fontScale)}px`;
-        const obj = l.obj(new BS.GameObject({ name: "XRTM Recorder Panel", localScale: new BS.Vector3(U.panelScale, U.panelScale, U.panelScale) }));
+        // Built into the world (a desk) when ui.anchor names an object there; else it opens in front of the player.
+        let anchor = null;
+        if (U.anchor) { try { anchor = await scene.Find(U.anchor); } catch (e) { anchor = null; } }
+        if (U.anchor && !anchor) log(`panel anchor "${U.anchor}" not found: the panel opens in front of you instead`);
+        const size = anchor ? U.anchorScale : U.panelScale;
+        const obj = l.obj(new BS.GameObject({ name: "XRTM Recorder Panel", localScale: new BS.Vector3(size, size, size),
+            ...(anchor ? { parent: anchor, localPosition: new BS.Vector3(0, 0, 0) } : {}) }));
         const panel = await obj.AddComponent(new BS.UIPanel({ resolution: new BS.Vector2(U.panelWidth, U.panelHeight), enableHaptics: true }));
         panel.SetBackgroundColor(new BS.Vector4(0.07, 0.07, 0.09, 0.92));
         const root = new BS.UIVisualElement(panel);
@@ -1741,8 +2139,17 @@ const XRTMCore = (() => {
         sub.text = `Spatial recorder prototype v${XRTM.version}`;
 
         const tabs = el(BS.UIVisualElement, { flexDirection: "row", marginBottom: "14px" });
+        const tabSeq = button("Sequences", { flexGrow: "1", marginRight: "6px" }, tabs);
         const tabRec = button("Record", { flexGrow: "1", marginRight: "6px" }, tabs);
         const tabPlay = button("Playback", { flexGrow: "1" }, tabs);
+
+        // --- the Sequences tab: a presentation's sequences, one big button each (Sphererebro, 2026-11-07). A sequence
+        // is a recording on this device; a tap plays it for everyone, from the start. ---
+        const seqTab = el(BS.UIVisualElement, { flexDirection: "column" });
+        const seqNow = el(BS.UILabel, { fontSize: fs(22), color: "#e0e0e0", marginBottom: "8px" }, seqTab);
+        const seqList = el(BS.UIScrollView, { height: `${U.panelHeight - 420}px`, width: "100%", marginBottom: "8px" }, seqTab);
+        seqList.horizontalScrolling = false;
+        const seqStop = button("■  Stop", { height: "56px", fontSize: fs(24), backgroundColor: "#455a64", marginBottom: "8px" }, seqTab);
 
         // --- the Record tab ---
         const recTab = el(BS.UIVisualElement, { flexDirection: "column" });
@@ -1793,14 +2200,20 @@ const XRTMCore = (() => {
         let tab = "record";
         function showTab(next) {
             tab = next;
+            seqTab.visible = tab === "seq";
             recTab.visible = tab === "record";
             playTab.visible = tab === "play";
+            // the library and the off switch belong to Record and Playback; Sequences is just the buttons
+            for (const e of [libTitle, list, offBtn]) e.visible = tab !== "seq";
+            tabSeq.style.backgroundColor = tab === "seq" ? "#6a1b9a" : "#37474f";
             tabRec.style.backgroundColor = tab === "record" ? "#c62828" : "#37474f";
             tabPlay.style.backgroundColor = tab === "play" ? "#2e7d32" : "#37474f";
             refresh();
         }
+        click(tabSeq, () => showTab("seq"), "tab");
         click(tabRec, () => showTab("record"), "tab");
         click(tabPlay, () => showTab("play"), "tab");
+        click(seqStop, () => conductor.stop(), "sequence stop");
 
         let busy = false;
         let message = "";
@@ -1822,18 +2235,20 @@ const XRTMCore = (() => {
         click(chapterBtn, () => recorder.chapter(), "chapter button");
 
         // --- playback controls ---
-        async function startPlayback(item) {
-            showTab("play");
-            if (recorder.current?.id === item.id) { playStatus.text = "Stop recording before playing it."; return; }
+        // stay: started from the Sequences tab, which keeps showing (its line says what happened)
+        async function startPlayback(item, stay = false) {
+            if (!stay) showTab("play");
+            const say = (t) => { playStatus.text = t; seqNow.text = t; };
+            if (recorder.current?.id === item.id) { say("Stop recording before playing it."); return; }
             const other = livePlayState();
-            if (other && other.bySid !== scene.localUser?.id) { playStatus.text = `${other.by} is already playing a recording (one at a time).`; return; }
-            playStatus.text = "Loading…";
+            if (other && other.bySid !== scene.localUser?.id) { say(`${other.by} is already playing a recording (one at a time).`); return; }
+            say("Loading…");
             try {
                 await conductor.load(item);
-                playStatus.text = "";
+                say("");
             } catch (e) {
                 log("playback failed:", e.code || e);
-                playStatus.text = e.code === "not_authorized" ? "You don't have permission to play back in this world." : `Couldn't play it: ${e.message || e.code || e}`;
+                say(e.code === "not_authorized" ? "You don't have permission to play back in this world." : `Couldn't play it: ${e.message || e.code || e}`);
             }
             refreshPlay();
         }
@@ -1861,6 +2276,7 @@ const XRTMCore = (() => {
 
         const chapRows = [];
         let chaptersFor = null;
+        let seqPlaying = null;
         function refreshChapters(p) {
             if ((p?.id || null) === chaptersFor) return;
             chaptersFor = p?.id || null;
@@ -1880,6 +2296,9 @@ const XRTMCore = (() => {
         function refreshPlay() {
             const p = conductor.current;
             nowPlaying.text = p ? `Playing for everyone: ${p.name}` : "Nothing playing. Pick a recording below.";
+            if (seqNow.text !== "Loading…") seqNow.text = p ? `▶ ${p.name}   ${C.clock(p.position)} / ${C.clock(p.durationMs)}` : "Tap a sequence to play it for everyone.";
+            seqStop.visible = !!p;
+            if ((p?.id || null) !== seqPlaying) { seqPlaying = p?.id || null; refreshList().catch((e) => log("list failed:", e)); }   // re-mark the playing one
             time.text = p ? `${C.clock(p.position)} / ${C.clock(p.durationMs)}` : "";
             playBtn.text = p?.playing ? "❚❚  Pause" : "▶  Play";
             for (const e of [slider, transport, jumpRow, chapTitle, chapList]) e.visible = !!p;
@@ -1899,6 +2318,20 @@ const XRTMCore = (() => {
             const items = await store.list().catch(() => []);
             if (draw !== listDraws) return;
             for (const r of rows.splice(0)) r.Destroy();
+            // the Sequences tab: finished recordings, oldest first (the order they were rehearsed), one button each
+            const seqs = items.filter((i) => i.status === "complete").sort((a, b) => String(a.startedUtc || "").localeCompare(String(b.startedUtc || "")));
+            seqs.forEach((item, n) => {
+                const playingThis = conductor.current?.id === item.id;
+                const b = button(`${n + 1}.  ${item.name}   ${C.clock(item.durationMs)}`, { height: "72px", fontSize: fs(24), marginBottom: "8px",
+                    backgroundColor: playingThis ? "#6a1b9a" : "#263238" }, seqList);
+                click(b, () => startPlayback(item, true), "play sequence");
+                rows.push(b);
+            });
+            if (seqs.length === 0) {
+                const none = el(BS.UILabel, { fontSize: fs(20), color: "#9aa0a6" }, seqList);
+                none.text = "No sequences yet: record each part of the presentation on the Record tab.";
+                rows.push(none);
+            }
             for (const item of items) {
                 const row = el(BS.UIVisualElement, { flexDirection: "row", alignItems: "center", marginBottom: "6px" }, list);
                 rows.push(row);
@@ -1958,12 +2391,16 @@ const XRTMCore = (() => {
         let open = false;
         l.every(() => {
             if (recorder.current) status.text = statusText();
-            if (open && tab === "play" && conductor.current) refreshPlay();
+            if (open && (tab === "play" || tab === "seq") && conductor.current) refreshPlay();
         }, 250, "panel clock");
 
         await obj.SetLocalScale(new BS.Vector3(0, 0, 0));   // hidden by size, not SetActive: see placeInFront
-        const toggle = await placeInFront(l, obj, U.panelScale, (isOpen) => { open = isOpen; if (open) refresh(); });
-        showTab("record");
+        const onToggle = (isOpen) => { open = isOpen; if (open) refresh(); };
+        // built in: it stays where its anchor is and just shows and hides (still by size)
+        const toggle = anchor
+            ? async () => { open = !open; onToggle(open); const s = open ? size : 0; await obj.SetLocalScale(new BS.Vector3(s, s, s)); }
+            : await placeInFront(l, obj, size, onToggle);
+        showTab(anchor ? "seq" : "record");
         return { toggle, refresh, refreshPlay };
     }
 

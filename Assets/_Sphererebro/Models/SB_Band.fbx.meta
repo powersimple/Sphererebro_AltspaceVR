@@ -37,6 +37,26 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: SB_Cove_Amber
+    second: {fileID: 2100000, guid: dae32a8628be52341a22a4e77c7aa4b1, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: SB_Cove_Blue
+    second: {fileID: 2100000, guid: bf351a4113eb0214b906019f884df17b, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: SB_Cove_Rose
+    second: {fileID: 2100000, guid: ed68ccc15ce379e4aa6e49e4aec34924, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: SB_Cove_Violet
+    second: {fileID: 2100000, guid: 1d7eb4b7045838948a65d8e948d2421b, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: SB_FloorStone
     second: {fileID: 2100000, guid: b4ec7daad4f15c940b008ec6682a71c9, type: 2}
   - first:
@@ -57,6 +77,11 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: SB_Pendant_EMIT
+    second: {fileID: 2100000, guid: 82a3bf16d57e37a4dbd8f938564672aa, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: SB_Plant
     second: {fileID: 2100000, guid: f57a52c62f7f719409bc41c0b5bc8926, type: 2}
   - first:
@@ -64,6 +89,11 @@ ModelImporter:
       assembly: UnityEngine.CoreModule
       name: SB_Rug
     second: {fileID: 2100000, guid: b8240f31f74c02542b6485e992c5ff19, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: SB_Sconce
+    second: {fileID: 2100000, guid: 299b5dff7262f0044ab2193bc7b137cc, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule

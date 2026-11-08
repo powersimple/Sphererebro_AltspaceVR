@@ -35,10 +35,68 @@ public static class SphererebroBuilder
     [Serializable] public class DNav { public float[] spawn, bandArrival, ringDest, daisDest; }
     [Serializable] public class DBridge { public float[] @out; public float inZ, inY, segLength; }
     [Serializable] public class DRescue { public float y; public float[] size; }
-    [Serializable] public class DEsc { public float[] stepPitch; }
+    [Serializable] public class DEsc { public float[] stepPitch, foot, top; }
     // the vista layout (seats: flat [row, x, y, z, ...]; housePos: flat [x, y, z, ...]: JsonUtility reads no nested arrays)
     [Serializable] public class DVista { public float[] daisMount, landing, daisDest, keyPos, keyTarget, housePos, seats; public float stageY; public int seatCount; }
-    [Serializable] public class Derived { public float sphereRadius, domeClipRadius; public DConcourse concourse; public DPlaza plaza; public DNav nav; public DBridge bridge; public DRescue rescue; public DEsc escalator; public string seating; public DVista vista; }
+    [Serializable] public class DZones { public float[] edges; public string[] names; }
+    [Serializable] public class Derived { public float sphereRadius, domeClipRadius; public DConcourse concourse; public DPlaza plaza; public DNav nav; public DBridge bridge; public DRescue rescue; public DEsc escalator; public string seating; public DVista vista; public DZones zones; }
+
+    // ---- club lighting zones along the concourse (Ben, 2026-11-07: tinted in places, no green); the Blender script names
+    // the zones and tints the coves and sconces, this colours their baked lights the same
+    static readonly Dictionary<string, Color> ZoneColor = new Dictionary<string, Color>
+    {
+        ["Rose"] = new Color(1f, 0.38f, 0.6f), ["Amber"] = new Color(1f, 0.66f, 0.38f),
+        ["Blue"] = new Color(0.4f, 0.55f, 1f), ["Violet"] = new Color(0.68f, 0.38f, 1f),
+    };
+    static Color ZoneAt(float phi)
+    {
+        var z = D.zones;
+        if (z == null || z.edges == null) return ZoneColor["Amber"];
+        for (int i = 0; i + 1 < z.edges.Length; i++)
+            if (phi >= z.edges[i] && phi <= z.edges[i + 1]) return ZoneColor.TryGetValue(z.names[i], out var c) ? c : ZoneColor["Amber"];
+        return ZoneColor["Amber"];
+    }
+
+    // ---- the IPN cube show (2026-11-07): Ben's IPN logo cube (SB_IPNCube.fbx, made by ..\Assets\scripts\import_ipn_cube.py
+    // from his IPN-Cube2.blend, 10 m across), halfway between the audience and the far wall, with three realtime lights of
+    // its own: a warm key from above the audience, and two coloured rims from behind for the edges. Everything starts
+    // ACTIVE (an Object Id registers in Awake); the script hides the cube and its lights at load and shows them only while
+    // the show runs (SB.show in script.js: pose, timing, the IPN CUBE desk key). Not static: it moves.
+    static readonly Vector3 CubeCentre = new Vector3(0, 1.0f, 3.2f);   // the same numbers as SB.show.centre in script.js
+    static void SetupIpnCube(Transform show)
+    {
+        var path = $"{Root}/Models/SB_IPNCube.fbx";
+        if (AssetDatabase.LoadAssetAtPath<GameObject>(path) == null) { Log("IPN cube: no SB_IPNCube.fbx (run import_ipn_cube.py)"); return; }
+        var cube = Place("SB_IPNCube", show);
+        cube.name = "IPN_Cube";
+        cube.SetPositionAndRotation(CubeCentre, Quaternion.Euler(-90, 0, 0) * Quaternion.Euler(0, 180, 0));   // the IMMERSIVE pose
+        foreach (var r in cube.GetComponentsInChildren<MeshRenderer>(true)) { r.shadowCastingMode = ShadowCastingMode.Off; r.receiveShadows = false; }
+        ObjectId(cube.gameObject);
+        int tris = cube.GetComponentsInChildren<MeshFilter>(true).Sum(m => m.sharedMesh != null ? (int)m.sharedMesh.GetIndexCount(0) / 3 : 0);
+        Light L(string name, Vector3 pos, Color c, float intensity, float range, float angle)
+        {
+            var l = AddLight(show, name, LightType.Spot, pos, Quaternion.LookRotation(CubeCentre - pos), c, intensity, range, LightmapBakeType.Realtime, angle);
+            l.renderMode = LightRenderMode.ForcePixel;
+            l.gameObject.AddComponent<BS.BSLight>(); ObjectId(l.gameObject);
+            return l;
+        }
+        L("Cube Key", new Vector3(0, 10f, -12f), new Color(1f, 0.9f, 0.78f), 40f, 30f, 42f);
+        L("Cube Rim A", new Vector3(-10f, 7f, 15f), new Color(0.35f, 0.6f, 1f), 30f, 24f, 45f);
+        L("Cube Rim B", new Vector3(10f, 7f, 15f), new Color(1f, 0.35f, 0.75f), 30f, 24f, 45f);
+        Log($"IPN cube: at {CubeCentre}, first-level tris {tris}, 3 realtime lights (on only during the show)");
+    }
+
+    // ---- things Ben has taken out (2026-11-07), switched off, not deleted: the green planter "obelisks" (concourse and
+    // plaza) and the star inlays (spawn pad, dais) until an on-brand motif replaces them. Their lights stay: they light the
+    // plaza, not the fittings.
+    static readonly string[] Retired = { "Band_Planter_", "Plaza_Planter_", "Plaza_SpawnPad", "Dais_Inlay", "Dais_Perch_", "Sphere_Portal_Flange" };   // + the dais stools, the square flange round the arch (2026-11-07)
+    static void RetireRemoved(GameObject[] roots)
+    {
+        int n = 0;
+        foreach (var t in roots.SelectMany(r => All(r.transform)).Where(t => Retired.Any(t.name.StartsWith)).ToList())
+        { t.gameObject.SetActive(false); n++; }
+        Log($"retired (switched off): {n} objects (planters, star inlays)");
+    }
     // which audience layout is live (dims.json "seating"): "vista" (default) or "round". Both are built; the other is switched off.
     static bool Vista => D.seating != "round";
     static Derived D;
@@ -60,8 +118,35 @@ public static class SphererebroBuilder
 
     public static void BuildBatch() => Build(Environment.GetCommandLineArgs().Contains("-sbBake"));
 
+    // Unity recompiles editor scripts only after a menu command returns, so the first Build World after this code changes
+    // would run the OLD builder (seen 2026-11-07: a build kept RIDE after it was removed). Refuse, and say why.
+    static bool StaleBuilder()
+    {
+        var dll = "Library/ScriptAssemblies/Assembly-CSharp-Editor.dll";
+        if (!File.Exists(dll)) return false;
+        var built = File.GetLastWriteTimeUtc(dll);
+        return Directory.GetFiles("Assets/Editor/SphererebroKit", "*.cs").Any(f => File.GetLastWriteTimeUtc(f) > built.AddSeconds(2));
+    }
+
+    // for SphererebroAutomation (a Claude session building while Ben is away): false if the code is stale
+    public static bool BuildForAutomation(bool bake)
+    {
+        if (StaleBuilder()) return false;
+        Build(bake);
+        return true;
+    }
+
     static void Build(bool bake)
     {
+        if (StaleBuilder())
+        {
+            const string msg = "The Sphererebro builder's scripts changed and Unity hasn't compiled them yet, so this build would run the old version.\n\nWait for Unity to finish compiling (the spinner, bottom right), then run Build World again.";
+            Debug.LogWarning("[Sphererebro] " + msg);
+            if (Application.isBatchMode) throw new Exception(msg);
+            AssetDatabase.Refresh();
+            EditorUtility.DisplayDialog("Sphererebro", msg, "OK");
+            return;
+        }
         Report.Clear();
         Log("Sphererebro build " + DateTime.Now.ToString("yyyy-MM-dd HH:mm"));
         AssetDatabase.Refresh();
@@ -85,7 +170,8 @@ public static class SphererebroBuilder
         var bridge = Place("SB_Bridge", groups["BRIDGE"]);
         var stage = Place("SB_Stage", groups["STAGE"]);
         var vista = Place("SB_Vista", groups["VISTA"]);
-        // SHOW stays as an empty group: the show system (spec phase 3) puts its anchors and assets there
+        // SHOW: the show system's assets (spec phase 3). First one: the IPN cube (2026-11-07)
+        SetupIpnCube(groups["SHOW"]);
 
         SetupColliders(scene.GetRootGameObjects());
         SetupSphere(sphere, mats);
@@ -95,17 +181,18 @@ public static class SphererebroBuilder
         PlaceVistaRecliners(groups["VISTA"]);
         SetupDesk(stage);
         SetupRide(stage);
-        if (Vista) MoveDaisToVista(stage, groups["VISTA"]);
         PlaceProps(band, groups["PROPS"]);
+        SeatBarStools(band);
         SetupEscalator(plaza);
         SetupNavigation(groups["NAVIGATION"], groups["SAFETY"], plaza);
         SetupLighting(groups["LIGHTING"], band, plaza);
         MarkStatic(band, true); MarkStatic(plaza, true);
-        MarkStatic(sphere, false); MarkStatic(stage, false, "Dais_Floor_Rotating"); MarkStatic(vista, false);
-        foreach (var z in new[] { sphere, stage, bridge, groups["STAGE"], groups["VISTA"] }) RealtimeOnly(z);
+        MarkStatic(sphere, false, "Sphere_Load_Ring_EMIT"); MarkStatic(stage, false, "Dais_Floor_Rotating"); MarkStatic(vista, false);
+        foreach (var z in new[] { sphere, stage, bridge, groups["STAGE"], groups["VISTA"], groups["SHOW"] }) RealtimeOnly(z);
         RenderSettingsSetup(mats);
+        RetireRemoved(scene.GetRootGameObjects());
         WriteScriptDims();
-        SwitchLayout(groups, stage, band);
+        ApplySeating(Vista);
 
         EditorSceneManager.SaveScene(scene, ScenePath);
         EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
@@ -126,9 +213,14 @@ public static class SphererebroBuilder
     static void ConfigureModels()
     {
         foreach (var path in Directory.GetFiles(Root + "/Models", "SB_*.fbx").Select(p => p.Replace('\\', '/')))
+            ConfigureModel(path);
+    }
+
+    static void ConfigureModel(string path)
+    {
         {
             var mi = (ModelImporter)AssetImporter.GetAtPath(path);
-            if (mi == null) continue;
+            if (mi == null) return;
             var file = Path.GetFileNameWithoutExtension(path);
             mi.materialImportMode = ModelImporterMaterialImportMode.ImportViaMaterialDescription;
             mi.materialLocation = ModelImporterMaterialLocation.InPrefab;
@@ -196,6 +288,7 @@ public static class SphererebroBuilder
             $"    bridgeOut: {A(D.bridge.@out)}, bridgeInZ: {F(D.bridge.inZ)}, bridgeInY: {F(D.bridge.inY)},\n" +
             $"    spawn: {A(D.nav.spawn)}, bandArrival: {A(D.nav.bandArrival)}, ringDest: {A(D.nav.ringDest)},\n" +
             $"    seating: \"{(Vista ? "vista" : "round")}\",\n" +
+            (D.escalator.foot != null ? $"    escalator: {{ foot: {A(D.escalator.foot)}, top: {A(D.escalator.top)} }},\n" : "") +
             "};\n" + DimsEnd;
         var js = File.ReadAllText(ScriptPath);
         int s = js.IndexOf(DimsStart, StringComparison.Ordinal), e = js.IndexOf(DimsEnd, StringComparison.Ordinal);
@@ -262,6 +355,8 @@ public static class SphererebroBuilder
         var screen = Find(sphere, "Sphere_Screen");
         foreach (var go in new[] { inner.gameObject, glow, screen.gameObject, Find(sphere, "Sphere_Lattice").gameObject })
             ObjectId(go);
+        // the video loading ring (2026-11-07): the script shows and spins it while a dome video loads (never static)
+        var ring = Find(sphere, "Sphere_Load_Ring_EMIT"); if (ring != null) ObjectId(ring.gameObject);
         foreach (var r in sphere.GetComponentsInChildren<MeshRenderer>(true))
         {
             r.shadowCastingMode = ShadowCastingMode.Off; r.receiveShadows = false;
@@ -312,14 +407,32 @@ public static class SphererebroBuilder
                 go.transform.SetParent(grp, false);
                 go.transform.position = pos;
                 go.transform.rotation = Quaternion.LookRotation(new Vector3(-pos.x, 0, -pos.z).normalized, Vector3.up);
-                go.AddComponent<MeshFilter>().sharedMesh = src.sharedMesh;
-                var mr = go.AddComponent<MeshRenderer>(); mr.sharedMaterials = srcMr.sharedMaterials;
-                mr.shadowCastingMode = ShadowCastingMode.Off;
-                var body = go.AddComponent<BoxCollider>(); body.center = new Vector3(0, 0.55f, 0.18f); body.size = new Vector3(0.86f, 1.1f, 0.6f);
-                AddSeat(go.transform, "Seat", new Vector3(0, 0.46f, -0.02f), Quaternion.identity, new Vector3(0, 0.1f, 0.0f), new Vector3(0.62f, 0.56f, 0.9f));
+                MakeRecliner(go, src, srcMr);
             }
         }
         Log("recliners: 33 + 35");
+    }
+
+    // One recliner: mesh, colliders, drink holders and the seat. Local frame: front (+Z) toward the stage, origin on the floor.
+    // 2026-11-07: footrests gone, sit point 8 cm further forward (Ben: knees went through the cushion); the body collider
+    // no longer covers the arms, so a glass dropped in a drink holder rests in it (each holder is a cup of thin boxes).
+    static void MakeRecliner(GameObject go, MeshFilter src, MeshRenderer srcMr)
+    {
+        go.AddComponent<MeshFilter>().sharedMesh = src.sharedMesh;
+        var mr = go.AddComponent<MeshRenderer>(); mr.sharedMaterials = srcMr.sharedMaterials;
+        mr.shadowCastingMode = ShadowCastingMode.Off;
+        void Box(Vector3 c, Vector3 s) { var b = go.AddComponent<BoxCollider>(); b.center = c; b.size = s; }
+        Box(new Vector3(0, 0.6f, -0.05f), new Vector3(0.58f, 1.2f, 0.7f));                 // seat and back, between the arms
+        foreach (var side in new[] { -1f, 1f })
+        {
+            Box(new Vector3(side * 0.37f, 0.3f, -0.06f), new Vector3(0.17f, 0.6f, 0.76f)); // arm, up to just under the holder
+            // drink holder at Blender (side*0.37, -0.2) = Unity (-side*0.37, z 0.2): floor at 0.66, walls to 0.72, 9.4 cm inside
+            var h = new Vector3(-side * 0.37f, 0f, 0.2f);
+            Box(h + new Vector3(0, 0.655f, 0), new Vector3(0.11f, 0.01f, 0.11f));
+            foreach (var (dx, dz) in new[] { (1f, 0f), (-1f, 0f), (0f, 1f), (0f, -1f) })
+                Box(h + new Vector3(dx * 0.052f, 0.69f, dz * 0.052f), new Vector3(dz != 0 ? 0.11f : 0.01f, 0.07f, dx != 0 ? 0.11f : 0.01f));
+        }
+        AddSeat(go.transform, "Seat", new Vector3(0, 0.46f, 0.06f), Quaternion.identity, new Vector3(0, 0.1f, -0.06f), new Vector3(0.6f, 0.56f, 0.7f));
     }
 
     // ---- vista seating (Ben, 2026-11-07): the same recliners in a fan of raked rows just inside the portal, every seat facing
@@ -340,11 +453,7 @@ public static class SphererebroBuilder
             go.transform.SetParent(grp, false);
             go.transform.position = pos;
             go.transform.rotation = Quaternion.LookRotation(new Vector3(-pos.x, 0, -pos.z).normalized, Vector3.up);
-            go.AddComponent<MeshFilter>().sharedMesh = src.sharedMesh;
-            var mr = go.AddComponent<MeshRenderer>(); mr.sharedMaterials = srcMr.sharedMaterials;
-            mr.shadowCastingMode = ShadowCastingMode.Off;
-            var body = go.AddComponent<BoxCollider>(); body.center = new Vector3(0, 0.55f, 0.18f); body.size = new Vector3(0.86f, 1.1f, 0.6f);
-            AddSeat(go.transform, "Seat", new Vector3(0, 0.46f, -0.02f), Quaternion.identity, new Vector3(0, 0.1f, 0.0f), new Vector3(0.62f, 0.56f, 0.9f));
+            MakeRecliner(go, src, srcMr);
             n++;
         }
         Log($"vista recliners: {n} in {perRow.Count} rows ({string.Join(", ", perRow.OrderBy(kv => kv.Key).Select(kv => kv.Value))})");
@@ -355,36 +464,115 @@ public static class SphererebroBuilder
     // so the presenter walks straight in. TURN still works (kept for now; in VR the presenter can turn themselves). The
     // script turns the dais in its local frame exactly as before. Its walls and gate stay behind with the round theatre
     // (switched off): Ben, "remove the walls on the side of the dais". BRIDGE and DRAWSPAN have nothing to move here.
-    static void MoveDaisToVista(Transform stage, Transform vistaGroup)
+    // The mount carries an Object Id: the world script finds it to know it is in the vista layout (it can only be found
+    // while the VISTA group is on), so the script always matches the scene, whichever way it was toggled.
+    static void MoveDaisToVista(Transform dais, Transform vistaGroup)
     {
-        var dais = Find(stage, "Dais_Floor_Rotating");
-        var mount = new GameObject("Vista_Dais_Mount").transform;
-        mount.SetParent(vistaGroup, false);
+        var mount = Find(vistaGroup, "Vista_Dais_Mount");
+        if (mount == null) { mount = new GameObject("Vista_Dais_Mount").transform; mount.SetParent(vistaGroup, false); }
+        ObjectId(mount.gameObject);
         mount.position = V(D.vista.daisMount); mount.rotation = Quaternion.identity;   // HOME: the desk faces the dome
         dais.SetParent(mount, false);
         dais.localPosition = Vector3.zero; dais.localRotation = Quaternion.identity;
-        foreach (var key in new[] { "Bridge", "Drawspan" })
-        {
-            var label = Find(dais, "Label_" + key);
-            var tmp = label != null ? label.GetComponent<TextMeshPro>() : null;
-            if (tmp != null) tmp.text = "—";
-        }
-        Log($"vista: dais moved to the stage at {mount.position} (desk facing the dome at HOME); BRIDGE/DRAWSPAN keys blanked");
     }
 
-    // The layout that isn't live is kept, switched off (Ben: keep it, turn it off; never delete). In vista: the round
-    // ring and its seats, the bridge, and the concourse portal gate (it only stands while the bridge is away; vista has
-    // no bridge, the entry deck is always there). The script finds none of these in vista and doesn't look for them.
-    static void SwitchLayout(Dictionary<string, Transform> groups, Transform stage, Transform band)
+    // ---- switching the audience layout -------------------------------------------------------------------------------------
+    // The layout that isn't live is kept, switched off (Ben: keep it, turn it off; never delete). In vista: the round ring
+    // and its seats, the bridge, and the concourse portal gate (it only stands while the bridge is away; vista has no
+    // bridge, the entry deck is always there). The dais moves between the two, the in-sphere lights and the rescue landing
+    // move to suit. Everything here is real-time or a collider, so switching needs no rebake. Used by Build World (with
+    // dims.json "seating") and by the Seating menu (the open scene, unsaved).
+    static void ApplySeating(bool vista)
     {
-        if (Vista)
+        var roots = UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects();
+        Transform G(string n) => roots.FirstOrDefault(r => r.name == $"=== {n} ===")?.transform;
+        Transform stageGroup = G("STAGE"), vistaGroup = G("VISTA"), bridgeGroup = G("BRIDGE"), band = G("CONCOURSE");
+        Transform lighting = G("LIGHTING"), nav = G("NAVIGATION");
+        var stageRoot = stageGroup.Cast<Transform>().FirstOrDefault(t => t.name == "Stage");
+        var dais = Find(stageGroup, "Dais_Floor_Rotating") ?? (vistaGroup != null ? Find(vistaGroup, "Dais_Floor_Rotating") : null);
+        if (vista && vistaGroup == null) throw new Exception("this scene has no vista layout yet");
+        if (dais != null)
         {
-            stage.gameObject.SetActive(false);
-            foreach (var t in groups["STAGE"].Cast<Transform>().Where(t => t.name.StartsWith("Recliners Row"))) t.gameObject.SetActive(false);
-            groups["BRIDGE"].gameObject.SetActive(false);
-            var gate = Find(band, "Band_Gate_COL"); if (gate != null) gate.gameObject.SetActive(false);
+            if (vista) MoveDaisToVista(dais, vistaGroup);
+            else { dais.SetParent(stageRoot, false); dais.localPosition = Vector3.zero; dais.localRotation = Quaternion.identity; }
+            foreach (var key in new[] { "Bridge", "Drawspan" })
+            {
+                var label = Find(dais, "Label_" + key);
+                var tmp = label != null ? label.GetComponent<TextMeshPro>() : null;
+                if (tmp != null) tmp.text = vista ? "—" : ButtonLabels[key];
+            }
         }
-        else groups["VISTA"].gameObject.SetActive(false);
+        stageRoot.gameObject.SetActive(!vista);
+        foreach (var t in stageGroup.Cast<Transform>().Where(t => t.name.StartsWith("Recliners Row"))) t.gameObject.SetActive(!vista);
+        if (bridgeGroup != null) bridgeGroup.gameObject.SetActive(!vista);
+        var gate = band != null ? Find(band, "Band_Gate_COL") : null; if (gate != null) gate.gameObject.SetActive(!vista);
+        if (vistaGroup != null) vistaGroup.gameObject.SetActive(vista);
+        if (lighting != null)
+        {
+            var key = Find(lighting, "Dais Key");
+            if (key != null) { var p = KeyPose(vista); key.SetPositionAndRotation(p.pos, p.rot); }
+            for (int i = 0; i < 3; i++)
+            {
+                var h = Find(lighting, $"House {i + 1}");
+                if (h != null) { var p = HousePose(vista, i); h.SetPositionAndRotation(p.pos, p.rot); }
+            }
+        }
+        if (nav != null)
+        {
+            var ring = Find(nav, "Nav_RingDest"); if (ring != null) ring.position = V(vista ? D.vista.landing : D.nav.ringDest);
+            var dd = Find(nav, "Nav_DaisDest"); if (dd != null) dd.position = V(vista ? D.vista.daisDest : D.nav.daisDest);
+        }
+        Log(vista ? $"seating VISTA: dais on the vista stage at {V(D.vista.daisMount)} (desk faces the dome at HOME), round theatre, bridge and portal gate off"
+                  : "seating ROUND: dais back at the centre, vista off");
+    }
+
+    // in-sphere real-time lights for each layout (same names, so the script's LIGHTS presets reach them either way)
+    static (Vector3 pos, Quaternion rot) KeyPose(bool vista)
+    {
+        if (!vista) return (new Vector3(0, 7f, 0.8f), Quaternion.LookRotation(new Vector3(0, -1f, -0.1f)));
+        var p = V(D.vista.keyPos); return (p, Quaternion.LookRotation(V(D.vista.keyTarget) - p));
+    }
+    static (Vector3 pos, Quaternion rot) HousePose(bool vista, int i)
+    {
+        if (!vista)
+        {
+            var p = Polar(6.3f, 60f + 120f * i, 7f);
+            return (p, Quaternion.LookRotation(new Vector3(0, -1f, 0) + new Vector3(p.x, 0, p.z).normalized * 0.15f));
+        }
+        var h = D.vista.housePos; return (new Vector3(h[3 * i], h[3 * i + 1], h[3 * i + 2]), Quaternion.LookRotation(Vector3.down, Vector3.forward));
+    }
+
+    // ---- Seating menu: switch the OPEN scene between the layouts, for a look. No build, no bake, nothing saved: keep it
+    // with File > Save, or throw it away by reopening the scene without saving. If the scene predates the vista layout,
+    // the first switch adds the vista pieces to it (model, seats, colliders), exactly as Build World would.
+    [MenuItem("Sphererebro/Seating/Vista (preview in the open scene)")]
+    public static void SeatingVistaMenu() => PreviewSeating(true);
+
+    [MenuItem("Sphererebro/Seating/Round (preview in the open scene)")]
+    public static void SeatingRoundMenu() => PreviewSeating(false);
+
+    public static void PreviewSeating(bool vista)
+    {
+        Report.Clear();
+        var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+        var roots = scene.GetRootGameObjects();
+        var stageGroup = roots.FirstOrDefault(r => r.name == "=== STAGE ===");
+        if (stageGroup == null) { EditorUtility.DisplayDialog("Sphererebro", "Open the Sphererebro scene first.", "OK"); return; }
+        D = LoadDerived();
+        if (vista && !roots.Any(r => r.name == "=== VISTA ==="))
+        {
+            var vistaGroup = new GameObject("=== VISTA ===").transform;
+            vistaGroup.SetSiblingIndex(stageGroup.transform.GetSiblingIndex() + 1);
+            ConfigureModel($"{Root}/Models/SB_Vista.fbx");
+            var vroot = Place("SB_Vista", vistaGroup);
+            SetupColliders(new[] { vroot.gameObject });
+            PlaceVistaRecliners(vistaGroup);
+            MarkStatic(vroot, false); RealtimeOnly(vistaGroup);
+            Log("vista pieces added to the open scene (it predated the vista layout)");
+        }
+        ApplySeating(vista);
+        EditorSceneManager.MarkSceneDirty(scene);
+        Debug.Log("[Sphererebro] seating preview (scene NOT saved)\n" + Report);
     }
 
     static Vector3 Polar(float r, float phiDeg, float y)
@@ -422,9 +610,11 @@ public static class SphererebroBuilder
         ["RotL"] = "TURN\nLEFT", ["RotStop"] = "STOP", ["RotR"] = "TURN\nRIGHT", ["Home"] = "HOME",
         ["Bridge"] = "BRIDGE", ["Drawspan"] = "DRAW\nSPAN", ["House"] = "HOUSE\nLIGHTS", ["XRTM"] = "XR TIME\nMACHINE",
         ["SphereDark"] = "DARK", ["SpherePanels"] = "PANELS", ["SphereLattice"] = "LATTICE", ["SphereVideo"] = "VIDEO",
-        ["Ride"] = "RIDE", ["Lights"] = "LIGHTS",
+        ["Ride"] = "RIDE", ["Lights"] = "LIGHTS", ["Show"] = "IPN\nCUBE",
     };
 
+    // the desk top's slope (Blender: atan2(1.08 - 0.95, 0.95 - 0.62)) and the key height (KEY_H): the legends sit on the keys
+    const float DeskSlope = 21.5f, KeyHeight = 0.007f;
     static void SetupDesk(Transform stage)
     {
         var font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF.asset");
@@ -436,35 +626,61 @@ public static class SphererebroBuilder
             var bounds = t.GetComponent<MeshFilter>().sharedMesh.bounds;
             b.center = bounds.center + new Vector3(0, 0.01f, 0); b.size = bounds.size + new Vector3(0.02f, 0.03f, 0.02f);
             ObjectId(t.gameObject);
-            var key = t.name.Substring("Desk_Btn_".Length);
-            var label = new GameObject("Label_" + key);
-            label.transform.SetParent(desk, false);   // desk and buttons share the dais frame (both at its origin)
-            var p = t.localPosition; var flat = new Vector3(p.x, 0, p.z);
-            label.transform.localPosition = p - flat.normalized * 0.065f + Vector3.up * 0.012f;
-            label.transform.localRotation = Quaternion.LookRotation(flat.normalized, Vector3.up) * Quaternion.Euler(62f, 0, 0);
-            var tmp = Tmp(label, font, ButtonLabels.TryGetValue(key, out var s) ? s : key, 0.18f, new Vector2(0.12f, 0.05f));
-            tmp.color = new Color(1f, 0.85f, 0.6f);
+            // the legend is printed INTO the key face (a texture, SB_KeyFace; the Blender generator renders and maps it):
+            // no floating text over the keys any more (Ben, 2026-11-07)
         }
-        // status line across the front of the desk, readable from the centre (BS Text so the script can change it)
+        // status line: NOT shown any more (Ben, 2026-11-07: "text over dash is a no-no"). The object stays, with its BS Text,
+        // so the script keeps one place to write its messages, but it draws nothing (renderer off, fully transparent). The
+        // discreet admin-only notification panel (like the Polys console) replaces it later; the script also logs each one.
         var status = new GameObject("Desk_Status");
         status.transform.SetParent(desk, false);
-        status.transform.localPosition = new Vector3(0, 1.16f, 0.93f);
-        status.transform.localRotation = Quaternion.Euler(-10f, 0, 0);
-        var st = Tmp(status, font, "SPHEREREBRO", 0.5f, new Vector2(0.9f, 0.12f));
-        st.color = new Color(0.55f, 0.85f, 1f);
+        status.transform.localPosition = new Vector3(0, 0.5f, 0f);
+        var st = Tmp(status, font, "", 0.5f, new Vector2(0.9f, 0.12f));
+        st.color = new Color(0.55f, 0.85f, 1f, 0f);
+        var smr = status.GetComponent<MeshRenderer>(); if (smr != null) smr.enabled = false;
         ObjectId(status);
         status.AddComponent<BS.BSText>();
-        // joystick: grab it and push left/right to turn the dais; the script returns it to centre on release
-        var stick = Find(stage, "Desk_Joystick");
-        stick.gameObject.layer = Grabbable;
+        // XR Time Machine, built into the desk (Ben, 2026-11-07: it opened stuck in the floor). The plugin builds its panel
+        // on this mount (XRTM_CONFIG.ui.anchor in script.js): straight ahead above the desk's outer edge, leaning back 20 deg,
+        // facing the presenter, turning with the dais. 0.34 x 0.58 m when open; only owners and moderators get it, on their
+        // own device, so the audience never sees it.
+        var mount = new GameObject("Desk_XRTM_Mount");
+        mount.transform.SetParent(desk, false);
+        mount.transform.localPosition = new Vector3(0, 1.42f, 0.98f);   // lower edge ~1.15 m: clear of the joystick below it
+        mount.transform.localRotation = Quaternion.Euler(20f, 0, 0);
+        ObjectId(mount);
+        // the VIDEO submenu (2026-11-07): the script builds a small panel here when VIDEO is pressed (presenter's own device),
+        // to the right of straight ahead, above the desk's edge, leaning back and facing the presenter
+        var vmount = new GameObject("Desk_Video_Mount");
+        vmount.transform.SetParent(desk, false);
+        var vf = new Vector3(Mathf.Sin(40f * Mathf.Deg2Rad), 0, Mathf.Cos(40f * Mathf.Deg2Rad));
+        vmount.transform.localPosition = vf * 0.98f + Vector3.up * 1.28f;
+        vmount.transform.localRotation = Quaternion.LookRotation(vf, Vector3.up) * Quaternion.Euler(20f, 0, 0);
+        ObjectId(vmount);
+        // The joystick (2026-11-07, Ben: the fist moved opposite to his hand; it should follow the avatar hand, and ideally
+        // be invisible when it works). The SDK holds a grabbed object with a PHYSICS hand jointed to it; a stick that is
+        // physically held in place pushes that hand the other way. So the hand grabs an INVISIBLE grip, a trigger capsule
+        // round the knob, with nothing holding it: the fist follows the real hand exactly. The world script reads the
+        // hand's tilt and twist relative to how it was first grabbed (tilt forward = drive, sideways = slide, twist =
+        // rotate) and leans the VISIBLE stick to show it. The grip is kinematic (riding the dais) until grabbed, free while
+        // held, and snaps back to the knob on release.
+        var stick = Find(stage, "Desk_Joystick");          // the visible stick: shows the deflection, never grabbed
         ObjectId(stick.gameObject);
-        var bc = stick.gameObject.AddComponent<BoxCollider>();
-        var sb = stick.GetComponent<MeshFilter>().sharedMesh.bounds; bc.center = sb.center; bc.size = sb.size * 1.6f;
-        var rb = stick.gameObject.AddComponent<Rigidbody>();
-        rb.useGravity = false; rb.isKinematic = false; rb.linearDamping = 20f; rb.angularDamping = 20f;
-        rb.constraints = RigidbodyConstraints.FreezePositionY | RigidbodyConstraints.FreezeRotation;
-        stick.gameObject.AddComponent<BS.BSGrababble>();
-        stick.gameObject.AddComponent<BS.BSWorldObject>();
+        var grip = new GameObject("Desk_Joystick_Grip") { layer = Grabbable };
+        grip.transform.SetParent(stick.parent, false);
+        grip.transform.localPosition = stick.localPosition + Vector3.up * 0.165f;   // round the knob
+        var cap = grip.AddComponent<CapsuleCollider>(); cap.isTrigger = true; cap.radius = 0.05f; cap.height = 0.14f; cap.direction = 1;
+        var rb = grip.AddComponent<Rigidbody>();
+        rb.useGravity = false; rb.isKinematic = true; rb.mass = 0.2f; rb.linearDamping = 2f; rb.angularDamping = 2f;
+        rb.interpolation = RigidbodyInterpolation.Interpolate;
+        // Cylinder grip (SDK grab presets: "Cylinder (Stick)"): held from whatever side the hand comes
+        var sgr = grip.AddComponent<BS.BSGrababble>();
+        var sgo = new SerializedObject(sgr);
+        var sgt = sgo.FindProperty("grabType"); if (sgt != null) sgt.intValue = (int)BSGrabType.Cylinder;
+        var sgrad = sgo.FindProperty("grabRadius"); if (sgrad != null) sgrad.floatValue = 0.02f;
+        sgo.ApplyModifiedPropertiesWithoutUndo();
+        grip.AddComponent<BS.BSWorldObject>();
+        ObjectId(grip);
         ObjectId(Find(stage, "Desk_Joystick_Base").gameObject);
         Log("desk: " + All(stage).Count(t => t.name.StartsWith("Desk_Btn_")) + " buttons");
     }
@@ -487,48 +703,41 @@ public static class SphererebroBuilder
     // documents riding a kinematic body. Both need the headset test (spike S1).
     static void SetupRide(Transform stage)
     {
-        var dais = Find(stage, "Dais_Floor_Rotating");
-        var ride = dais.gameObject.AddComponent<BS.BSAttachedObject>();
-        var so = new SerializedObject(ride);
-        so.FindProperty("attachmentType").intValue = (int)BS.AttachmentType.Physics;
-        so.FindProperty("avatarAttachmentType").intValue = (int)BS.AvatarAttachmentType.AvatarAttachTo;
-        so.FindProperty("jointAvatar").boolValue = true;
-        so.FindProperty("isSeat").boolValue = false;
-        so.FindProperty("autoAttach").boolValue = false;
-        so.FindProperty("unseatOnMove").boolValue = true;
-        so.FindProperty("unseatOnJump").boolValue = true;
-        so.ApplyModifiedPropertiesWithoutUndo();
-        // where the dais is: a trigger the local player's body fires (BS Collider Events), so RIDE only works for someone
-        // standing on it (the desk keys are clickable from afar; RIDE must never pull a player in from the seats).
-        // Layer 2 (Ignore Raycast): a trigger, not a wall, and out of the way of teleport arcs and clicks.
-        var zone = new GameObject("Dais_Zone_TRIG") { layer = 2 };
-        zone.transform.SetParent(dais, false);
-        var zc = zone.AddComponent<CapsuleCollider>(); zc.isTrigger = true; zc.center = new Vector3(0, 1.1f, 0); zc.radius = 1.45f; zc.height = 2.6f;
-        zone.AddComponent<BS.BSColliderEvents>();
-        ObjectId(zone);
-        int perches = 0;
-        foreach (var tag in new[] { "L", "R" })
+        // RIDE is gone (Ben, 2026-11-07: "a mess... a failure"): no Attached Object on the dais and no zone trigger. The
+        // stools on the dais are gone too (Ben: "no stools, remove them"): switched off by RetireRemoved. People stand on
+        // the platform, as many as fit; the world script moves the dais physically and keeps standing players with it.
+        Log("dais: no RIDE, no stools (standing players are kept with it by the world script)");
+    }
+
+    // ---- the bar stools are seats (2026-11-07, Ben: "the ones in the lounge don't have seats"): the player sits on top
+    // (0.82 m, the cushion), facing the bar counter (outward, away from the sphere), clicked like the recliners
+    static void SeatBarStools(Transform band)
+    {
+        int n = 0;
+        foreach (var s in All(band).Where(t => t.name.StartsWith("Band_BarStool_")).ToList())
         {
-            var p = Find(stage, "Dais_Perch_" + tag);
-            if (p == null) continue;
-            var body = p.gameObject.AddComponent<CapsuleCollider>(); body.center = new Vector3(0, 0.39f, 0); body.height = 0.78f; body.radius = 0.2f;
-            AddSeat(p, "Seat", new Vector3(0, 0.78f, 0), Quaternion.identity, new Vector3(0, 0f, 0), new Vector3(0.5f, 0.3f, 0.5f));
-            perches++;
+            var outward = new Vector3(s.position.x, 0, s.position.z).normalized;
+            var face = Quaternion.Inverse(s.rotation) * Quaternion.LookRotation(outward, Vector3.up);
+            var seat = AddSeat(s, "Seat", new Vector3(0, 0.82f, 0), face, new Vector3(0, -0.1f, 0), new Vector3(0.45f, 0.35f, 0.45f));
+            // the kinematic body BSSeat would add at runtime, added here: it also keeps MarkStatic (baked concourse) off it
+            var srb = seat.AddComponent<Rigidbody>(); srb.isKinematic = true; srb.useGravity = false;
+            n++;
         }
-        Log($"ride: attached object on the dais, {perches} perches");
+        Log($"bar stools: {n} seats, facing the counter");
     }
 
     // ---- grabbable glasses and bottles (Polys GrabLite spec), each with a Home the script returns it to ------------------------
     static void PlaceProps(Transform band, Transform props)
     {
         var model = AssetDatabase.LoadAssetAtPath<GameObject>($"{Root}/Models/SB_Props.fbx");
-        var flute = model.GetComponentsInChildren<MeshFilter>(true).First(m => m.name == "Prop_ChampagneFlute");
+        // stemless wine glasses (2026-11-07) in place of the flutes: they fit the recliner drink holders
+        var flute = model.GetComponentsInChildren<MeshFilter>(true).First(m => m.name == "Prop_StemlessGlass");
         var bottle = model.GetComponentsInChildren<MeshFilter>(true).First(m => m.name == "Prop_BeerBottle");
         int nf = 0, nb = 0;
         void Make(MeshFilter src, Vector3 pos, float yaw, float mass)
         {
             bool isFlute = src == flute;
-            var name = isFlute ? $"Champagne Flute {++nf:00}" : $"Beer Bottle {++nb:00}";
+            var name = isFlute ? $"Wine Glass {++nf:00}" : $"Beer Bottle {++nb:00}";
             var go = new GameObject(name) { layer = Grabbable };
             go.transform.SetParent(props, false);
             go.transform.position = pos; go.transform.rotation = Quaternion.Euler(0, yaw, 0);
@@ -540,7 +749,11 @@ public static class SphererebroBuilder
             rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
             var gr = go.AddComponent<BS.BSGrababble>();
             var so = new SerializedObject(gr);
-            var gt = so.FindProperty("grabType"); if (gt != null) gt.intValue = 0;
+            // SOFT grip: the hand takes hold wherever it touches, and the glass or bottle keeps the angle it had in the hand, so
+            // it follows the wrist exactly. (2026-11-07, Ben with a beer bottle: Point snapped the hand into one fixed pose and
+            // faced it wrong; Cylinder re-aims the hand onto the axis, with the SDK's fixed 40 deg tilt and an upright flip,
+            // and bending the wrist moved the bottle the opposite way.)
+            var gt = so.FindProperty("grabType"); if (gt != null) gt.intValue = (int)BSGrabType.Soft;
             var rad = so.FindProperty("grabRadius"); if (rad != null) rad.floatValue = 0.01f;
             so.ApplyModifiedPropertiesWithoutUndo();
             go.AddComponent<BS.BSSyncedObject>();
@@ -550,12 +763,12 @@ public static class SphererebroBuilder
             home.transform.SetParent(props, false); home.transform.position = pos; home.transform.rotation = go.transform.rotation;
             ObjectId(home);
         }
-        // grips: flute 7 cm above its foot, bottle 12 cm above its base
+        // grips: glass 5 cm above its base, bottle 12 cm above its base
         foreach (var table in All(band).Where(t => t.name.StartsWith("Band_StandingTable_")).OrderBy(t => t.name))
         {
             var top = table.position + Vector3.up * 1.1f;
-            Make(flute, top + new Vector3(0.12f, 0.071f, 0.08f), 0, 0.2f);
-            Make(flute, top + new Vector3(-0.13f, 0.071f, 0.05f), 40, 0.2f);
+            Make(flute, top + new Vector3(0.12f, 0.051f, 0.08f), 0, 0.25f);
+            Make(flute, top + new Vector3(-0.13f, 0.051f, 0.05f), 40, 0.25f);
             Make(bottle, top + new Vector3(0.02f, 0.121f, -0.15f), 0, 0.4f);
         }
         var cc = D.concourse;
@@ -563,10 +776,10 @@ public static class SphererebroBuilder
         for (int i = 0; i < 6; i++)
         {
             float phi = cc.barPhi0 + 3f + i * (span - 6f) / 5f;
-            Make(flute, Polar(barR, phi, cc.barTopY + 0.071f), 0, 0.2f);
+            Make(flute, Polar(barR, phi, cc.barTopY + 0.051f), 0, 0.25f);
             Make(bottle, Polar(barR, phi + 1.6f * 59.62f / barR, cc.barTopY + 0.121f), 0, 0.4f);
         }
-        Log($"props: {nf} flutes, {nb} bottles (each with a Home)");
+        Log($"props: {nf} stemless glasses, {nb} bottles (each with a Home)");
     }
 
     // ---- escalator steps: an Animator slides the step strip up one step and loops (the ramp collider does the carrying) -----
@@ -588,6 +801,39 @@ public static class SphererebroBuilder
         var ctrl = AnimatorController.CreateAnimatorControllerAtPathWithClip(ctrlPath, clip);
         var anim = steps.gameObject.AddComponent<Animator>(); anim.runtimeAnimatorController = ctrl;
         anim.cullingMode = AnimatorCullingMode.CullCompletely;
+
+        // The ride (2026-11-07, Ben: "get on the escalator and have it carry you up"). The SDK has no moving platform for a
+        // standing player, so: step into the trigger at the foot and the world script puts you ON a carriage (BS Attached
+        // Object, AvatarAttachTo, like a vehicle: the same mechanism as RIDE on the dais) and glides it up the slope by
+        // setting its Rigidbody velocity (smooth at the frame rate, not stepped by the script), then lets you off at the
+        // top. Push the stick to step off any time. Each player rides their own copy (it isn't synced); others see the
+        // rider's avatar move. Fallback if attaching isn't available: a teleport to the top. Headset test pending.
+        if (D.escalator.foot == null || D.escalator.top == null) { Log("escalator ride: no foot/top in derived.json"); return; }
+        Vector3 foot = V(D.escalator.foot), top = V(D.escalator.top);
+        var car = new GameObject("Esc_Carriage");
+        car.transform.SetParent(plaza, false);
+        car.transform.SetPositionAndRotation(foot, Quaternion.LookRotation(new Vector3(top.x - foot.x, 0, top.z - foot.z).normalized, Vector3.up));
+        var crb = car.AddComponent<Rigidbody>();
+        crb.useGravity = false; crb.isKinematic = false; crb.mass = 500f; crb.linearDamping = 0f; crb.angularDamping = 0f;
+        crb.constraints = RigidbodyConstraints.FreezeRotation; crb.interpolation = RigidbodyInterpolation.Interpolate;
+        var att = car.AddComponent<BS.BSAttachedObject>();
+        var aso = new SerializedObject(att);
+        aso.FindProperty("attachmentType").intValue = (int)BS.AttachmentType.Physics;
+        aso.FindProperty("avatarAttachmentType").intValue = (int)BS.AvatarAttachmentType.AvatarAttachTo;
+        aso.FindProperty("jointAvatar").boolValue = true;
+        aso.FindProperty("isSeat").boolValue = false;
+        aso.FindProperty("autoAttach").boolValue = false;
+        aso.FindProperty("unseatOnMove").boolValue = true;
+        aso.FindProperty("unseatOnJump").boolValue = true;
+        aso.ApplyModifiedPropertiesWithoutUndo();
+        ObjectId(car);
+        var trig = new GameObject("Esc_Foot_TRIG") { layer = 2 };   // Ignore Raycast: a trigger, not a wall, out of the way of clicks
+        trig.transform.SetParent(plaza, false);
+        trig.transform.SetPositionAndRotation(foot + Vector3.up * 0.9f, car.transform.rotation);
+        var tc = trig.AddComponent<BoxCollider>(); tc.isTrigger = true; tc.size = new Vector3(1.1f, 1.8f, 0.9f);
+        trig.AddComponent<BS.BSColliderEvents>();
+        ObjectId(trig);
+        Log($"escalator ride: carriage {foot} -> {top}, {Vector3.Distance(foot, top):0.0} m");
     }
 
     // ---- spawn, teleports, rescue ---------------------------------------------------------------------------------------------
@@ -633,24 +879,40 @@ public static class SphererebroBuilder
 
     // Brightness, 2026-11-06 walkthrough: "too dark, everywhere". Baked lights x2.5 and lighter ceiling/floor; the sphere's
     // real-time key and house lights brighter and ON at load (House preset). Lights Out is a preset, not the default.
-    const float BakedGain = 2.5f;
+    const float BakedGain = 3.5f;   // 2.5 -> 3.5 (2026-11-07): the softer fittings and matt floor bounce less light
     static void SetupLighting(Transform lighting, Transform band, Transform plaza)
     {
         var warm = new Color(1f, 0.76f, 0.5f); var amber = new Color(1f, 0.62f, 0.32f); var cool = new Color(0.55f, 0.75f, 1f);
         var cc = D.concourse; var g = BakedGain;
+        // 2026-11-07, Ben: the ring and hanging lights were too hot. Pendants and coves come down; the light that's lost comes
+        // back softer from the up-light sconces washing the walls; coves, sconces and lounge spots take the zone tints (club
+        // look: rose at the restroom ends, amber at the bar, blue at the portal, violet in the lounges; no green). All
+        // baked (SDK performance doc: "Bake your lighting"), so none of it costs a frame on Quest.
         var bandL = new GameObject("Concourse (baked)").transform; bandL.SetParent(lighting, false);
         foreach (var p in All(band).Where(t => t.name.StartsWith("Band_Pendant_")))
-            AddLight(bandL, "Pendant " + p.name.Substring(12), LightType.Point, p.position + Vector3.down * 0.5f, Quaternion.identity, warm, 12f * g, 7f, LightmapBakeType.Baked);
+            AddLight(bandL, "Pendant " + p.name.Substring(12), LightType.Point, p.position + Vector3.down * 0.5f, Quaternion.identity, warm, 5f * g, 7f, LightmapBakeType.Baked);   // 7 -> 5: still glared over the bar
         int coves = Mathf.Max(2, Mathf.RoundToInt((cc.phi1 - cc.phi0 - 12f) / 12f));
         for (int i = 0; i <= coves; i++)
         {
             float phi = cc.phi0 + 6f + i * (cc.phi1 - cc.phi0 - 12f) / coves;
             if (Mathf.Abs(phi - 180f) < 4f) continue;
-            AddLight(bandL, $"Cove In {phi:000}", LightType.Point, Polar(cc.coveInR, phi, 3.9f), Quaternion.identity, amber, 10f * g, 11f, LightmapBakeType.Baked);
-            AddLight(bandL, $"Cove Out {phi:000}", LightType.Point, Polar(cc.coveOutR, phi, 3.9f), Quaternion.identity, amber, 10f * g, 11f, LightmapBakeType.Baked);
+            var zc = Color.Lerp(ZoneAt(phi), amber, 0.25f);
+            AddLight(bandL, $"Cove In {phi:000}", LightType.Point, Polar(cc.coveInR, phi, 3.9f), Quaternion.identity, zc, 8f * g, 10f, LightmapBakeType.Baked);
+            AddLight(bandL, $"Cove Out {phi:000}", LightType.Point, Polar(cc.coveOutR, phi, 3.9f), Quaternion.identity, zc, 8f * g, 10f, LightmapBakeType.Baked);
         }
         foreach (var a in cc.loungePhis)
-            AddLight(bandL, $"Lounge {a:000}", LightType.Spot, Polar(cc.loungeR, a, 4.3f), Quaternion.Euler(90, 0, 0), warm, 16f * g, 10f, LightmapBakeType.Baked, 90f);
+            AddLight(bandL, $"Lounge {a:000}", LightType.Spot, Polar(cc.loungeR, a, 4.3f), Quaternion.Euler(90, 0, 0), Color.Lerp(ZoneAt(a), warm, 0.4f), 12f * g, 10f, LightmapBakeType.Baked, 90f);
+        int sconces = 0;
+        foreach (var s in All(band).Where(t => t.name.StartsWith("Band_Sconce_")).ToList())
+        {
+            var parts = s.name.Split('_');   // Band_Sconce_<zone>_<nn>
+            var c = ZoneColor.TryGetValue(parts.Length > 2 ? parts[2] : "", out var zc) ? zc : amber;
+            var outward = new Vector3(s.position.x, 0, s.position.z).normalized;
+            AddLight(bandL, "Sconce " + s.name.Substring(12), LightType.Spot, s.position + Vector3.up * 0.2f - outward * 0.12f,
+                Quaternion.LookRotation(Vector3.up + outward * 0.25f), c, 12f * g, 6f, LightmapBakeType.Baked, 95f);
+            sconces++;
+        }
+        Log($"concourse: {sconces} sconces, zones {(D.zones?.names == null ? "none" : string.Join("/", D.zones.names))}");
         var plazaL = new GameObject("Plaza (baked)").transform; plazaL.SetParent(lighting, false);
         foreach (var p in All(plaza).Where(t => t.name.StartsWith("Plaza_Planter_")))
             AddLight(plazaL, "Planter " + p.name.Substring(14), LightType.Point, p.position + Vector3.up * 2.8f, Quaternion.identity, warm, 12f * g, 13f, LightmapBakeType.Baked);
@@ -660,17 +922,17 @@ public static class SphererebroBuilder
         var sphereL = new GameObject("Sphere (realtime)").transform; sphereL.SetParent(lighting, false);
         // same names in both layouts (the script finds them by name); in vista the key lights the presenter on the stage from
         // the dome side (the desk faces the dome) and the three house lights hang over the rows
-        var keyPos = Vista ? V(D.vista.keyPos) : new Vector3(0, 7f, 0.8f);
-        var keyRot = Vista ? Quaternion.LookRotation(V(D.vista.keyTarget) - keyPos) : Quaternion.LookRotation(new Vector3(0, -1f, -0.1f));
-        var key = AddLight(sphereL, "Dais Key", LightType.Spot, keyPos, keyRot, warm, 26f, 13f, LightmapBakeType.Realtime, 38f);
+        var kp = KeyPose(Vista);
+        var key = AddLight(sphereL, "Dais Key", LightType.Spot, kp.pos, kp.rot, warm, 26f, 13f, LightmapBakeType.Realtime, 38f);
+        key.renderMode = LightRenderMode.ForcePixel;   // "Important": never dropped to per-vertex or culled first (Quest: 4 a object)
         key.gameObject.AddComponent<BS.BSLight>(); ObjectId(key.gameObject);
         var house = new GameObject("House Lights").transform; house.SetParent(sphereL, false);
         ObjectId(house.gameObject);
         for (int i = 0; i < 3; i++)
         {
-            var pos = Vista ? new Vector3(D.vista.housePos[3 * i], D.vista.housePos[3 * i + 1], D.vista.housePos[3 * i + 2]) : Polar(6.3f, 60f + 120f * i, 7f);
-            var aim = Vista ? Vector3.down : new Vector3(0, -1f, 0) + new Vector3(pos.x, 0, pos.z).normalized * 0.15f;
-            var l = AddLight(house, $"House {i + 1}", LightType.Spot, pos, Quaternion.LookRotation(aim, Vista ? Vector3.forward : Vector3.up), amber, 30f, 16f, LightmapBakeType.Realtime, 130f);
+            var hp = HousePose(Vista, i);
+            var l = AddLight(house, $"House {i + 1}", LightType.Spot, hp.pos, hp.rot, amber, 30f, 16f, LightmapBakeType.Realtime, 130f);
+            l.renderMode = LightRenderMode.ForcePixel;
             l.gameObject.AddComponent<BS.BSLight>(); ObjectId(l.gameObject);
         }
         // reflection probes (baked) for the polished concourse and plaza
@@ -753,5 +1015,7 @@ public static class SphererebroBuilder
         }
         Log($"renderers {renderers}, triangles {tris} (all objects, incl. inactive)");
         Log("object ids: " + roots.SelectMany(r => r.GetComponentsInChildren<BS.BSObjectId>(true)).Count());
+        Log(SphererebroMaterials.SkyFaceSize > 0 ? $"skybox: 8K cubemap, {SphererebroMaterials.SkyFaceSize} px faces (Quest ASTC 6x6 ~11 MB, PC BC7 ~25 MB, no mips)"
+                                                 : "skybox: the old one (no Skybox/Sphererebro_Sky_8K file yet)");
     }
 }

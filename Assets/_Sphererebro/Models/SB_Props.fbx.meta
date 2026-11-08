@@ -19,6 +19,11 @@ ModelImporter:
       assembly: UnityEngine.CoreModule
       name: SB_FluteGlass
     second: {fileID: 2100000, guid: 662fc4dea091621419b651555487cfd8, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: SB_Wine
+    second: {fileID: 2100000, guid: 2090d1feb0d3b3d4a9a2b97036c0609d, type: 2}
   materials:
     materialImportMode: 2
     materialName: 1

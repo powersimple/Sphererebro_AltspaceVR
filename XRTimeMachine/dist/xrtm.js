@@ -300,7 +300,7 @@ const XRTMCore = (() => {
     const C = XRTMCore;
 
     const XRTM = {
-        version: "0.3.3",
+        version: "0.3.4",
         enabled: true,
         helperUrl: "http://localhost:47800",   // xrtm-helper.ps1 on Windows
         toggleKeyCode: 290,                     // Unity KeyCode F9
@@ -341,6 +341,9 @@ const XRTMCore = (() => {
         // Sizes, kept here because panel readability on a device is still unverified.
         ui: {
             panelScale: 0.1,                    // world size of the panel: 560 px wide = 0.56 m at 0.1
+            anchor: null,                       // a scene object's name (a desk mount): the panel is built into it
+                                                // there, opening on the Sequences tab, instead of in front of the player
+            anchorScale: 0.06,                  // its size there: 560 px = 0.34 m
             panelWidth: 560,
             panelHeight: 960,
             fontScale: 1,                       // multiplies every font size on the panel
@@ -1285,7 +1288,13 @@ const XRTMCore = (() => {
     async function buildPanel(l, recorder, conductor) {
         const U = XRTM.ui;
         const fs = (n) => `${Math.round(n * U.fontScale)}px`;
-        const obj = l.obj(new BS.GameObject({ name: "XRTM Recorder Panel", localScale: new BS.Vector3(U.panelScale, U.panelScale, U.panelScale) }));
+        // Built into the world (a desk) when ui.anchor names an object there; else it opens in front of the player.
+        let anchor = null;
+        if (U.anchor) { try { anchor = await scene.Find(U.anchor); } catch (e) { anchor = null; } }
+        if (U.anchor && !anchor) log(`panel anchor "${U.anchor}" not found: the panel opens in front of you instead`);
+        const size = anchor ? U.anchorScale : U.panelScale;
+        const obj = l.obj(new BS.GameObject({ name: "XRTM Recorder Panel", localScale: new BS.Vector3(size, size, size),
+            ...(anchor ? { parent: anchor, localPosition: new BS.Vector3(0, 0, 0) } : {}) }));
         const panel = await obj.AddComponent(new BS.UIPanel({ resolution: new BS.Vector2(U.panelWidth, U.panelHeight), enableHaptics: true }));
         panel.SetBackgroundColor(new BS.Vector4(0.07, 0.07, 0.09, 0.92));
         const root = new BS.UIVisualElement(panel);
@@ -1308,8 +1317,17 @@ const XRTMCore = (() => {
         sub.text = `Spatial recorder prototype v${XRTM.version}`;
 
         const tabs = el(BS.UIVisualElement, { flexDirection: "row", marginBottom: "14px" });
+        const tabSeq = button("Sequences", { flexGrow: "1", marginRight: "6px" }, tabs);
         const tabRec = button("Record", { flexGrow: "1", marginRight: "6px" }, tabs);
         const tabPlay = button("Playback", { flexGrow: "1" }, tabs);
+
+        // --- the Sequences tab: a presentation's sequences, one big button each (Sphererebro, 2026-11-07). A sequence
+        // is a recording on this device; a tap plays it for everyone, from the start. ---
+        const seqTab = el(BS.UIVisualElement, { flexDirection: "column" });
+        const seqNow = el(BS.UILabel, { fontSize: fs(22), color: "#e0e0e0", marginBottom: "8px" }, seqTab);
+        const seqList = el(BS.UIScrollView, { height: `${U.panelHeight - 420}px`, width: "100%", marginBottom: "8px" }, seqTab);
+        seqList.horizontalScrolling = false;
+        const seqStop = button("■  Stop", { height: "56px", fontSize: fs(24), backgroundColor: "#455a64", marginBottom: "8px" }, seqTab);
 
         // --- the Record tab ---
         const recTab = el(BS.UIVisualElement, { flexDirection: "column" });
@@ -1360,14 +1378,20 @@ const XRTMCore = (() => {
         let tab = "record";
         function showTab(next) {
             tab = next;
+            seqTab.visible = tab === "seq";
             recTab.visible = tab === "record";
             playTab.visible = tab === "play";
+            // the library and the off switch belong to Record and Playback; Sequences is just the buttons
+            for (const e of [libTitle, list, offBtn]) e.visible = tab !== "seq";
+            tabSeq.style.backgroundColor = tab === "seq" ? "#6a1b9a" : "#37474f";
             tabRec.style.backgroundColor = tab === "record" ? "#c62828" : "#37474f";
             tabPlay.style.backgroundColor = tab === "play" ? "#2e7d32" : "#37474f";
             refresh();
         }
+        click(tabSeq, () => showTab("seq"), "tab");
         click(tabRec, () => showTab("record"), "tab");
         click(tabPlay, () => showTab("play"), "tab");
+        click(seqStop, () => conductor.stop(), "sequence stop");
 
         let busy = false;
         let message = "";
@@ -1389,18 +1413,20 @@ const XRTMCore = (() => {
         click(chapterBtn, () => recorder.chapter(), "chapter button");
 
         // --- playback controls ---
-        async function startPlayback(item) {
-            showTab("play");
-            if (recorder.current?.id === item.id) { playStatus.text = "Stop recording before playing it."; return; }
+        // stay: started from the Sequences tab, which keeps showing (its line says what happened)
+        async function startPlayback(item, stay = false) {
+            if (!stay) showTab("play");
+            const say = (t) => { playStatus.text = t; seqNow.text = t; };
+            if (recorder.current?.id === item.id) { say("Stop recording before playing it."); return; }
             const other = livePlayState();
-            if (other && other.bySid !== scene.localUser?.id) { playStatus.text = `${other.by} is already playing a recording (one at a time).`; return; }
-            playStatus.text = "Loading…";
+            if (other && other.bySid !== scene.localUser?.id) { say(`${other.by} is already playing a recording (one at a time).`); return; }
+            say("Loading…");
             try {
                 await conductor.load(item);
-                playStatus.text = "";
+                say("");
             } catch (e) {
                 log("playback failed:", e.code || e);
-                playStatus.text = e.code === "not_authorized" ? "You don't have permission to play back in this world." : `Couldn't play it: ${e.message || e.code || e}`;
+                say(e.code === "not_authorized" ? "You don't have permission to play back in this world." : `Couldn't play it: ${e.message || e.code || e}`);
             }
             refreshPlay();
         }
@@ -1428,6 +1454,7 @@ const XRTMCore = (() => {
 
         const chapRows = [];
         let chaptersFor = null;
+        let seqPlaying = null;
         function refreshChapters(p) {
             if ((p?.id || null) === chaptersFor) return;
             chaptersFor = p?.id || null;
@@ -1447,6 +1474,9 @@ const XRTMCore = (() => {
         function refreshPlay() {
             const p = conductor.current;
             nowPlaying.text = p ? `Playing for everyone: ${p.name}` : "Nothing playing. Pick a recording below.";
+            if (seqNow.text !== "Loading…") seqNow.text = p ? `▶ ${p.name}   ${C.clock(p.position)} / ${C.clock(p.durationMs)}` : "Tap a sequence to play it for everyone.";
+            seqStop.visible = !!p;
+            if ((p?.id || null) !== seqPlaying) { seqPlaying = p?.id || null; refreshList().catch((e) => log("list failed:", e)); }   // re-mark the playing one
             time.text = p ? `${C.clock(p.position)} / ${C.clock(p.durationMs)}` : "";
             playBtn.text = p?.playing ? "❚❚  Pause" : "▶  Play";
             for (const e of [slider, transport, jumpRow, chapTitle, chapList]) e.visible = !!p;
@@ -1466,6 +1496,20 @@ const XRTMCore = (() => {
             const items = await store.list().catch(() => []);
             if (draw !== listDraws) return;
             for (const r of rows.splice(0)) r.Destroy();
+            // the Sequences tab: finished recordings, oldest first (the order they were rehearsed), one button each
+            const seqs = items.filter((i) => i.status === "complete").sort((a, b) => String(a.startedUtc || "").localeCompare(String(b.startedUtc || "")));
+            seqs.forEach((item, n) => {
+                const playingThis = conductor.current?.id === item.id;
+                const b = button(`${n + 1}.  ${item.name}   ${C.clock(item.durationMs)}`, { height: "72px", fontSize: fs(24), marginBottom: "8px",
+                    backgroundColor: playingThis ? "#6a1b9a" : "#263238" }, seqList);
+                click(b, () => startPlayback(item, true), "play sequence");
+                rows.push(b);
+            });
+            if (seqs.length === 0) {
+                const none = el(BS.UILabel, { fontSize: fs(20), color: "#9aa0a6" }, seqList);
+                none.text = "No sequences yet: record each part of the presentation on the Record tab.";
+                rows.push(none);
+            }
             for (const item of items) {
                 const row = el(BS.UIVisualElement, { flexDirection: "row", alignItems: "center", marginBottom: "6px" }, list);
                 rows.push(row);
@@ -1525,12 +1569,16 @@ const XRTMCore = (() => {
         let open = false;
         l.every(() => {
             if (recorder.current) status.text = statusText();
-            if (open && tab === "play" && conductor.current) refreshPlay();
+            if (open && (tab === "play" || tab === "seq") && conductor.current) refreshPlay();
         }, 250, "panel clock");
 
         await obj.SetLocalScale(new BS.Vector3(0, 0, 0));   // hidden by size, not SetActive: see placeInFront
-        const toggle = await placeInFront(l, obj, U.panelScale, (isOpen) => { open = isOpen; if (open) refresh(); });
-        showTab("record");
+        const onToggle = (isOpen) => { open = isOpen; if (open) refresh(); };
+        // built in: it stays where its anchor is and just shows and hides (still by size)
+        const toggle = anchor
+            ? async () => { open = !open; onToggle(open); const s = open ? size : 0; await obj.SetLocalScale(new BS.Vector3(s, s, s)); }
+            : await placeInFront(l, obj, size, onToggle);
+        showTab(anchor ? "seq" : "record");
         return { toggle, refresh, refreshPlay };
     }
 

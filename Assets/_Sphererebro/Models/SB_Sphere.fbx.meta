@@ -17,6 +17,11 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: SB_Load_EMIT
+    second: {fileID: 2100000, guid: 1b13619b822ebda439300d364a192b3f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: SB_SolarPanel
     second: {fileID: 2100000, guid: 6619f7aef0a61c44a909c464c9257345, type: 2}
   - first:

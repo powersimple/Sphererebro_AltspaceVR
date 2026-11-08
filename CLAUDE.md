@@ -31,6 +31,8 @@ Machine-specific notes go in `CLAUDE.local.md` (gitignored). Read `CHANGELOG.md`
    `Unity.exe -batchmode -quit -projectPath . -executeMethod SphererebroBuilder.BuildBatch -sbBake`. It **rebuilds the scene
    from scratch**: hand edits to the scene are lost on the next build. Report: `Logs/SphererebroBuilder.txt`.
    Headless only works while this project is **not** open in an editor.
+   **Sphererebro > Seating > Vista / Round** switches the OPEN scene between the two audience layouts without building,
+   baking or saving (Ben looks first). The script reads the layout from the scene (`Vista_Dais_Mount` present = vista).
 3. **Review shots:** **Sphererebro > Review Shots** or `-executeMethod SphererebroShots.Batch` -> `..\Assets\previews\unity_*.png`.
 4. **Script tests:** run `..\Assets\tests\serve.ps1`, open `http://localhost:8765/Assets/tests/script_test.html` (mock Banter; 37 checks).
    No Node on the Windows PATH; `install_xrtm.ps1` is a byte-identical port of `XRTimeMachine/install.mjs`.
@@ -44,7 +46,7 @@ Machine-specific notes go in `CLAUDE.local.md` (gitignored). Read `CHANGELOG.md`
 - Today (dims.json): sphere r 50. Concourse r 50.5-62.5, 120 deg arc (phi 120-240), ceiling 4.5 m. Plaza y -6 at z -77. Bridge 41.9 m in 3
   telescoping segments + drawspan. Ring r 3.4-8.6 (17.2 m across), void r 1.5-3.4, dais r 1.5 (rotating), desk waist 1.05 m.
 - Recliners: 33 at r 5.4 (y 0) + 35 at r 7.1 (y 0.5 riser), each over 330 deg, carve-out 30 deg at 6 o'clock.
-- **Seating layout** (dims.json `"seating"`, 2026-11-07): `"vista"` (live) = 74 recliners in 5 raked rows just inside the
+- **Seating layout** (dims.json `"seating"`, 2026-11-07): `"vista"` (live) = 76 recliners (rows 8/8/8/7/7 a side) in 5 raked rows just inside the
   portal (back row 3.8 m in from the shell), centre aisle down to a small stage 0.4 m below the front row carrying the
   dais (at HOME the desk faces the dome); the round ring and the bridge are built but switched off. `"round"` = the reverse.
 
@@ -61,6 +63,13 @@ Machine-specific notes go in `CLAUDE.local.md` (gitignored). Read `CHANGELOG.md`
 7. Lighting: concourse/plaza **baked**; inside the sphere **real-time only** (renderers there have light/reflection probes
    off) so it can go pitch dark.
 8. Never copy credentials into the repo, chat or Assets.
+9. **No square or boxy buttons, ever** (Ben, 2026-11-07: "the square buttons have to go... ban that"). Controls are small and
+   elegant: a low pill or round key with the legend **on** the key, never a block with a label beside it. Current desk keys:
+   60 x 24 x 7 mm pill, matt black face, thin gold chamfer, gold legend printed on top.
+10. **No bars and tone, colour bars or labelled test grids**, in any video, ever (Ben, 2026-11-07). They're deleted from the
+    host, and `script.js` refuses them (`SB.bannedVideo`). Test with real-looking content. Saved space state (`sb_video`)
+    outlives a script change: when content is retired, ignore and clear stale saved values too.
+11. **No text over the dash** where the audience can see it. Messages go to the presenter's own panels.
 
 ## SDK lessons (verified in this project or the Polys one)
 - A **BS Object Id registers in Awake**: an object that loads inactive can never be found by the script. Everything the

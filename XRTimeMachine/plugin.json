@@ -1,6 +1,6 @@
 {
   "name": "xr-time-machine",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "XR Time Machine: spatial recorder and in-world playback, as a world-script plugin. Core is platform-agnostic; the adapter is per platform.",
   "platform": "altspace",
   "sources": ["src/xrtm-core.js", "src/adapter-altspace.js"],

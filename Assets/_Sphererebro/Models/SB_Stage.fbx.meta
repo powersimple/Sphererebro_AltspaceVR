@@ -37,6 +37,11 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: SB_DeskMatte
+    second: {fileID: 2100000, guid: dd31bfa571e05414dab8af5a50fcf377, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: SB_Glass
     second: {fileID: 2100000, guid: 4beb699bd776d324f89d46eaf3ac5129, type: 2}
   - first:
@@ -54,6 +59,26 @@ ModelImporter:
       assembly: UnityEngine.CoreModule
       name: SB_InlayGold
     second: {fileID: 2100000, guid: fa6363c0dc9600547a9fb2f6855a2513, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: SB_KeyCap
+    second: {fileID: 2100000, guid: ddf177d7e5ba7b9498ac64e443c1556e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: SB_KeyFace
+    second: {fileID: 2100000, guid: f20d261bff596c2428a6d295b5788034, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: SB_RailCap
+    second: {fileID: 2100000, guid: 30468d7f4e6193d428dc5575e9f7327c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: SB_RailGlass
+    second: {fileID: 2100000, guid: 18f6e09742c3f7545a456a5b7984a0bf, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule

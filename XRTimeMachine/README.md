@@ -25,7 +25,7 @@ window.XRTM_CONFIG = {
 };
 // <<< XR Time Machine config
 
-// >>> XR Time Machine recorder v0.3.3 (built by XRTimeMachine/install.mjs …)
+// >>> XR Time Machine recorder v0.3.4 (built by XRTimeMachine/install.mjs …)
 (function () { … })();
 // <<< XR Time Machine recorder
 ```
