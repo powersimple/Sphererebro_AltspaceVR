@@ -27,7 +27,8 @@ public static class SphererebroTalkShots
         var tl = J.O(J.Parse(File.ReadAllText("Assets/_Sphererebro/Config/talk_timeline.json")));
         var cues = J.L(tl["cues"]).Select(J.O).ToList();
         var els = J.O(tl["elements"]);
-        talk.transform.position = Vector3.zero;
+        O = SphererebroTalk.HomeOffset();
+        talk.transform.position = O;
         // the world as the script leaves it at load: the 8K skybox (every dome shell off), the IPN cube hidden
         foreach (var n in new[] { "Sphere_Screen", "Sphere_Shell_Glow", "Sphere_Shell_Inner", "IPN_Cube", "Sphere_Load_Ring_EMIT", "Sphere_Lattice" })
         { var g = GameObject.Find(n); if (g) g.SetActive(false); }
@@ -147,9 +148,11 @@ public static class SphererebroTalkShots
         return $"{tris:N0} triangles and {calls} draw calls (seating, stage, sphere, all switched-on renderers; before frustum culling)";
     }
 
+    static Vector3 O;   // SphererebroTalk.HomeOffset(): where the seats moved to since the talk was choreographed
     static void Shot(Camera cam, RenderTexture rt, string path, Vector3 eye, Vector3 target, float fov)
     {
-        cam.transform.position = eye; cam.transform.LookAt(target); cam.fieldOfView = fov;
+        // shot positions are in the talk's own frame (the 50 m sphere's seats); O moves them with the seats
+        cam.transform.position = eye + O; cam.transform.LookAt(target + O); cam.fieldOfView = fov;
         cam.clearFlags = CameraClearFlags.Skybox;
         cam.Render();
         RenderTexture.active = rt;

@@ -1,11 +1,13 @@
 """Rebuild every talk asset in one run, each in a fresh headless Blender, then write talk/models/ASSET_REPORT.md.
 Run (any Python, e.g. Blender's):  <blender python> tools/blender/build_all.py [--no-preview] [asset_script ...]
 """
-import json, os, subprocess, sys, time
+import glob, json, os, subprocess, sys, time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, "..", ".."))
-BLENDER = r"C:\Program Files\Blender Foundation\Blender 5.2\blender.exe"
+# The newest Blender 5.x installed (5.2 on Yoda-VIII, 5.1 on Yoda-IX); BLENDER in the environment overrides.
+BLENDER = os.environ.get("BLENDER") or sorted(glob.glob(r"C:\Program Files\Blender Foundation\Blender 5.*\blender.exe"),
+                                              key=lambda p: [int(x) for x in os.path.basename(os.path.dirname(p)).split()[-1].split(".")])[-1]
 SCRIPTS = ["white_room", "server_rack", "server_rack_far", "electricity_bill", "stamp", "light_beam", "curved_screen", "radio_1920s",
            "tv_midcentury", "web_monitor_1990s", "feed_tile", "devices", "water_tank", "gas_plant", "commons_halls", "talk_text"]
 args = [a for a in sys.argv[1:] if not a.startswith("--")]

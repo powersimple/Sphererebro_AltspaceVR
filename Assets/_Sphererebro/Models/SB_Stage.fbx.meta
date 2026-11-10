@@ -32,6 +32,16 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: SB_DaisDeck
+    second: {fileID: 2100000, guid: 21ca659a2002c054db970435612c0791, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: SB_DaisTrim
+    second: {fileID: 2100000, guid: 3ec715aeb2b7ffa44ba02011d8a97ee9, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: SB_Deck
     second: {fileID: 2100000, guid: 080b800897c7ee34895402ecb8a091ea, type: 2}
   - first:

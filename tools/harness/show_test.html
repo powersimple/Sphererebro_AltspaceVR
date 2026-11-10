@@ -9,7 +9,7 @@
 </style>
 </head>
 <body>
-<h1>XR Time Machine Show: the real script.js (world + XRTM 0.4) against a mock Creator SDK</h1>
+<h1>XR Time Machine Show: the real script.js (world + XRTM 0.5) against a mock Creator SDK</h1>
 <div id="out">running…</div>
 <script>
 // ---- mock Creator SDK: enough for script.js's world code to start and for XR Time Machine's show + panel -------------
@@ -43,9 +43,10 @@ class UIPanel { constructor() { this.children = []; } SetBackgroundColor() { } }
 class GameObject extends MockObj { constructor(cfg) { super(cfg?.name || "made"); } }
 const me = { id: "s-me", uid: "u-me", name: "Ben", isSpaceAdmin: true, isLocal: true };
 const scene = {
-  objects: {}, spaceState: { public: {}, protected: {} }, spaceStateJson: { public: {}, protected: {} }, localUser: me, users: [me], ev: {},
+  get objects() { return window.sceneArrived ? objs : {}; },   // the real app: the object list fills in a second or two after load
+  spaceState: { public: {}, protected: {} }, spaceStateJson: { public: {}, protected: {} }, localUser: me, users: [me], ev: {},
   WaitForUnityLoaded: async () => { }, IsVR: async () => false,
-  Find: async (n) => objs[n] || null,
+  Find: async (n) => (window.sceneArrived && objs[n]) || null,
   On(e, f) { (this.ev[e] = this.ev[e] || []).push(f); }, Off() { },
   SetProtectedSpaceProps(o) { Object.assign(this.spaceState.protected, o); },
   async SpaceStateSet(key, value, opt) { if (!me.isSpaceAdmin && opt?.protected) throw new Error("not_authorized"); this.spaceStateJson.protected[key] = value; setTimeout(() => emit(this.ev, "space-state", { changes: [{ path: key }] }), 5); },
@@ -95,10 +96,11 @@ const key = (k) => emit(scene.ev, "key-press", { key: k });
   check("show block present: cues and elements", S && S.cues.length >= 30 && Object.keys(S.elements).length >= 40, S && [S.cues.length, Object.keys(S.elements).length]);
   const names = makeObjects();
   window.dispatchEvent(new Event("bs-loaded"));
+  setTimeout(() => { window.sceneArrived = true; }, 800);
   for (let k = 0; k < 60 && !(window.XRTM && XRTM.showControl); k++) await wait(50);
   const ctl = XRTM.showControl;
-  check("XR Time Machine 0.4 runs and creates the show", ctl && XRTM.version.startsWith("0.4"), XRTM && XRTM.version);
-  await wait(400);
+  check("XR Time Machine 0.5 runs and creates the show", ctl && XRTM.version.startsWith("0.5"), XRTM && XRTM.version);
+  await wait(3400);   // objects arrive at 0.8 s; the show waits for the list to settle (1.5 s)
   check("init: every twin and video surface switched off", names.filter((n) => n !== S.root).every((n) => !objs[n].active), names.filter((n) => n !== S.root && objs[n].active).slice(0, 5));
   check("init: the Talk root came home from 10 km below", objs.Talk.pos.y === 0, objs.Talk.pos);
   check("init: cue 0 (house)", ctl.i === 0, ctl.i);
@@ -201,6 +203,17 @@ const key = (k) => emit(scene.ev, "key-press", { key: k });
   check("R again stops it", !ctl.rehearsing && ctl.i === stopped, ctl.i);
   await ctl.goto(S.cues.length - 1); key(114); await wait(800);
   check("rehearsal stops at the last cue", !ctl.rehearsing && ctl.i === S.cues.length, ctl.i);
+  // the Console (v0.5): one list, tap an item and that cue alone plays from its start
+  await ctl.house(); await wait(60);
+  const row8 = ui.filter((u) => u.click && !u.destroyed && String(u.text).startsWith(S.cues[7].id + "   ")).pop();
+  check("console: every cue is a row in the list", !!row8);
+  if (row8) { await row8.click(); await wait(80); }
+  const racksPlay = objs[S.elements.racks.play];
+  check("console: tap cue 4B from house -> cue 8, its entrances play, the cue before it is held",
+    ctl.i === 8 && racksPlay.active && [...liveAt(S, 7)].filter((e) => liveAt(S, 8).has(e)).every((e) => objs[S.elements[e].hold].active), [...activeTwins(S)]);
+  const onsBefore = racksPlay.log.filter((x) => x === "on").length;
+  await wait(20); await ctl.replay(); await wait(80);
+  check("console: Again replays the cue's entrance from its start", ctl.i === 8 && racksPlay.active && racksPlay.log.filter((x) => x === "on").length === onsBefore + 1, racksPlay.log.slice(-6));
   await ctl.house(); await wait(60);
   check("End show -> house: everything off", ctl.i === 0 && activeTwins(S).size === 0, [...activeTwins(S)]);
 

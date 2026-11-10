@@ -29,6 +29,19 @@ public static class SphererebroTalk
     const string ScriptPath = "Assets/WebRoot/script.js";
     public const int TalkLayer = 12;
     public const float Park = -10000f;
+
+    // The talk was choreographed around the vista seats of the 50 m sphere (talk_show.json "audience"; presenter at
+    // (0, -2.65, -36.85)). When the sphere's size moves the seats, the whole show moves with them: the Talk root comes
+    // home to the presenter's shift instead of to 0,0,0 (Ben, 2026-11-08: sphere doubled to 100 m). Zero at 50 m.
+    public static Vector3 HomeOffset()
+    {
+        var der = J.O(J.Parse(File.ReadAllText(Cfg + "/Sphererebro.derived.json")));
+        var show = J.O(J.Parse(File.ReadAllText(Cfg + "/talk_show.json")));
+        var dm = J.Fa(J.G(J.O(J.G(der, "vista")), "daisMount"));
+        var pr = J.Fa(J.G(J.O(J.G(show, "audience")), "presenter"));
+        if (dm == null || pr == null) return Vector3.zero;
+        return new Vector3(dm[0] - pr[0], dm[1] - pr[1], dm[2] - pr[2]);
+    }
     static Action<string> Log = s => Debug.Log("[Talk] " + s);
     static Dictionary<string, object> TL;
     static Dictionary<string, Material> Mats = new Dictionary<string, Material>();
@@ -1110,7 +1123,7 @@ public static class SphererebroTalk
         }).ToList();
         var show = new Dictionary<string, object>
         {
-            ["title"] = "IPN talk, 10 Nov 2026", ["root"] = "Talk", ["home"] = new List<object> { 0.0, 0.0, 0.0 },
+            ["title"] = "IPN talk, 10 Nov 2026", ["root"] = "Talk", ["home"] = new List<object> { (double)HomeOffset().x, (double)HomeOffset().y, (double)HomeOffset().z },
             ["mediaBase"] = TL["mediaBase"], ["elements"] = elOut, ["cues"] = cues,
             ["videos"] = new List<object> { "curved", "dome360", "dome180" }.SelectMany(s => new[] { "mono", "sbs", "tb" }.Select(l => (object)$"Talk_Video_{s}_{l}")).ToList(),
             ["rehearsalSeconds"] = 20.0,

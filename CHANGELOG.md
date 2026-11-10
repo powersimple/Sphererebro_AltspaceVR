@@ -2,6 +2,29 @@
 
 Newest first. Each entry: what changed, where, and what is **not** verified. Rules and pipeline: `CLAUDE.md`.
 
+## 2026-11-09, 17:30: escalator walked, no ride, no lip (Claude; Ben commits)
+
+Ben: "I hit the escalator and fell off the world. Make it so that I can climb the escalator again, no jump."
+- **The ride is off** (`SB.escalatorRide: false` in script.js; uploaded 17:26). The carriage and foot trigger are still built.
+- **Ramp:** `Esc_Ramp_COL` (and the stairs' ramp) is one prism, flat for 0.8 m at the foot and top. The solid `Esc_Body`
+  landing plates stood 4 cm proud of the floor: now flush. Slope unchanged (about 21 deg).
+- **New:** `tools/unity_run.ps1 web` uploads index.html and script.js only (the Builder's Upload HTML + JS), unattended.
+- **Not verified in a headset.** My reading of the fall (the ride's attach) and the jump (the plate lip) is inferred from
+  the code, not observed.
+
+## 2026-11-09: XR Time Machine 0.5.0, the Console (Claude; Ben commits)
+
+Ben: "XR Time Machine should reveal a console that has everything I want to play back, one at a time."
+- **Top nav:** Console | Record | Library (was Show | Sequences | Record | Playback). All pills.
+- **Console:** one list of every cue, then this device's recordings. Subnav filters: All, Cues, Video, Recordings. A tap
+  plays that item alone from its start, for everyone (`show.play(i)`: the cue before it is set in held poses, then this
+  cue's entrances play; state `xrtm.show` carries `play: 1`). **Again** replays the current cue. Back / Next, Rehearse,
+  End show stay. `Cue 1` key removed (tap the first row).
+- **Rule 12** in CLAUDE.md: no big white text on the dark sphere. The overnight title and label cues break it.
+- Checks: show harness 35/35 (3 new console checks). Plugin tests pass except `plugin.mjs`'s installer check, which
+  assumes the world's own code never names XRTM (written for The Polys; this world's desk key calls `XRTM.toggle`).
+- script.js only: **no scene build needed. Not uploaded. The panel's layout has not been seen in the app or a headset.**
+
 ## 2026-11-08, overnight: THE TALK, cue by cue, built into XR Time Machine (Claude; Ben commits)
 
 Ben's brief (`V:\Desktop\_Prompt for Claude Code - Sphererebro Overnight Build.md`) plus, mid-run: build the cue engine
@@ -497,3 +520,17 @@ dims pipeline at a radius other than 50.
 - A 360 video URL for the sphere; the Altspace avatar cap per instance (68 seats + presenter).
 - Restrooms are doors and signs only. Bartender spot has no bartender tooling (BS seat or name tag), just room.
 - Logos/branding for the event (`=== EVENTS ===` group is empty).
+
+## 2026-11-10, 00:45: the show plays; console wraps the desk; lattice off
+- **Why no cue played** (Ben's Player.log): the show looked up its 134 objects at "Unity Scene Loaded", before the object
+  list had arrived, and found none. `createShow.init` now waits for `scene.objects` to settle and retries the missing.
+  `show_test.html` delivers its objects 0.8 s late so this stays tested (35/35). Script fix uploaded 00:31.
+- **Console** (`ui.wrap`): on a desk anchor the panel is three low panels (1000 x 340 px, 0.7 x 0.24 m, leaning back 52 deg)
+  at -40 / 0 / +40 deg: left = now playing + Back / Again / Next; centre = filters + one key per cue, five to a row;
+  right = Show / Record / Library (scrolls). Free-floating (no anchor) keeps the old tall panel. NOT seen in the app.
+- **Lattice** off unless LATTICE is pressed (`sb_lattice === "1"`); it used to default on.
+- Earlier today, not yet logged: dais drive limits scale with the sphere (dais was dragged off its dock), dais deck
+  #111111 with the grid at 45 deg, no emissive on dais/desk trim, `tools/ship.ps1` (-Web / default / -Geo), automation
+  requests `web` and `send`, SaveOpenScenes before a Builder build. Full world uploaded 2026-11-09 18:27.
+- Open: Ben's "guard rails around the desk" not identified yet (only Vista_Rails exist near it). Desk logged
+  "admin: false" at load for Ben; desk keys may be refused, unconfirmed.

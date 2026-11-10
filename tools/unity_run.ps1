@@ -26,7 +26,7 @@ foreach ($r in $Requests) {
     for ($k = 0; $k -lt 240 -and -not $done; $k++) {
         Start-Sleep 5
         $new = @(Get-Content Logs\SphererebroAutomation.txt | Select-Object -Skip $n0)
-        foreach ($l in $new) { if ($l -match 'build \+ bake done|exec done|talk review shots|FAILED|REFUSED|EXEC: no') { $done = $true } }
+        foreach ($l in $new) { if ($l -match 'build \+ bake done|exec done|talk review shots|FAILED|REFUSED|EXEC: no|web upload done') { $done = $true } }
     }
     Get-Content Logs\SphererebroAutomation.txt | Select-Object -Skip $n0
 }

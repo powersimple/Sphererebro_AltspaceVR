@@ -35,7 +35,7 @@ Machine-specific notes go in `CLAUDE.local.md` (gitignored). Read `CHANGELOG.md`
 
 ## The pipeline (everything is regenerated; change the generators, not the outputs)
 1. **Geometry:** `blender.exe -b --factory-startup --python ..\Assets\scripts\build_sphererebro.py -- ..\Assets\models Assets\_Sphererebro\Models`
-   (Blender 5.2). Writes the .blend and FBX into both folders.
+   (Blender 5.1 or 5.2; the talk tools pick the newest 5.x installed). Writes the .blend and FBX into both folders.
 2. **Scene:** Unity menu **Sphererebro > Build World** (or **+ Bake Lighting**), or headless:
    `Unity.exe -batchmode -quit -projectPath . -executeMethod SphererebroBuilder.BuildBatch -sbBake`. It **rebuilds the scene
    from scratch**: hand edits to the scene are lost on the next build. Report: `Logs/SphererebroBuilder.txt`.
@@ -52,7 +52,12 @@ Machine-specific notes go in `CLAUDE.local.md` (gitignored). Read `CHANGELOG.md`
 - Blender (x, y, z) imports into Unity as (-x, z, -y), identity rotation (FBX: -Z forward, Y up, apply transform). Measured.
 - Unity origin = sphere centre = dais pivot. Centre floor, bridge deck and concourse floor at y 0. The bridge runs to **-Z**
   (6 o'clock). phi = compass angle from +Z: position (r sin phi, y, r cos phi).
-- Today (dims.json): sphere r 50. Concourse r 50.5-62.5, 120 deg arc (phi 120-240), ceiling 4.5 m. Plaza y -6 at z -77. Bridge 41.9 m in 3
+- Today (dims.json, Ben 2026-11-08: doubled): sphere r 100. Concourse r 100.5-112.5, 63.66 deg arc (phi 148.2-211.8, the
+  same length as the old 120 deg at 50 m), ceiling 4.5 m, flat roof. Plaza y -6 at z -127. Vista stage at z -86.85.
+  Concourse details spaced in degrees go through `dg()` and the vista fan through `V_FIT()`, so they keep their metres.
+- **The talk follows the seats:** it was choreographed for the 50 m sphere (talk_show.json `audience`); SphererebroTalk
+  sets the Talk root's home to the presenter's shift (`HomeOffset()`, 0,0,-50 today), so cue positions never need editing.
+- Was (to 2026-11-08): sphere r 50, concourse 120 deg (phi 120-240), plaza at z -77. Bridge 41.9 m in 3
   telescoping segments + drawspan. Ring r 3.4-8.6 (17.2 m across), void r 1.5-3.4, dais r 1.5 (rotating), desk waist 1.05 m.
 - Recliners: 33 at r 5.4 (y 0) + 35 at r 7.1 (y 0.5 riser), each over 330 deg, carve-out 30 deg at 6 o'clock.
 - **Seating layout** (dims.json `"seating"`, 2026-11-07): `"vista"` (live) = 76 recliners (rows 8/8/8/7/7 a side) in 5 raked rows just inside the
@@ -79,6 +84,8 @@ Machine-specific notes go in `CLAUDE.local.md` (gitignored). Read `CHANGELOG.md`
     host, and `script.js` refuses them (`SB.bannedVideo`). Test with real-looking content. Saved space state (`sb_video`)
     outlives a script change: when content is retired, ignore and clear stale saved values too.
 11. **No text over the dash** where the audience can see it. Messages go to the presenter's own panels.
+12. **No big white text on the dark sphere** (Ben, 2026-11-09: "it glows in a bad way"). Say it with image, object,
+    sound and video; if words are unavoidable, small, dim and warm, never white emissive on black.
 
 ## SDK lessons (verified in this project or the Polys one)
 - A **BS Object Id registers in Awake**: an object that loads inactive can never be found by the script. Everything the

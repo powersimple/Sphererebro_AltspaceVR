@@ -300,7 +300,7 @@ const XRTMCore = (() => {
     const C = XRTMCore;
 
     const XRTM = {
-        version: "0.4.0",
+        version: "0.5.0",
         enabled: true,
         helperUrl: "http://localhost:47800",   // xrtm-helper.ps1 on Windows
         toggleKeyCode: 290,                     // Unity KeyCode F9
@@ -346,6 +346,11 @@ const XRTMCore = (() => {
             anchorScale: 0.06,                  // its size there: 560 px = 0.34 m
             panelWidth: 560,
             panelHeight: 960,
+            // built into a desk (ui.anchor): three low panels wrapped around the presenter (Ben, 2026-11-09: "low
+            // profile, horizontal and wrap around"). Metres and degrees in the DESK's frame; mount = the anchor's own
+            // place there, so the panels land right whatever the anchor's tilt.
+            wrap: { on: true, scale: 0.07, width: 1000, height: 340, radius: 1.0, y: 1.2, tilt: 52, spread: 40,
+                    mount: { pos: [0, 1.42, 0.98], tiltX: 20 } },
             fontScale: 1,                       // multiplies every font size on the panel
             listHeight: 220,                    // the recordings list
             chapterListHeight: 150,
@@ -1290,19 +1295,59 @@ const XRTMCore = (() => {
         const fs = (n) => `${Math.round(n * U.fontScale)}px`;
         // Built into the world (a desk) when ui.anchor names an object there; else it opens in front of the player.
         let anchor = null;
-        if (U.anchor) { try { anchor = await scene.Find(U.anchor); } catch (e) { anchor = null; } }
+        // the scene's objects arrive over a second or two after load: keep asking (looked up too early, the panel
+        // fell back to floating in front of the player, away from the desk; Ben, 2026-11-09)
+        for (let k = 0; U.anchor && !anchor && k < 40; k++) {
+            try { anchor = await scene.Find(U.anchor); } catch (e) { anchor = null; }
+            if (!anchor) await new Promise((r) => l.later(r, 500, "anchor wait"));
+        }
         if (U.anchor && !anchor) log(`panel anchor "${U.anchor}" not found: the panel opens in front of you instead`);
-        const size = anchor ? U.anchorScale : U.panelScale;
+        const size = anchor ? (U.wrap && U.wrap.on !== false ? U.wrap.scale || 0.07 : U.anchorScale) : U.panelScale;
         const obj = l.obj(new BS.GameObject({ name: "XRTM Recorder Panel", localScale: new BS.Vector3(size, size, size),
             ...(anchor ? { parent: anchor, localPosition: new BS.Vector3(0, 0, 0) } : {}) }));
-        const panel = await obj.AddComponent(new BS.UIPanel({ resolution: new BS.Vector2(U.panelWidth, U.panelHeight), enableHaptics: true }));
-        panel.SetBackgroundColor(new BS.Vector4(0.07, 0.07, 0.09, 0.92));
-        const root = new BS.UIVisualElement(panel);
-        root.SetStyles({ width: "100%", height: "100%", padding: "24px", flexDirection: "column" });
+        // Which UIPanel an element lives on (three of them when wrapped around a desk).
+        const panelOf = new Map();
+        const W = U.wrap || {};
+        const wrap = !!anchor && W.on !== false;
+        async function makePanel(host, w, h, pad) {
+            const pn = await host.AddComponent(new BS.UIPanel({ resolution: new BS.Vector2(w, h), enableHaptics: true }));
+            pn.SetBackgroundColor(new BS.Vector4(0.04, 0.04, 0.05, 0.9));
+            const r = new BS.UIVisualElement(pn);
+            r.SetStyles({ width: "100%", height: "100%", padding: pad, flexDirection: "column" });
+            panelOf.set(r, pn);
+            return r;
+        }
+        let root, rootL, rootC, rootR;
+        if (wrap) {
+            // obj is only the holder (shown and hidden by its size); each panel is a child, placed in the desk's frame
+            const size1 = W.scale || 0.07, M = W.mount || { pos: [0, 0, 0], tiltX: 0 };
+            const rad = (d) => d * Math.PI / 180;
+            const Rx = (a) => [[1, 0, 0], [0, Math.cos(a), -Math.sin(a)], [0, Math.sin(a), Math.cos(a)]];
+            const Ry = (a) => [[Math.cos(a), 0, Math.sin(a)], [0, 1, 0], [-Math.sin(a), 0, Math.cos(a)]];
+            const mul = (A, B) => A.map((r) => [0, 1, 2].map((c) => r[0] * B[0][c] + r[1] * B[1][c] + r[2] * B[2][c]));
+            const inv = Rx(rad(-(M.tiltX || 0)));
+            const place = async (name, phi) => {
+                const P = [W.radius * Math.sin(rad(phi)) - M.pos[0], W.y - M.pos[1], W.radius * Math.cos(rad(phi)) - M.pos[2]];
+                const lp = inv.map((r) => (r[0] * P[0] + r[1] * P[1] + r[2] * P[2]) / size1);
+                const m = mul(inv, mul(Ry(rad(phi)), Rx(rad(W.tilt))));       // Unity Euler order: Ry * Rx * Rz
+                const ex = Math.asin(Math.max(-1, Math.min(1, -m[1][2]))), ey = Math.atan2(m[0][2], m[2][2]), ez = Math.atan2(m[1][0], m[1][1]);
+                const g = l.obj(new BS.GameObject({ name, parent: obj, localPosition: new BS.Vector3(lp[0], lp[1], lp[2]),
+                    localEulerAngles: new BS.Vector3(ex * 180 / Math.PI, ey * 180 / Math.PI, ez * 180 / Math.PI) }));
+                return makePanel(g, W.width, W.height, "14px");
+            };
+            rootL = await place("XRTM Console Left", -W.spread);
+            rootC = await place("XRTM Console Centre", 0);
+            rootR = await place("XRTM Console Right", W.spread);
+            root = rootR;
+        } else {
+            root = rootL = rootC = rootR = await makePanel(obj, U.panelWidth, U.panelHeight, "24px");
+        }
 
         const el = (Type, styles, parent = root) => {
-            const e = new Type(panel, parent);
+            const pn = panelOf.get(parent);
+            const e = new Type(pn, parent);
             if (styles) e.SetStyles(styles);
+            panelOf.set(e, pn);
             return e;
         };
         const button = (text, styles, parent) => {
@@ -1311,73 +1356,126 @@ const XRTMCore = (() => {
             return b;
         };
         const click = (b, fn, where) => b.OnClick(guard(fn, where));
-        const title = el(BS.UILabel, { fontSize: fs(30), color: "#ffffff", marginBottom: "4px" });
-        title.text = "XR Time Machine";
-        const sub = el(BS.UILabel, { fontSize: fs(18), color: "#9aa0a6", marginBottom: "12px" });
-        sub.text = `Spatial recorder prototype v${XRTM.version}`;
+        if (!wrap) {
+            const title = el(BS.UILabel, { fontSize: fs(30), color: "#ffffff", marginBottom: "4px" });
+            title.text = "XR Time Machine";
+            const sub = el(BS.UILabel, { fontSize: fs(18), color: "#9aa0a6", marginBottom: "12px" });
+            sub.text = `Console v${XRTM.version}`;
+        }
 
-        const tabs = el(BS.UIVisualElement, { flexDirection: "row", marginBottom: "14px" });
-        const tabShow = show ? button("Show", { flexGrow: "1", marginRight: "6px" }, tabs) : null;
-        const tabSeq = button("Sequences", { flexGrow: "1", marginRight: "6px" }, tabs);
-        const tabRec = button("Record", { flexGrow: "1", marginRight: "6px" }, tabs);
-        const tabPlay = button("Playback", { flexGrow: "1" }, tabs);
+        // Top nav (v0.5, Ben 2026-11-09: "XR Time Machine should reveal a console that has everything I want to play
+        // back, one at a time"): Console | Record | Library. Round-ended pills (Ben: no square buttons).
+        const pill = { flexGrow: "1", borderRadius: "26px" };
+        const tabs = el(BS.UIVisualElement, { flexDirection: "row", marginBottom: wrap ? "8px" : "14px" }, rootR);
+        // wrapped: the right-hand panel scrolls (Record and Library are taller than a low panel)
+        const body = wrap ? el(BS.UIScrollView, { height: `${W.height - 28 - 60}px`, width: "100%" }, rootR) : root;
+        if (wrap) body.horizontalScrolling = false;
+        const tabShow = button(wrap ? "Show" : "Console", { ...pill, marginRight: "6px" }, tabs);
+        const tabRec = button("Record", { ...pill, marginRight: "6px" }, tabs);
+        const tabPlay = button("Library", pill, tabs);
 
-        // --- the Show tab (v0.4): the presenter's cue controls. Only the presenter's device builds this panel, so
-        // nothing here is ever seen by the audience. Round-ended pill keys (Ben: no square buttons). ---
-        const showPane = el(BS.UIVisualElement, { flexDirection: "column" });
-        const cueNow = el(BS.UILabel, { fontSize: fs(34), color: "#ffffff", marginBottom: "4px" }, showPane);
-        const cueName = el(BS.UILabel, { fontSize: fs(26), color: "#f2c46b", marginBottom: "10px" }, showPane);
-        const cueNext = el(BS.UILabel, { fontSize: fs(20), color: "#9aa0a6", marginBottom: "16px" }, showPane);
+        // --- the Console: one list of everything that can be played (the show's cues, then this device's recordings),
+        // one at a time. A tap plays that item from its start, for everyone. Only the presenter's device builds this
+        // panel, so nothing here is ever seen by the audience. ---
+        const showPane = el(BS.UIVisualElement, { flexDirection: "column" }, rootL);
+        const showRight = wrap ? el(BS.UIVisualElement, { flexDirection: "column" }, body) : showPane;
+        const showMid = wrap ? rootC : showPane;
+        const cueNow = el(BS.UILabel, { fontSize: fs(34), color: "#d8c9a8", marginBottom: "4px" }, showPane);
+        const cueName = el(BS.UILabel, { fontSize: fs(26), color: "#f2c46b", marginBottom: "6px" }, showPane);
+        const cueNext = el(BS.UILabel, { fontSize: fs(20), color: "#9aa0a6", marginBottom: "12px" }, showPane);
         const cueRow = el(BS.UIVisualElement, { flexDirection: "row", marginBottom: "10px" }, showPane);
-        const cueBack = button("◀  Back", { flexGrow: "1", height: "96px", fontSize: fs(28), backgroundColor: "#37474f", borderRadius: "48px", marginRight: "8px" }, cueRow);
+        const cueBack = button("◀  Back", { flexGrow: "1", height: "96px", fontSize: fs(26), backgroundColor: "#37474f", borderRadius: "48px", marginRight: "8px" }, cueRow);
+        const cueAgain = button("↻  Again", { flexGrow: "1", height: "96px", fontSize: fs(26), backgroundColor: "#37474f", borderRadius: "48px", marginRight: "8px" }, cueRow);
         const cueGo = button("Next  ▶", { flexGrow: "2", height: "96px", fontSize: fs(32), backgroundColor: "#b8860b", borderRadius: "48px" }, cueRow);
-        const cueRow2 = el(BS.UIVisualElement, { flexDirection: "row", marginBottom: "10px" }, showPane);
-        const cueHome = button("Cue 1", { flexGrow: "1", height: "56px", fontSize: fs(22), borderRadius: "28px", marginRight: "6px" }, cueRow2);
-        const cueRehearse = button("Rehearse", { flexGrow: "1", height: "56px", fontSize: fs(22), borderRadius: "28px", marginRight: "6px" }, cueRow2);
-        const cueHouse = button("End show", { flexGrow: "1", height: "56px", fontSize: fs(22), borderRadius: "28px", backgroundColor: "#3e2723" }, cueRow2);
-        const cueHelp = el(BS.UILabel, { fontSize: fs(16), color: "#9aa0a6", marginBottom: "8px" }, showPane);
-        cueHelp.text = "Next: A (right hand) or Right arrow.  Back: X (left hand) or Left arrow.  Home: cue 1.  R: rehearse (every 20 s).";
-        const cueList = el(BS.UIScrollView, { height: `${U.panelHeight - 640}px`, width: "100%" }, showPane);
+        const cueRow2 = el(BS.UIVisualElement, { flexDirection: "row", marginBottom: "10px" }, showRight);
+        const cueRehearse = button("Rehearse", { flexGrow: "1", height: "52px", fontSize: fs(20), borderRadius: "26px", marginRight: "6px" }, cueRow2);
+        const seqStop = button("■  Stop recording", { flexGrow: "1", height: "52px", fontSize: fs(20), borderRadius: "26px", backgroundColor: "#455a64", marginRight: "6px" }, cueRow2);
+        const cueHouse = button("End show", { flexGrow: "1", height: "52px", fontSize: fs(20), borderRadius: "26px", backgroundColor: "#3e2723" }, cueRow2);
+        // the subnav: which kind of item the list shows
+        const FILTERS = [["all", "All"], ["cue", "Cues"], ["video", "Video"], ["rec", "Recordings"]];
+        let filter = "all";
+        const filterRow = el(BS.UIVisualElement, { flexDirection: "row", marginBottom: "8px" }, showMid);
+        const filterBtns = FILTERS.map(([id, text], n) => {
+            const b = button(text, { flexGrow: "1", height: wrap ? "34px" : "40px", fontSize: fs(wrap ? 15 : 17), borderRadius: "20px", marginRight: n < FILTERS.length - 1 ? "6px" : "0px" }, filterRow);
+            click(b, () => { filter = id; drawConsole(); }, "console filter");
+            return b;
+        });
+        const seqNow = el(BS.UILabel, { fontSize: fs(wrap ? 15 : 18), color: "#e0e0e0", marginBottom: wrap ? "2px" : "6px" }, showMid);
+        const cueList = el(BS.UIScrollView, { height: `${wrap ? W.height - 28 - 76 : U.panelHeight - 660}px`, width: "100%" }, showMid);
         cueList.horizontalScrolling = false;
-        const cueRows = [];
+        const conRows = [];         // { b, cue: k } or { b, rec: id }
+        let seqs = [];              // this device's finished recordings, oldest first
         function refreshShow() {
-            if (!show) return;
-            const i = show.i, c = show.cue(i), n = show.cue(i + 1);
-            cueNow.text = i === 0 ? "House" : `Cue ${c.id}  ·  ${i} of ${show.count}`;
-            cueName.text = i === 0 ? "No show running. Next starts cue 1." : c.name;
-            cueNext.text = i >= show.count ? "Last cue." : `Next: ${n.id}  ${n.name}`;
-            cueRehearse.text = show.rehearsing ? "Stop rehearsal" : "Rehearse";
-            cueRehearse.style.backgroundColor = show.rehearsing ? "#6a1b9a" : "#37474f";
-            cueRows.forEach((b, k) => { b.style.backgroundColor = k + 1 === i ? "#b8860b" : "#263238"; });
+            const i = show ? show.i : 0;
+            if (show) {
+                const c = show.cue(i), n = show.cue(i + 1);
+                cueNow.text = i === 0 ? "House" : `Cue ${c.id}  ·  ${i} of ${show.count}`;
+                cueName.text = i === 0 ? "Nothing playing. Tap an item, or Next for the first." : c.name;
+                cueNext.text = i >= show.count ? "Last cue." : `Next: ${n.id}  ${n.name}`;
+                cueRehearse.text = show.rehearsing ? "Stop rehearsal" : "Rehearse";
+                cueRehearse.style.backgroundColor = show.rehearsing ? "#6a1b9a" : "#37474f";
+            } else {
+                cueNow.text = "Console"; cueName.text = "No show in this world."; cueNext.text = "Recordings play from the list.";
+            }
+            const playing = conductor.current?.id;
+            for (const r of conRows) {
+                if (r.cue) r.b.style.backgroundColor = r.cue === i ? "#b8860b" : "#263238";
+                else if (r.rec) r.b.style.backgroundColor = r.rec === playing ? "#6a1b9a" : "#1f2a30";
+            }
+        }
+        function drawConsole() {
+            for (const r of conRows.splice(0)) r.b.Destroy();
+            FILTERS.forEach(([id], n) => { filterBtns[n].style.backgroundColor = id === filter ? "#b8860b" : "#37474f"; });
+            const row = wrap
+                ? { height: "38px", width: "19%", fontSize: fs(14), marginBottom: "5px", marginRight: "1%", borderRadius: "19px", backgroundColor: "#263238" }
+                : { height: "48px", fontSize: fs(19), marginBottom: "5px", borderRadius: "24px", backgroundColor: "#263238" };
+            // wrapped: keys go five to a row, left to right, top to bottom
+            let line = null, inLine = 0;
+            const lines = [];
+            const slot = () => {
+                if (!wrap) return cueList;
+                if (!line || inLine >= 5) { line = el(BS.UIVisualElement, { flexDirection: "row" }, cueList); lines.push(line); inLine = 0; }
+                inLine++;
+                return line;
+            };
+            const short = (t) => (wrap && t.length > 17 ? t.slice(0, 16) + "…" : t);
+            if (show && filter !== "rec") for (let k = 1; k <= show.count; k++) {
+                const c = show.cue(k);
+                const video = !!(c.video && c.video.clip);
+                if (filter === "video" && !video) continue;
+                const b = button(wrap ? `${c.id}   ${short(c.name)}` : `${c.id}   ${c.name}${video ? "   ▶ video" : ""}`, row, slot());
+                click(b, () => show.play(k), "console cue");
+                conRows.push({ b, cue: k });
+            }
+            if (filter === "all" || filter === "rec") seqs.forEach((item, n) => {
+                const b = button(wrap ? `● ${n + 1}   ${short(item.name)}` : `● ${n + 1}   ${item.name}   ${C.clock(item.durationMs)}`, row, slot());
+                click(b, () => startPlayback(item, true), "console recording");
+                conRows.push({ b, rec: item.id });
+            });
+            if (conRows.length === 0) {
+                const none = el(BS.UILabel, { fontSize: fs(18), color: "#9aa0a6" }, cueList);
+                none.text = filter === "rec" ? "No recordings on this device yet: make one on the Record tab." : "Nothing here yet.";
+                conRows.push({ b: none });
+            }
+            for (const ln of lines) conRows.push({ b: ln });
+            refreshShow();
         }
         if (show) {
-            for (let k = 1; k <= show.count; k++) {
-                const c = show.cue(k);
-                const b = button(`${c.id}   ${c.name}`, { height: "44px", fontSize: fs(18), marginBottom: "4px", borderRadius: "22px", backgroundColor: "#263238" }, cueList);
-                click(b, () => show.goto(k), "cue jump");
-                cueRows.push(b);
-            }
             click(cueGo, () => show.next(), "cue next");
             click(cueBack, () => show.back(), "cue back");
-            click(cueHome, () => show.home(), "cue home");
+            click(cueAgain, () => show.replay(), "cue again");
             click(cueRehearse, () => show.rehearseToggle(), "cue rehearse");
             let houseArmed = false;
             click(cueHouse, () => {
-                if (!houseArmed) { houseArmed = true; cueHouse.text = "Sure? Tap again"; l.later(() => { houseArmed = false; cueHouse.text = "End show"; }, 3000); return; }
+                if (!houseArmed) { houseArmed = true; cueHouse.text = "Sure?"; l.later(() => { houseArmed = false; cueHouse.text = "End show"; }, 3000); return; }
+                houseArmed = false; cueHouse.text = "End show";
                 return show.house();
             }, "cue house");
             show.setUi(refreshShow);
-        }
-
-        // --- the Sequences tab: a presentation's sequences, one big button each (Sphererebro, 2026-11-07). A sequence        // is a recording on this device; a tap plays it for everyone, from the start. ---
-        const seqTab = el(BS.UIVisualElement, { flexDirection: "column" });
-        const seqNow = el(BS.UILabel, { fontSize: fs(22), color: "#e0e0e0", marginBottom: "8px" }, seqTab);
-        const seqList = el(BS.UIScrollView, { height: `${U.panelHeight - 420}px`, width: "100%", marginBottom: "8px" }, seqTab);
-        seqList.horizontalScrolling = false;
-        const seqStop = button("■  Stop", { height: "56px", fontSize: fs(24), backgroundColor: "#455a64", marginBottom: "8px" }, seqTab);
+        } else for (const e of [cueRow, cueRehearse, cueHouse]) e.visible = false;
 
         // --- the Record tab ---
-        const recTab = el(BS.UIVisualElement, { flexDirection: "column" });
+        const recTab = el(BS.UIVisualElement, { flexDirection: "column" }, body);
         const record = el(BS.UIButton, { height: "120px", fontSize: fs(34), color: "#ffffff", backgroundColor: "#c62828", borderRadius: "60px", marginBottom: "12px" }, recTab);
         const status = el(BS.UILabel, { fontSize: fs(22), color: "#e0e0e0", marginBottom: "8px" }, recTab);
         const chapterBtn = button("Add chapter marker", { marginBottom: "8px" }, recTab);
@@ -1385,7 +1483,7 @@ const XRTMCore = (() => {
         const storage = el(BS.UILabel, { fontSize: fs(18), color: "#9aa0a6", marginBottom: "14px" }, recTab);
 
         // --- the Playback tab ---
-        const playTab = el(BS.UIVisualElement, { flexDirection: "column" });
+        const playTab = el(BS.UIVisualElement, { flexDirection: "column" }, body);
         const nowPlaying = el(BS.UILabel, { fontSize: fs(22), color: "#ffffff", marginBottom: "4px" }, playTab);
         const time = el(BS.UILabel, { fontSize: fs(26), color: "#e0e0e0", marginBottom: "6px" }, playTab);
         const slider = el(BS.UISlider, { width: "100%", marginBottom: "10px" }, playTab);
@@ -1404,13 +1502,13 @@ const XRTMCore = (() => {
         chapList.horizontalScrolling = false;
 
         // --- the library, under both tabs ---
-        const libTitle = el(BS.UILabel, { fontSize: fs(22), color: "#ffffff", marginBottom: "6px" });
+        const libTitle = el(BS.UILabel, { fontSize: fs(22), color: "#ffffff", marginBottom: "6px" }, body);
         libTitle.text = "Recordings on this device";
-        const list = el(BS.UIScrollView, { height: `${U.listHeight}px`, width: "100%", marginBottom: "10px" });
+        const list = el(BS.UIScrollView, { height: `${U.listHeight}px`, width: "100%", marginBottom: "10px" }, body);
         list.horizontalScrolling = false;
 
         // --- the off switch, for everyone in the space ---
-        const offBtn = button("Turn XR Time Machine off for everyone here", { height: "44px", fontSize: fs(17), backgroundColor: "#3e2723" });
+        const offBtn = button("Turn XR Time Machine off for everyone here", { height: "44px", fontSize: fs(17), backgroundColor: "#3e2723", borderRadius: "22px" }, body);
         let offArmed = false;
         click(offBtn, async () => {
             if (!offArmed) {
@@ -1425,21 +1523,18 @@ const XRTMCore = (() => {
         let tab = "record";
         function showTab(next) {
             tab = next;
-            showPane.visible = tab === "show";
-            seqTab.visible = tab === "seq";
+            if (wrap) showRight.visible = tab === "show"; else showPane.visible = tab === "show";
             recTab.visible = tab === "record";
             playTab.visible = tab === "play";
-            // the library and the off switch belong to Record and Playback; Sequences is just the buttons
-            for (const e of [libTitle, list, offBtn]) e.visible = tab !== "seq" && tab !== "show";
-            if (tabShow) tabShow.style.backgroundColor = tab === "show" ? "#b8860b" : "#37474f";
+            // the library and the off switch belong to Record and Library; the Console is just the playlist
+            for (const e of [libTitle, list, offBtn]) e.visible = tab !== "show";
+            tabShow.style.backgroundColor = tab === "show" ? "#b8860b" : "#37474f";
             if (tab === "show") refreshShow();
-            tabSeq.style.backgroundColor = tab === "seq" ? "#6a1b9a" : "#37474f";
             tabRec.style.backgroundColor = tab === "record" ? "#c62828" : "#37474f";
             tabPlay.style.backgroundColor = tab === "play" ? "#2e7d32" : "#37474f";
             refresh();
         }
-        if (tabShow) click(tabShow, () => showTab("show"), "tab");
-        click(tabSeq, () => showTab("seq"), "tab");
+        click(tabShow, () => showTab("show"), "tab");
         click(tabRec, () => showTab("record"), "tab");
         click(tabPlay, () => showTab("play"), "tab");
         click(seqStop, () => conductor.stop(), "sequence stop");
@@ -1525,7 +1620,7 @@ const XRTMCore = (() => {
         function refreshPlay() {
             const p = conductor.current;
             nowPlaying.text = p ? `Playing for everyone: ${p.name}` : "Nothing playing. Pick a recording below.";
-            if (seqNow.text !== "Loading…") seqNow.text = p ? `▶ ${p.name}   ${C.clock(p.position)} / ${C.clock(p.durationMs)}` : "Tap a sequence to play it for everyone.";
+            if (seqNow.text !== "Loading…") seqNow.text = p ? `● ${p.name}   ${C.clock(p.position)} / ${C.clock(p.durationMs)}` : "";
             seqStop.visible = !!p;
             if ((p?.id || null) !== seqPlaying) { seqPlaying = p?.id || null; refreshList().catch((e) => log("list failed:", e)); }   // re-mark the playing one
             time.text = p ? `${C.clock(p.position)} / ${C.clock(p.durationMs)}` : "";
@@ -1547,20 +1642,9 @@ const XRTMCore = (() => {
             const items = await store.list().catch(() => []);
             if (draw !== listDraws) return;
             for (const r of rows.splice(0)) r.Destroy();
-            // the Sequences tab: finished recordings, oldest first (the order they were rehearsed), one button each
-            const seqs = items.filter((i) => i.status === "complete").sort((a, b) => String(a.startedUtc || "").localeCompare(String(b.startedUtc || "")));
-            seqs.forEach((item, n) => {
-                const playingThis = conductor.current?.id === item.id;
-                const b = button(`${n + 1}.  ${item.name}   ${C.clock(item.durationMs)}`, { height: "72px", fontSize: fs(24), marginBottom: "8px",
-                    backgroundColor: playingThis ? "#6a1b9a" : "#263238" }, seqList);
-                click(b, () => startPlayback(item, true), "play sequence");
-                rows.push(b);
-            });
-            if (seqs.length === 0) {
-                const none = el(BS.UILabel, { fontSize: fs(20), color: "#9aa0a6" }, seqList);
-                none.text = "No sequences yet: record each part of the presentation on the Record tab.";
-                rows.push(none);
-            }
+            // the Console lists finished recordings, oldest first (the order they were rehearsed)
+            seqs = items.filter((i) => i.status === "complete").sort((a, b) => String(a.startedUtc || "").localeCompare(String(b.startedUtc || "")));
+            drawConsole();
             for (const item of items) {
                 const row = el(BS.UIVisualElement, { flexDirection: "row", alignItems: "center", marginBottom: "6px" }, list);
                 rows.push(row);
@@ -1620,7 +1704,7 @@ const XRTMCore = (() => {
         let open = false;
         l.every(() => {
             if (recorder.current) status.text = statusText();
-            if (open && (tab === "play" || tab === "seq") && conductor.current) refreshPlay();
+            if (open && (tab === "play" || tab === "show") && conductor.current) refreshPlay();
         }, 250, "panel clock");
 
         await obj.SetLocalScale(new BS.Vector3(0, 0, 0));   // hidden by size, not SetActive: see placeInFront
@@ -1629,7 +1713,7 @@ const XRTMCore = (() => {
         const toggle = anchor
             ? async () => { open = !open; onToggle(open); const s = open ? size : 0; await obj.SetLocalScale(new BS.Vector3(s, s, s)); }
             : await placeInFront(l, obj, size, onToggle);
-        showTab(show ? "show" : anchor ? "seq" : "record");
+        showTab(show || anchor ? "show" : "record");
         return { toggle, refresh, refreshPlay };
     }
 
@@ -1777,7 +1861,7 @@ const XRTMCore = (() => {
         const objs = {};                    // name -> BS.GameObject
         let ready = false, rootObj = null;
         let shown = new Map();              // element -> "play" | "hold" | "exit"
-        let applied = -1, appliedAt = 0;
+        let applied = -1, appliedAt = 0, appliedStamp = 0;
         const timers = [];
         const exitTimers = {}, swapTimers = {};
         const clearTimers = () => { for (const t of timers.splice(0)) clearTimeout(t); };
@@ -1820,9 +1904,23 @@ const XRTMCore = (() => {
         async function init() {
             const names = [S.root, ...S.videos || []];
             for (const e of Object.keys(S.elements)) for (const k of ["play", "hold", "exit"]) if (S.elements[e][k]) names.push(S.elements[e][k]);
-            const found = await Promise.all(names.map((n) => scene.Find(n).catch(() => null)));
-            names.forEach((n, i) => { if (found[i]) objs[n] = found[i]; });
-            const missing = names.filter((n) => !objs[n]);
+            // The scene's objects arrive in the page over a second or two after "loaded" (seen 2026-11-09 in Ben's
+            // Player.log: all 134 looked up too early, none found, so no cue could show anything). Wait for the object
+            // list to stop growing, then look up; whatever is still missing is tried again a few times.
+            const count = () => Object.keys(scene.objects || {}).length;
+            const sleep = (ms) => new Promise((r) => l.later(r, ms, "show wait"));
+            for (let last = -1, steady = 0, t = 0; scene.objects && t < 30000 && steady < 1500; t += 250) {
+                const n = count();
+                if (n > 0 && n === last) steady += 250; else { steady = 0; last = n; }
+                await sleep(250);
+            }
+            let missing = names;
+            for (let attempt = 0; attempt < 6 && missing.length; attempt++) {
+                if (attempt) await sleep(2000);
+                const found = await Promise.all(missing.map((n) => Promise.resolve(scene.Find(n)).catch(() => null)));
+                missing.forEach((n, i) => { if (found[i]) objs[n] = found[i]; });
+                missing = names.filter((n) => !objs[n]);
+            }
             if (missing.length) log(`show: ${missing.length} objects not in the scene (first: ${missing.slice(0, 4).join(", ")})`);
             rootObj = objs[S.root];
             // everything off, then the root comes home from where it waits (10 km below the world)
@@ -1842,8 +1940,23 @@ const XRTMCore = (() => {
         async function apply(state, arriving = false) {
             if (!ready) return;
             const i = Math.max(0, Math.min(S.cues.length, state.i | 0));
+            // "play this one" (the Console, v0.5): the cue before it is set in its held poses at once, then this cue's
+            // entrances play from their start, whatever was showing. The same cue again replays it.
+            const solo = !!state.play && !arriving && i >= 1 && Date.now() - (state.at || 0) < 4000;
             // the echo of our own write (and repeats): already there, leave every running entrance alone
-            if (i === applied && !arriving) { ui?.(); return; }
+            if (i === applied && !arriving && !(solo && state.at !== appliedStamp)) { ui?.(); return; }
+            if (solo && applied !== i - 1) {
+                clearTimers();
+                const base = liveAt(i - 1);
+                for (const e of Object.keys(S.elements)) {
+                    const el = S.elements[e];
+                    clearTimeout(exitTimers[e]); delete exitTimers[e]; clearTimeout(swapTimers[e]); delete swapTimers[e];
+                    await set(el.play, false); await set(el.exit, false); await set(el.hold, base.has(e));
+                    if (base.has(e)) shown.set(e, "hold"); else shown.delete(e);
+                }
+                applied = i - 1;
+            }
+            if (solo) videoNow = null;      // its clip starts again from the top
             const prev = applied;
             const fresh = !arriving && prev >= 0 && i === prev + 1 && Date.now() - (state.at || 0) < 4000;
             const now = liveAt(i), before = prev >= 0 ? liveAt(prev) : new Set();
@@ -1884,7 +1997,7 @@ const XRTMCore = (() => {
                     if (isLive) shown.set(e, "hold"); else shown.delete(e);
                 }
             }
-            applied = i; appliedAt = Date.now();
+            applied = i; appliedAt = Date.now(); appliedStamp = state.at || 0;
             await applyVideo(i, fresh, state);
             // the world can make room for the show (Sphererebro hides its dome shells and lattice while a show runs)
             try { window.dispatchEvent(new CustomEvent("xrtm-show", { detail: { i, cue: i ? S.cues[i - 1].id : "0" } })); } catch (e) { }
@@ -1920,10 +2033,10 @@ const XRTMCore = (() => {
         // presenter
         const may = { known: false, yes: false };
         async function canDrive() { if (!may.known) { may.yes = await mayRecord(); may.known = true; } return may.yes; }
-        async function go(i) {
+        async function go(i, play = false) {
             if (!(await canDrive())) return;
             i = Math.max(0, Math.min(S.cues.length, i));
-            const state = { i, at: Date.now(), by: scene.localUser?.name || "presenter" };
+            const state = { i, at: Date.now(), by: scene.localUser?.name || "presenter", ...(play ? { play: 1 } : {}) };
             await scene.SpaceStateSet(key, JSON.stringify(state), { protected: true });
             await apply(state);
         }
@@ -1937,6 +2050,8 @@ const XRTMCore = (() => {
             home: () => go(1),
             house: () => { ctl.stopRehearsal(); return go(0); },
             goto: (i) => go(i),
+            play: (i) => go(i, true),                       // this cue alone, from its start
+            replay: () => (ctl.i >= 1 ? go(ctl.i, true) : go(1)),
             get rehearsing() { return !!rehearse; },
             rehearseToggle() {
                 if (rehearse) return ctl.stopRehearsal();

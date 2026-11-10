@@ -689,7 +689,12 @@ for k, v in out["elements"].items():
     print(f"  {k:18s} play {v['play']['dur']:6.1f}s  exit {(v['exit'] or {}).get('dur', 0):5.1f}s  nodes {len(v['nodes'])}")
 
 # ------------------------------------------------------------------ the script.js show block (XR Time Machine reads it)
-show = {"title": "IPN talk, 10 Nov 2026", "root": "Talk", "home": [0, 0, 0], "mediaBase": SHOW["mediaBase"], "rehearsalSeconds": 20,
+# home: the talk is choreographed around the 50 m sphere's vista seats (SHOW["audience"]). When the sphere size moves the
+# seats, the Talk root comes home to the presenter's shift, so the whole show moves with the audience (Ben, 2026-11-08:
+# sphere doubled; (0, 0, -50) at 100 m). Same rule as SphererebroTalk.HomeOffset() in Unity.
+_der = json.load(open(os.path.join(CFG, "Sphererebro.derived.json"), encoding="utf-8-sig"))
+HOME = [round(a - b, 4) for a, b in zip(_der["vista"]["daisMount"], SHOW["audience"]["presenter"])]
+show = {"title": "IPN talk, 10 Nov 2026", "root": "Talk", "home": HOME, "mediaBase": SHOW["mediaBase"], "rehearsalSeconds": 20,
         "videos": [f"Talk_Video_{s}_{l}" for s in ("curved", "dome360", "dome180") for l in ("mono", "sbs", "tb")],
         "cues": [{"id": c["id"], "name": c["name"], "on": c["on"], "off": c["off"], "video": c.get("video")} for c in SHOW["cues"]],
         "elements": {}}

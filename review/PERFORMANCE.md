@@ -1,8 +1,8 @@
 # Talk performance, per cue (Unity editor count of what is switched on)
 
-Measured 2026-11-07 23:46 by SphererebroTalkShots (Unity editor, held pose of each cue).
+Measured 2026-11-08 17:39 by SphererebroTalkShots (Unity editor, held pose of each cue).
 Triangles and draw calls are the TALK's active renderers (each submesh = one draw call; the SRP batcher makes repeats cheap).
-The world's own geometry visible from the seats adds about 100,748 triangles and 279 draw calls (seating, stage, sphere, all switched-on renderers; before frustum culling). Budget (Quest): < 300,000 visible triangles, < 150 draw calls.
+The world's own geometry visible from the seats adds about 104,276 triangles and 279 draw calls (seating, stage, sphere, all switched-on renderers; before frustum culling). Budget (Quest): < 300,000 visible triangles, < 150 draw calls.
 Frame rate cannot be measured in the editor; see review/REVIEW.md for the browser harness and what needs a headset.
 
 | # | Cue | Name | Talk triangles | Draw calls | Lights | Over budget? |

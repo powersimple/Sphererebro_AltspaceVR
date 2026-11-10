@@ -42,6 +42,10 @@ public static class SphererebroMaterials
         ["SB_Leather"] = new Spec { color = new Color(0.36f, 0.035f, 0.045f), smooth = 0.5f, normal = "Fabric_Rug_006_NRM.jpg", normalScale = 0.25f, tiling = new Vector2(4, 4) },
         ["SB_Carbon"] = new Spec { albedo = "Carbon_Albedo.png", normal = "Carbon_Normal.png", smooth = 0.62f, metal = 0.2f, tiling = new Vector2(3, 3) },
         ["SB_BrushedMetal"] = new Spec { color = new Color(0.62f, 0.62f, 0.64f), normal = "BrushedMetal_N.png", metal = 1f, smooth = 0.68f, tiling = new Vector2(2, 2) },
+        // the dais (Ben, 2026-11-09): #111111, and nothing on it glows except the key legends
+        ["SB_DaisDeck"] = new Spec { albedo = "SolarFloor_albedo.png", normal = "SolarFloor_Nrm.png", color = new Color(0.0667f, 0.0667f, 0.0667f), metal = 0.4f, smooth = 0.6f, tiling = new Vector2(0.5f, 0.5f) },
+        ["SB_LatticeBlack"] = new Spec { color = new Color(0.02f, 0.02f, 0.02f), metal = 0f, smooth = 0.05f },   // matt black, not metal (Ben, 2026-11-10)
+        ["SB_DaisTrim"] = new Spec { albedo = "CleanBronze_Albedo.png", color = new Color(0.45f, 0.34f, 0.2f), metal = 0.6f, smooth = 0.5f },
         ["SB_Deck"] = new Spec { albedo = "SolarFloor_albedo.png", normal = "SolarFloor_Nrm.png", color = new Color(0.5f, 0.5f, 0.55f), metal = 0.4f, smooth = 0.6f, tiling = new Vector2(0.5f, 0.5f) },
         ["SB_InlayGold"] = new Spec { albedo = "CleanBronze_Albedo.png", color = new Color(1f, 0.85f, 0.55f), metal = 1f, smooth = 0.8f, emission = new Color(0.12f, 0.08f, 0.03f) },
         ["SB_InlayDark"] = new Spec { color = new Color(0.03f, 0.03f, 0.04f), metal = 0.3f, smooth = 0.85f },
@@ -50,7 +54,7 @@ public static class SphererebroMaterials
         ["SB_BottleGreen"] = new Spec { color = new Color(0.05f, 0.22f, 0.08f), metal = 0.1f, smooth = 0.92f },
         ["SB_FluteGlass"] = new Spec { color = new Color(0.85f, 0.92f, 0.95f, 0.3f), smooth = 0.95f, transparent = true },
         ["SB_Champagne"] = new Spec { color = new Color(0.95f, 0.78f, 0.35f), smooth = 0.9f, emission = new Color(0.25f, 0.18f, 0.05f) },
-        ["SB_ButtonCap"] = new Spec { color = new Color(0.85f, 0.75f, 0.55f), metal = 0.5f, smooth = 0.7f, emission = new Color(0.5f, 0.38f, 0.18f) },
+        ["SB_ButtonCap"] = new Spec { color = new Color(0.85f, 0.75f, 0.55f), metal = 0.5f, smooth = 0.7f },
         ["SB_Fabric"] = new Spec { color = new Color(0.12f, 0.1f, 0.14f), normal = "Fabric_Rug_006_NRM.jpg", smooth = 0.2f, tiling = new Vector2(3, 3) },
         ["SB_Plant"] = new Spec { color = new Color(0.08f, 0.22f, 0.09f), smooth = 0.35f },
         // recliners: soft crushed velvet (low smoothness, strong fabric normal) with gold piping
@@ -73,11 +77,11 @@ public static class SphererebroMaterials
         // 2026-11-07 (later), Ben: "make the buttons backlit, and persist even when you turn the lights off". The legend
         // sheet is also the emission map, so only the lettering glows (gold); the black key face doesn't, so no hotspot.
         ["SB_KeyFace"] = new Spec { albedo = "SB_KeyLegends.png", metal = 0f, smooth = 0.2f, emission = new Color(0.9f, 0.9f, 0.9f), emissionFromAlbedo = true },
-        ["SB_KeyRim"] = new Spec { color = new Color(1f, 0.78f, 0.45f), metal = 0.3f, smooth = 0.5f, emission = new Color(0.35f, 0.24f, 0.1f) },
+        ["SB_KeyRim"] = new Spec { color = new Color(1f, 0.78f, 0.45f), metal = 0.3f, smooth = 0.5f },
         // the video loading ring: cool white glow, readable in Lights Out
         ["SB_Load_EMIT"] = new Spec { color = new Color(0.75f, 0.9f, 1f), emission = new Color(0.9f, 1.2f, 1.6f) },
         // the desk is dim, not black, in Lights Out (Ben): a faint self-glow
-        ["SB_DeskMatte"] = new Spec { color = new Color(0.03f, 0.03f, 0.035f), metal = 0f, smooth = 0.12f, emission = new Color(0.025f, 0.025f, 0.03f) },
+        ["SB_DeskMatte"] = new Spec { color = new Color(0.03f, 0.03f, 0.035f), metal = 0f, smooth = 0.12f },
         // the IPN cube (from Ben's IPN-Cube2.blend): smoked glass panels, glossy letters in the IPN red/green/blue that glow a
         // little (so the logo reads with the house lights down), white labels that glow
         ["SB_IPN_Panel"] = new Spec { color = new Color(0.7f, 0.72f, 0.78f, 0.28f), metal = 0.2f, smooth = 0.85f, transparent = true },

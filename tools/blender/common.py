@@ -1,4 +1,4 @@
-"""Shared helpers for the talk asset scripts (Blender 5.2, run headless).
+"""Shared helpers for the talk asset scripts (Blender 5.1 or 5.2, run headless).
 
 Each asset script:
     import common as C

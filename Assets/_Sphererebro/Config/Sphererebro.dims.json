@@ -2,12 +2,13 @@
     "_readme": "THE size of Sphererebro, in metres. Change a number, then run the pipeline (CLAUDE.md): Blender regenerates the geometry and writes Sphererebro.derived.json beside this file; the Unity builder reads that for every position, light and trigger, and writes the world script's dims block. Nothing else holds these numbers. The theatre (ring, seats, dais, desk) is human scale and does not change with the sphere.",
     "seating": "vista",
     "_seating": "Which audience layout is live: \"vista\" (fan of raked rows just inside the portal, facing the far side; dais on a small stage in front; bridge off) or \"round\" (the in-the-round ring at the centre with the bridge). Both are always built; the other one is switched off.",
-    "sphereRadius": 50.0,
+    "sphereRadius": 100.0,
+    "_sphereRadius": "2026-11-08, Ben: doubled from 50; the stage and the lounge keep their size. arcDeg is set so the concourse keeps its length along its middle (120 deg at 50 m = 63.66 deg at 100 m).",
     "concourse": {
         "gap": 0.5,
         "depth": 12.0,
         "height": 4.5,
-        "arcDeg": 120.0
+        "arcDeg": 63.66
     },
     "plaza": {
         "drop": 6.0,

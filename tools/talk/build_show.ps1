@@ -5,7 +5,11 @@
 # Add -Assets to rebuild every Blender asset first; -Sounds to resynthesise the sounds; -Cards for the timeline cards.
 param([switch]$Assets, [switch]$Sounds, [switch]$Cards)
 $repo = (Resolve-Path "$PSScriptRoot\..\..").Path; Set-Location $repo
-$py = "C:\Program Files\Blender Foundation\Blender 5.2\5.2\python\bin\python.exe"
+# Blender's bundled Python from the newest Blender 5.x installed (5.2 on Yoda-VIII, 5.1 on Yoda-IX).
+$bl = Get-ChildItem "C:\Program Files\Blender Foundation" -Directory -Filter "Blender 5.*" |
+      Sort-Object { [version]($_.Name -replace '^Blender ', '') } | Select-Object -Last 1
+$py = Join-Path $bl.FullName "$($bl.Name -replace '^Blender ', '')\python\bin\python.exe"
+"Blender: $($bl.Name)"
 if ($Assets) { & $py tools\blender\build_all.py; if ($LASTEXITCODE) { "asset build FAILED"; exit 1 } }
 if ($Cards) { & $py tools\talk\make_cards.py }
 if ($Sounds) { & $py tools\talk\sounds.py }

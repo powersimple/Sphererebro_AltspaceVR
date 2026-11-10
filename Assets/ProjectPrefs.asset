@@ -19,3 +19,6 @@ MonoBehaviour:
   - Key: BanterBuilder_ScenePath
     Type: 3
     Value: Assets/_Sphererebro/Scenes/Sphererebro.unity
+  - Key: BanterBuilder_AutoUpload
+    Type: 0
+    Value: False

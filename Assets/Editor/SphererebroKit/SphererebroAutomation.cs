@@ -58,6 +58,10 @@ public static class SphererebroAutomation
                 Log("exec " + spec); m.Invoke(null, null); Log("exec done: " + spec);
                 return;
             }
+            // "web": script.js and index.html only (the Builder's own "Upload HTML + JS"); no scene build, asset.world untouched
+            if (what == "web") { pendingUpload = "web-open"; uploadAt = now; return; }
+            // "send": upload what is already built (asset.world + index.html + script.js), the Builder's Upload Everything
+            if (what == "send") { pendingUpload = "send-open"; uploadAt = now; return; }
             if (what.Contains("build"))
             {
                 if (!SphererebroBuilder.BuildForAutomation(true)) { Log("BUILD REFUSED (the builder's scripts were newer than Unity's compiled copy)"); return; }
@@ -83,10 +87,41 @@ public static class SphererebroAutomation
                     builder = EditorWindow.GetWindow(type);
                     Log("Builder window open");
                     pendingUpload = "build"; uploadAt = now + 4; return;
+                case "web-open":
+                case "send-open":
+                    builder = EditorWindow.GetWindow(type);
+                    Log("Builder window open (web only)");
+                    pendingUpload = pendingUpload == "send-open" ? "send-go" : "web-go"; uploadAt = now + 6; return;
+                case "web-go":
+                case "send-go":
+                {
+                    var all = pendingUpload == "send-go";
+                    pendingUpload = null;
+                    if (builder == null) builder = EditorWindow.GetWindow(type);
+                    var web = type.GetMethod(all ? "UploadEverything" : "UploadWebOnly", F);
+                    var world = type.GetField("selectedWorld", F)?.GetValue(builder);
+                    if (web == null) { Log("WEB UPLOAD FAILED: BuilderWindow.UploadWebOnly not found (SDK changed?)"); return; }
+                    if (world == null) { Log("WEB UPLOAD FAILED: no world is selected in the Builder window"); return; }
+                    var win = builder;
+                    Action done = () =>
+                    {
+                        var bad = type.GetField("uploadHadFailure", F)?.GetValue(win);
+                        Log(bad is bool b2 && b2 ? "WEB UPLOAD FAILED: the Builder reported a failure (see its status line)" : (all ? "web upload done: asset.world, index.html and script.js" : "web upload done: index.html and script.js"));
+                    };
+                    var routine = (System.Collections.IEnumerator)web.Invoke(builder, new object[] { done });
+                    var util = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("Unity.EditorCoroutines.Editor.EditorCoroutineUtility", false)).FirstOrDefault(t => t != null);
+                    var startCo = util?.GetMethod("StartCoroutine", new[] { typeof(System.Collections.IEnumerator), typeof(object) });
+                    if (startCo == null) { Log("WEB UPLOAD FAILED: EditorCoroutineUtility not found"); return; }
+                    Log("uploading index.html and script.js");
+                    startCo.Invoke(null, new object[] { routine, builder });
+                    return;
+                }
                 case "build":
                     if (builder == null) builder = EditorWindow.GetWindow(type);
                     var build = type.GetMethod("BuildAssetBundles", F);
                     if (build == null) { Log("UPLOAD FAILED: BuilderWindow.BuildAssetBundles not found (SDK changed?)"); pendingUpload = null; return; }
+                    // save first: with the scene unsaved the Builder puts up a modal "save the scene?" and everything waits (2026-11-09)
+                    UnityEditor.SceneManagement.EditorSceneManager.SaveOpenScenes();
                     build.Invoke(builder, null);   // saves, runs the checklist, shows the confirmation
                     pendingUpload = "confirm"; uploadAt = now + 3; return;
                 case "confirm":
