@@ -349,6 +349,9 @@ const XRTMCore = (() => {
             // built into a desk (ui.anchor): three low panels wrapped around the presenter (Ben, 2026-11-09: "low
             // profile, horizontal and wrap around"). Metres and degrees in the DESK's frame; mount = the anchor's own
             // place there, so the panels land right whatever the anchor's tilt.
+            // keysOnly (Ben, 2026-11-10: "I should only have two buttons"): on a desk the Console is nothing but the
+            // show's keys, large, on the centre panel. A key plays its cue; the lit key again ends it (back to house).
+            keysOnly: false,
             wrap: { on: true, scale: 0.07, width: 1000, height: 340, radius: 1.0, y: 1.2, tilt: 52, spread: 40,
                     mount: { pos: [0, 1.42, 0.98], tiltX: 20 } },
             fontScale: 1,                       // multiplies every font size on the panel
@@ -1309,6 +1312,7 @@ const XRTMCore = (() => {
         const panelOf = new Map();
         const W = U.wrap || {};
         const wrap = !!anchor && W.on !== false;
+        const keysOnly = wrap && !!U.keysOnly;
         async function makePanel(host, w, h, pad) {
             const pn = await host.AddComponent(new BS.UIPanel({ resolution: new BS.Vector2(w, h), enableHaptics: true }));
             pn.SetBackgroundColor(new BS.Vector4(0.04, 0.04, 0.05, 0.9));
@@ -1331,7 +1335,8 @@ const XRTMCore = (() => {
                 const lp = inv.map((r) => (r[0] * P[0] + r[1] * P[1] + r[2] * P[2]) / size1);
                 const m = mul(inv, mul(Ry(rad(phi)), Rx(rad(W.tilt))));       // Unity Euler order: Ry * Rx * Rz
                 const ex = Math.asin(Math.max(-1, Math.min(1, -m[1][2]))), ey = Math.atan2(m[0][2], m[2][2]), ez = Math.atan2(m[1][0], m[1][1]);
-                const g = l.obj(new BS.GameObject({ name, parent: obj, localPosition: new BS.Vector3(lp[0], lp[1], lp[2]),
+                const s1 = keysOnly && phi !== 0 ? 0 : 1;                     // keys only: the side panels are not shown
+                const g = l.obj(new BS.GameObject({ name, parent: obj, localPosition: new BS.Vector3(lp[0], lp[1], lp[2]), localScale: new BS.Vector3(s1, s1, s1),
                     localEulerAngles: new BS.Vector3(ex * 180 / Math.PI, ey * 180 / Math.PI, ez * 180 / Math.PI) }));
                 return makePanel(g, W.width, W.height, "14px");
             };
@@ -1400,9 +1405,12 @@ const XRTMCore = (() => {
             click(b, () => { filter = id; drawConsole(); }, "console filter");
             return b;
         });
+        if (keysOnly) filterRow.visible = false;
         const seqNow = el(BS.UILabel, { fontSize: fs(wrap ? 15 : 18), color: "#e0e0e0", marginBottom: wrap ? "2px" : "6px" }, showMid);
-        const cueList = el(BS.UIScrollView, { height: `${wrap ? W.height - 28 - 76 : U.panelHeight - 660}px`, width: "100%" }, showMid);
+        if (keysOnly) seqNow.visible = false;
+        const cueList = el(BS.UIScrollView, { height: `${keysOnly ? W.height - 28 : wrap ? W.height - 28 - 76 : U.panelHeight - 660}px`, width: "100%" }, showMid);
         cueList.horizontalScrolling = false;
+        let lastKeyAt = 0;
         const conRows = [];         // { b, cue: k } or { b, rec: id }
         let seqs = [];              // this device's finished recordings, oldest first
         function refreshShow() {
@@ -1426,7 +1434,19 @@ const XRTMCore = (() => {
         function drawConsole() {
             for (const r of conRows.splice(0)) r.b.Destroy();
             FILTERS.forEach(([id], n) => { filterBtns[n].style.backgroundColor = id === filter ? "#b8860b" : "#37474f"; });
-            const row = wrap
+            // keys only: two keys fill the panel side by side; more than two go two to a row, in as many rows as they need
+            // (Ben, 2026-11-10: keys for the public media tours beside Ashburn and the Timeline), all on the one panel
+            let nKeys = 0;
+            if (keysOnly && show) for (let k = 1; k <= show.count; k++) if (show.cue(k).key !== false) nKeys++;
+            // the world's own keys (ui.worldKeys: [{ name, run }]), after the show's: things the world does itself, such
+            // as Sphererebro's IPN cube show (Ben, 2026-11-10: "the IPN 3D logo button needs to work on the console")
+            const worldKeys = keysOnly && Array.isArray(U.worldKeys) ? U.worldKeys.filter((k) => k && k.name && typeof k.run === "function") : [];
+            nKeys += worldKeys.length;
+            const keyRows = Math.max(1, Math.ceil(nKeys / 2));
+            const keyH = Math.floor((W.height - 80 - (keyRows - 1) * 14) / keyRows);
+            const row = keysOnly
+                ? { height: `${keyH}px`, width: "48%", fontSize: fs(keyRows > 1 ? 34 : 44), marginTop: keyRows > 1 ? "10px" : "20px", marginRight: "2%", borderRadius: `${keyH / 2}px`, backgroundColor: "#263238" }
+                : wrap
                 ? { height: "38px", width: "19%", fontSize: fs(14), marginBottom: "5px", marginRight: "1%", borderRadius: "19px", backgroundColor: "#263238" }
                 : { height: "48px", fontSize: fs(19), marginBottom: "5px", borderRadius: "24px", backgroundColor: "#263238" };
             // wrapped: keys go five to a row, left to right, top to bottom
@@ -1434,20 +1454,30 @@ const XRTMCore = (() => {
             const lines = [];
             const slot = () => {
                 if (!wrap) return cueList;
-                if (!line || inLine >= 5) { line = el(BS.UIVisualElement, { flexDirection: "row" }, cueList); lines.push(line); inLine = 0; }
+                // keys only: two big keys to a row (four in one row of five ran off the panel: Ben saw two of his four)
+                if (!line || inLine >= (keysOnly ? 2 : 5)) { line = el(BS.UIVisualElement, { flexDirection: "row" }, cueList); lines.push(line); inLine = 0; }
                 inLine++;
                 return line;
             };
             const short = (t) => (wrap && t.length > 17 ? t.slice(0, 16) + "…" : t);
-            if (show && filter !== "rec") for (let k = 1; k <= show.count; k++) {
+            if (show && (keysOnly || filter !== "rec")) for (let k = 1; k <= show.count; k++) {
                 const c = show.cue(k);
+                if (c.key === false) continue;          // a cue kept in the show but without a Console key
                 const video = !!(c.video && c.video.clip);
                 if (filter === "video" && !video) continue;
-                const b = button(wrap ? `${c.id}   ${short(c.name)}` : `${c.id}   ${c.name}${video ? "   ▶ video" : ""}`, row, slot());
-                click(b, () => show.play(k), "console cue");
+                const b = button(keysOnly ? c.name : wrap ? `${c.id}   ${short(c.name)}` : `${c.id}   ${c.name}${video ? "   ▶ video" : ""}`, row, slot());
+                // one press, one action: the app delivered each press twice (Ben's Player.log, 2026-11-10: every key
+                // went to its cue and straight back to house), so a second press within 1.2 s is ignored
+                click(b, () => { const now = Date.now(); if (now - lastKeyAt < 1200) return; lastKeyAt = now; return keysOnly && show.i === k ? show.house() : show.play(k); }, "console cue");
                 conRows.push({ b, cue: k });
             }
-            if (filter === "all" || filter === "rec") seqs.forEach((item, n) => {
+            for (const wk of worldKeys) {
+                const b = button(wk.name, row, slot());
+                // the world shows it in its house state: a running cue ends first
+                click(b, async () => { const now = Date.now(); if (now - lastKeyAt < 1200) return; lastKeyAt = now; if (!wk.keepCue && show && show.i > 0) await show.house(); return wk.run(); }, "console world key");
+                conRows.push({ b, cue: -1 });
+            }
+            if (!keysOnly && (filter === "all" || filter === "rec")) seqs.forEach((item, n) => {
                 const b = button(wrap ? `● ${n + 1}   ${short(item.name)}` : `● ${n + 1}   ${item.name}   ${C.clock(item.durationMs)}`, row, slot());
                 click(b, () => startPlayback(item, true), "console recording");
                 conRows.push({ b, rec: item.id });
@@ -1928,7 +1958,17 @@ const XRTMCore = (() => {
             if (rootObj) await rootObj.SetPosition(new BS.Vector3(...(S.home || [0, 0, 0])));
             ready = true;
             log(`show ready: ${S.cues.length} cues, ${Object.keys(S.elements).length} elements`);
-            await apply(read(), true);
+            await apply(arrival(), true);
+        }
+
+        // What a device shows when it arrives. Ben, 2026-11-10: "Do not load any sequence by default... nothing else
+        // should trigger automatically": the space remembered the last cue for ever, so the world opened in it. Now a
+        // stored cue is picked up only while the presenter who set it is still here (someone joining a talk in
+        // progress); otherwise the house state, and nothing plays until a key is pressed.
+        function arrival() {
+            const s = read();
+            const live = s.i > 0 && s.bySid && s.bySid !== scene.localUser?.id && C.present(scene.users, s.bySid, s.byUid);
+            return live ? s : { i: 0, at: 0 };
         }
 
         function read() {
@@ -1945,9 +1985,14 @@ const XRTMCore = (() => {
             const solo = !!state.play && !arriving && i >= 1 && Date.now() - (state.at || 0) < 4000;
             // the echo of our own write (and repeats): already there, leave every running entrance alone
             if (i === applied && !arriving && !(solo && state.at !== appliedStamp)) { ui?.(); return; }
-            if (solo && applied !== i - 1) {
+            // a cue marked "alone" (a module that hides the whole hall behind its own black bubble) starts from nothing:
+            // setting the cue before it in its held poses flashed the data hall and replayed its sounds for a moment
+            // (Ben, 2026-11-10: "when you click Ashburn it blinks the data center model and bell, remove that"). Nothing
+            // else is shown or played out, whatever was showing: only this cue's own entrances.
+            const alone = solo && !!S.cues[i - 1].alone;
+            if (solo && (alone || applied !== i - 1)) {
                 clearTimers();
-                const base = liveAt(i - 1);
+                const base = alone ? new Set() : liveAt(i - 1);
                 for (const e of Object.keys(S.elements)) {
                     const el = S.elements[e];
                     clearTimeout(exitTimers[e]); delete exitTimers[e]; clearTimeout(swapTimers[e]); delete swapTimers[e];
@@ -1959,7 +2004,7 @@ const XRTMCore = (() => {
             if (solo) videoNow = null;      // its clip starts again from the top
             const prev = applied;
             const fresh = !arriving && prev >= 0 && i === prev + 1 && Date.now() - (state.at || 0) < 4000;
-            const now = liveAt(i), before = prev >= 0 ? liveAt(prev) : new Set();
+            const now = alone ? new Set(S.cues[i - 1].on || []) : liveAt(i), before = alone ? new Set() : prev >= 0 ? liveAt(prev) : new Set();
             clearTimers();
             for (const e of Object.keys(S.elements)) {
                 const el = S.elements[e];
@@ -2036,7 +2081,7 @@ const XRTMCore = (() => {
         async function go(i, play = false) {
             if (!(await canDrive())) return;
             i = Math.max(0, Math.min(S.cues.length, i));
-            const state = { i, at: Date.now(), by: scene.localUser?.name || "presenter", ...(play ? { play: 1 } : {}) };
+            const state = { i, at: Date.now(), by: scene.localUser?.name || "presenter", bySid: scene.localUser?.id, byUid: scene.localUser?.uid, ...(play ? { play: 1 } : {}) };
             await scene.SpaceStateSet(key, JSON.stringify(state), { protected: true });
             await apply(state);
         }

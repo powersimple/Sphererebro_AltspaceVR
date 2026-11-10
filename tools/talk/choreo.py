@@ -21,7 +21,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, "..", ".."))
 CFG = os.path.join(REPO, "Assets", "_Sphererebro", "Config")
 SHOW = json.load(open(os.path.join(CFG, "talk_show.json"), encoding="utf-8-sig"))
-TL = json.load(open(os.path.join(CFG, "talk_timeline_events.json"), encoding="utf-8-sig"))
+import sys; sys.path.insert(0, HERE)
 random.seed(1110)
 
 EYE = SHOW["audience"]["eye"]           # mid-audience eye
@@ -278,62 +278,69 @@ media_el("tv", "tv_midcentury", 19.0 / 1.05, [0.0, FLOOR, -8.0], "tv_hum.wav", "
 media_el("monitor", "web_monitor_1990s", 15.0 / 0.40, [17.5, FLOOR, -12.0], "modem.wav", "cue 2C: the 1990s web monitor, screen lit, settles right")
 
 # ================================================================== TIMELINE (cue 2T)
-# Ben's 2020Vision timeline, 1746 -> 2019, as a glowing ribbon on a 20 m arc around the audience (above the presenter).
-# A comet runs along it visiting every event in turn; each event's card blooms big beside the comet (readable: 14 m wide
-# at ~20 m), holds, then shrinks to a small tile on the ribbon, so by the end the ribbon is studded with the whole history.
-el = element("timeline", "cue 2T: 200 years of media: a comet runs the ribbon, each event's card blooms big, then settles small")
-EVS = TL["events"]
-TLR = 20.0; A0, A1 = -78.0, 78.0; TLY = 3.2
-per = [1.25 if e["kind"] == "media" else 0.55 for e in EVS]
-T0 = 2.0
-ev_t = []; acc = T0
-for p_ in per: ev_t.append(acc); acc += p_
-TRAVEL_END = acc + 1.0
-def arc_pt(f, dy=0.0, dr=0.0):
-    a = math.radians(A0 + (A1 - A0) * f)
-    return [AX + (TLR + dr) * math.sin(a), TLY + dy, AZ + (TLR + dr) * math.cos(a)]
-ev_f = [(k + 0.5) / len(EVS) for k in range(len(EVS))]             # events evenly along the arc (recent decades get room)
-def f_at_time(t):
-    if t <= ev_t[0]: return 0.0
-    for k in range(len(EVS) - 1):
-        if ev_t[k] <= t <= ev_t[k + 1]: return ev_f[k] + (ev_f[k + 1] - ev_f[k]) * (t - ev_t[k]) / (ev_t[k + 1] - ev_t[k])
-    return min(1.0, ev_f[-1] + (t - ev_t[-1]) / per[-1] * (1 - ev_f[-1]))
-year_marks = []
-for k in range(len(EVS) - 1):                                       # decade ticks between events, by interpolation
-    y0_, y1_ = EVS[k]["y"], EVS[k + 1]["y"]
-    for yr in range((y0_ // 10 + 1) * 10, y1_ + 1, 10):
-        if y1_ > y0_: year_marks.append((yr, ev_f[k] + (ev_f[k + 1] - ev_f[k]) * (yr - y0_) / (y1_ - y0_)))
-SEGS = 14
-el.node("Ribbon", {"timeline": "ribbon", "center": [AX, TLY, AZ], "radius": TLR, "a0": A0, "a1": A1, "h0": TLY, "h1": TLY,
-                   "segments": SEGS, "ticks": [m[1] for m in year_marks], "bigTicks": [m[1] for m in year_marks if m[0] % 50 == 0]})
-for k in range(SEGS):                                               # a segment switches on as the comet reaches it
-    t_on = next((T0 + j * 0.05 for j in range(4000) if f_at_time(T0 + j * 0.05) >= k / SEGS), T0)
-    el.t(f"Ribbon/Seg{k:02d}").step("on", 0, 0); el.t(f"Ribbon/Seg{k:02d}").step("on", max(T0, t_on), 1)
-el.node("Comet", {"timeline": "comet"}, p=arc_pt(0), on=0)
-el.t("Comet").step("on", 0, 0); el.t("Comet").step("on", T0 - 0.3, 1)
-el.t("Comet").add("p", T0, TRAVEL_END, lambda u: arc_pt(f_at_time(T0 + u * (TRAVEL_END - T0))), "lin", hz=12)
-el.t("Comet").step("on", TRAVEL_END + 1.0, 0)
-el.node("Comet/Light", {"light": {"type": "point", "color": [1.0, 0.85, 0.6], "intensity": 40.0, "range": 14}})
-el.node("Cards", {}); el.node("Stems", {})
-for i, ev in enumerate(EVS):
-    up = (i % 2 == 0)
-    big = 1.0 if ev["kind"] == "media" else 0.72
-    W_, H_ = 14.0 * big, 3.5 * big                                   # the card's world size at full bloom (atlas card 4:1)
-    dy = (H_ / 2 + 0.9) * (1 if up else -1)
-    base = arc_pt(ev_f[i]); cp = arc_pt(ev_f[i], dy, -0.4)
+# The media timeline (Ben, 2026-11-10): layers of firsts (media, transmission, physical formats, digital audio, image,
+# video, 3D) stacked on one time axis across the inside of the dome. No world history. Data: talk_timeline_layers.json;
+# layout: tools/talk/layers.py. A sweep runs left to right: each rail lights as it passes and each card opens at its year.
+import layers as LY
+el = element("timeline", "cue 2T: the media timeline: seven rails across the dome, lit left to right, a card at every first")
+SC = list(EYE)                                                      # the wall is a sphere about the mid-audience eye
+LAY = LY.layout()
+T0, SWEEP = 1.5, 7.0
+SEGS = 12
+def dome_pt(lat, f, dy=0.0, dr=0.0):
+    """A point on the timeline's sphere: latitude (deg), fraction along the arc; dy = metres up the sphere from there."""
+    la = math.radians(lat) + dy / LY.R; a = math.radians(LY.A0 + (LY.A1 - LY.A0) * f); r = LY.R + dr
+    return [SC[0] + r * math.cos(la) * math.sin(a), SC[1] + r * math.sin(la), SC[2] + r * math.cos(la) * math.cos(a)]
+def face(p):
+    """Euler that turns a card at p to face the mid-audience eye, tipped down to it."""
+    dx, dy_, dz = EYE[0] - p[0], EYE[1] - p[1], EYE[2] - p[2]
+    return (-math.degrees(math.atan2(-dy_, math.hypot(dx, dz))), yaw_to(p, EYE), 0)
+def rail(name, lat, ticks=(), big=()):
+    la = math.radians(lat)
+    el.node(name, {"timeline": "ribbon", "center": [SC[0], 0, SC[2]], "radius": LY.R * math.cos(la), "a0": LY.A0, "a1": LY.A1,
+                   "h0": SC[1] + LY.R * math.sin(la), "h1": SC[1] + LY.R * math.sin(la), "segments": SEGS, "half": 0.09,
+                   "ticks": list(ticks), "bigTicks": list(big)})
+    for k in range(SEGS):
+        el.t(f"{name}/Seg{k:02d}").step("on", 0, 0); el.t(f"{name}/Seg{k:02d}").step("on", T0 + SWEEP * k / SEGS, 1)
+def card(i, p, at, w, h):
     path = f"Cards/C{i:02d}"
-    el.node(path, {"timeline": "card", "card": i, "kind": ev["kind"], "w": W_, "h": H_}, p=cp, e=(0, yaw_to(cp, EYE), 0), s=0.001)
-    tc = ev_t[i]; hold = 2.6 if ev["kind"] == "media" else 1.6
-    small = 0.3
-    el.t(path).add("s", tc - 0.1, tc + 0.6, lambda u: [max(0.001, u)] * 3, "back")
-    el.t(path).add("s", tc + hold, tc + hold + 1.2, lambda u: [1 - (1 - small) * u] * 3, "inout")
-    el.t(path).add("p", tc + hold, tc + hold + 1.2, (lambda cp, base, up: lambda u: lerp(cp, [base[0], base[1] + (1.4 if up else -1.4), base[2]], u))(cp, base, up), "inout")
-    el.node(f"Stems/S{i:02d}", {"timeline": "stem", "from": base, "to": [base[0], base[1] + (1.0 if up else -1.0), base[2]]}, on=0)
-    el.t(f"Stems/S{i:02d}").step("on", 0, 0); el.t(f"Stems/S{i:02d}").step("on", tc, 1)
+    el.node(path, {"timeline": "card", "card": i, "kind": "media", "w": w, "h": h}, p=p, e=face(p), s=0.001)
+    el.t(path).add("s", at, at + 0.6, lambda u: [max(0.001, u)] * 3, "back")
+el.node("Cards", {}); el.node("Stems", {})
+PICS = []
+_dec = [y for y in range(1830, 2021, 10)]
+rail("Axis", LAY["axis"]["lat"], [LY.frac(y) for y in _dec], [LY.frac(y) for y in _dec if y % 50 == 0])
+for i, y in zip(LAY["axis"]["cards"], LAY["axis"]["years"]):
+    card(i, dome_pt(LAY["axis"]["lat"], LY.frac(y), 0.85, -0.2), T0 + SWEEP * LY.frac(y), 3.6, 0.9)
+for n, rl in enumerate(LAY["rails"]):
+    rail(f"Rail{n}", rl["lat"])
+    # the layer's name: left of the rail's start
+    lab_f = -(LY.CW / 2 + 0.6) / (math.radians(LY.A1 - LY.A0) * LY.R * math.cos(math.radians(rl["lat"])))
+    card(rl["label"], dome_pt(rl["lat"], lab_f, 0, -0.2), 0.4 + 0.12 * n, LY.CW, LY.CH)
+    for it in rl["items"]:
+        off = LY.offset(it["level"]); at = T0 + SWEEP * it["f"]
+        card(it["i"], dome_pt(rl["lat"], it["f"], off, -0.2), at, LY.CW, LY.CH)
+        edge = off - LY.CH / 2 * (1 if off > 0 else -1)
+        sp = f"Stems/S{it['i']:02d}"
+        el.node(sp, {"timeline": "stem", "from": dome_pt(rl["lat"], it["f"]), "to": dome_pt(rl["lat"], it["f"], edge)}, on=0)
+        el.t(sp).step("on", 0, 0); el.t(sp).step("on", at, 1)
+        if it.get("pic") is not None: PICS.append((it["y"], it["pic"], rl["lat"], it["f"], off))
+# the pictures: after the sweep each opens big (9 m, 4 m nearer than the wall) at its card, holds, then settles small on
+# the card's left end. One at a time, in date order, so two never cover each other.
+BIG, PIC_GAP, PIC_HOLD = 6.0, 1.9, 1.3
+for n, (yr, i, lat_, f_, off_) in enumerate(sorted(PICS)):
+    half_a = (LY.CW - LY.CH) / 2 / (LY.R * math.cos(math.radians(lat_))) / math.radians(LY.A1 - LY.A0)   # card centre -> its left end
+    rest = dome_pt(lat_, f_ - half_a, off_, -0.35); show_ = dome_pt(lat_, f_, off_ + (5.5 if off_ < 0 else -5.5) * 0, -4.0)
+    path = f"Cards/C{i:02d}"; at = T0 + SWEEP + 0.8 + n * PIC_GAP
+    el.node(path, {"timeline": "card", "card": i, "kind": "media", "w": LY.CH, "h": LY.CH}, p=show_, e=face(rest), s=0.001)
+    el.t(path).add("s", at, at + 0.5, lambda u: [max(0.001, BIG * u)] * 3, "out")
+    el.t(path).add("s", at + 0.5 + PIC_HOLD, at + 1.3 + PIC_HOLD, lambda u: [BIG - (BIG - 0.96) * u] * 3, "inout")
+    el.t(path).add("p", at + 0.5 + PIC_HOLD, at + 1.3 + PIC_HOLD, (lambda a, b: lambda u: lerp(a, b, u))(show_, rest), "inout")
 one_shot(el, "Shimmer", "timeline_shimmer.wav", T0, pos=(0, 4, -28), vol=0.45, spatial=0.3)
-for nm in ("Ribbon", "Cards", "Stems"):
-    el.t(nm, "exit").add("p", 0, 3.0, lambda u: [0, 30 * in2(u), 0], "lin"); hide_at(el, nm, 3.05)
-el.play_dur = TRAVEL_END + 4
+_groups = ["Axis", "Cards", "Stems"] + [f"Rail{n}" for n in range(len(LAY["rails"]))]
+for nm in _groups:                                                  # exit: the whole wall folds flat to the horizon and goes
+    el.t(nm, "exit").add("s", 0, 1.2, lambda u: [1, max(0.001, 1 - u), 1], "inout"); hide_at(el, nm, 1.25)
+el.play_dur = T0 + SWEEP + 0.8 + len(PICS) * PIC_GAP + 2.0
 # ================================================================== FEED WALL (cue 3) + SHATTER (cue 4)
 el = element("feedwall", "cue 3: a wall of feed tiles rises all around, scrolling upward, and closes in front of the trio")
 SECT = 8; ARC = 95.0; WR = 16.0
@@ -674,10 +681,31 @@ for i, (asset, a) in enumerate(HALLS):
     el.t(f"Hot{i}").add("a", 0, 4, lambda u: u, "smooth")
 one_shot(el, "Swell", "commons_swell.wav", 0.0, pos=(0, 5, -20), vol=0.6, spatial=0.2)
 
+# ================================================================== MODULES (optional, switchable)
+# talk_show.json "modules": [{"name": "ashburn", "after": "5B"}]. Each is tools/talk/modules/<name>.py with
+# build(namespace, options): it adds its own elements and returns the cues to slot in ({"after": cue id, "cue": {...},
+# "offAtNext": [elements the following cue takes off]}). The cue list in talk_show.json itself is never changed, so
+# deleting the entry (and re-running tools/talk/build_show.ps1) removes the module from the show.
+import importlib.util
+SHOW["cues"] = [dict(c, on=list(c["on"]), off=list(c["off"])) for c in SHOW["cues"]]
+for _m in SHOW.get("modules", []):
+    _spec = importlib.util.spec_from_file_location("talk_module_" + _m["name"], os.path.join(HERE, "modules", _m["name"] + ".py"))
+    _mod = importlib.util.module_from_spec(_spec); _spec.loader.exec_module(_mod)
+    for _ins in _mod.build(globals(), _m):
+        _ids = [c["id"] for c in SHOW["cues"]]
+        if _ins["after"] not in _ids: raise SystemExit(f"module {_m['name']}: no cue {_ins['after']} to follow")
+        _i = _ids.index(_ins["after"]) + 1
+        SHOW["cues"].insert(_i, _ins["cue"])
+        if _i + 1 < len(SHOW["cues"]):
+            _nx = SHOW["cues"][_i + 1]       # the cue after: it takes the module off, and no longer what the module cue took off itself
+            _nx["off"] = [e for e in _nx["off"] if e not in _ins["cue"]["off"]]
+            _nx["off"] += [e for e in _ins.get("offAtNext", []) if e not in _nx["off"]]
+        print(f"module {_m['name']}: cue {_ins['cue']['id']} '{_ins['cue']['name']}' after {_ins['after']}")
+
 # ================================================================== write
 out = {"_readme": "GENERATED by tools/talk/choreo.py from talk_show.json: do not edit.", "audience": SHOW["audience"],
        "floor": FLOOR, "cues": SHOW["cues"], "text": SHOW["text"], "mediaBase": SHOW["mediaBase"],
-       "timeline": TL, "elements": {k: v.to_json() for k, v in EL.items()}}
+       "timeline": LY.DATA, "elements": {k: v.to_json() for k, v in EL.items()}}
 for k, v in EL.items():
     if v.video: out["elements"][k]["video"] = v.video
 missing = sorted({e for c in SHOW["cues"] for e in c["on"] + c["off"] if e not in EL})
@@ -696,7 +724,7 @@ _der = json.load(open(os.path.join(CFG, "Sphererebro.derived.json"), encoding="u
 HOME = [round(a - b, 4) for a, b in zip(_der["vista"]["daisMount"], SHOW["audience"]["presenter"])]
 show = {"title": "IPN talk, 10 Nov 2026", "root": "Talk", "home": HOME, "mediaBase": SHOW["mediaBase"], "rehearsalSeconds": 20,
         "videos": [f"Talk_Video_{s}_{l}" for s in ("curved", "dome360", "dome180") for l in ("mono", "sbs", "tb")],
-        "cues": [{"id": c["id"], "name": c["name"], "on": c["on"], "off": c["off"], "video": c.get("video")} for c in SHOW["cues"]],
+        "cues": [{"id": c["id"], "name": c["name"], "on": c["on"], "off": c["off"], "video": c.get("video"), **({"key": False} if "keys" in SHOW and c["id"] not in SHOW["keys"] else {}), **({"alone": True} if c.get("alone") else {})} for c in SHOW["cues"]],
         "elements": {}}
 for k, v in out["elements"].items():
     e = {"play": f"Talk_{k}_Play", "hold": f"Talk_{k}_Hold", "exit": f"Talk_{k}_Exit" if v["exit"] else None,

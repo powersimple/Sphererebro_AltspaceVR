@@ -30,6 +30,12 @@ Machine-specific notes go in `CLAUDE.local.md` (gitignored). Read `CHANGELOG.md`
 - Unity: `SphererebroTalk*.cs` builds SHOW/Talk (twins Play/Hold/Exit per element). Runtime: XR Time Machine 0.4's Show tab.
 - Assets: `tools/blender/` (build_all.py) -> `talk/models/*.glb` + `Assets/_Sphererebro/Talk/Models/*.fbx`; materials in
   `tools/blender/talk_materials.json`; CC0 textures `tools/textures/` (CREDITS.md). Sounds: `tools/talk/sounds.py`.
+- Modules (optional cues, switchable): `talk_show.json` `"modules"` -> `tools/talk/modules/<name>.py`; `choreo.py` slots
+  their cues in. `ashburn` (cue 5B3, space to Ashburn in 3D): `tools/geo/ashburn_fetch.py`, `tools/blender/ashburn_zoom.py`.
+  `media_tour` (5F2) and `media_capture` (5F3), the public media globes: `tools/geo/media_fetch.py`, `tools/blender/media_globe.py`.
+  `datahall` (4B2, a rack aisle that starts small and flies past the seats): `tools/geo/datahall_art.py`, `tools/blender/datahall.py`.
+  Module content stays **above the sphere's equator** (y 0): Ben, 2026-11-10. The one exception is `datahall`, whose
+  racks stand on the floor beside the seats because Ben asked for them to fly past the seats.
 - Test: `tools/harness/serve.ps1`, then `show_test.html` (logic) and `show.html` (motion, clearance) on localhost:8766.
   Unattended Unity: `tools/unity_run.ps1 build "exec SphererebroTalkShots.Run"` (review/cues, review/motion).
 

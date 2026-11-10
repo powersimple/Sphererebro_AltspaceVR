@@ -17,6 +17,11 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: SB_LatticeBlack
+    second: {fileID: 2100000, guid: e9a975168fc2eb24988a5417a98126fa, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: SB_Load_EMIT
     second: {fileID: 2100000, guid: 1b13619b822ebda439300d364a192b3f, type: 2}
   - first:

@@ -1,0 +1,19 @@
+{
+  "_readme": "Materials for the Ashburn zoom module (tools/talk/modules/ashburn.py). Merged into talk_materials.json's set by tools/blender/common.py and SphererebroTalk.cs; delete this file with the module. All unlit: the module needs no lights. queue = draw order (the finer layer over the coarser); doubleSided = no back-face culling.",
+  "TK_AshSpace":       {"unlit": true, "emit": [0.004, 0.006, 0.012]},
+  "TK_AshSpaceFade":   {"unlit": true, "emit": [0.004, 0.006, 0.012], "alpha": "blend", "opacity": 1.0, "queue": 2950},
+  "TK_AshGlobeW":     {"unlit": true, "emit": [1, 1, 1], "emitTex": "ash_globe_w.png", "doubleSided": true},
+  "TK_AshGlobeE":      {"unlit": true, "emit": [1, 1, 1], "emitTex": "ash_globe_e.png", "doubleSided": true},
+  "TK_AshL1":          {"unlit": true, "emit": [1, 1, 1], "emitTex": "ash_L1.png", "alpha": "blend", "opacity": 1.0, "queue": 3001, "doubleSided": true},
+  "TK_AshL2":          {"unlit": true, "emit": [1, 1, 1], "emitTex": "ash_L2.png", "alpha": "blend", "opacity": 1.0, "queue": 3002, "doubleSided": true},
+  "TK_AshL3":          {"unlit": true, "emit": [1, 1, 1], "emitTex": "ash_L3.png", "alpha": "blend", "opacity": 1.0, "queue": 3003, "doubleSided": true},
+  "TK_AshL4":          {"unlit": true, "emit": [1, 1, 1], "emitTex": "ash_L4.png", "alpha": "blend", "opacity": 1.0, "queue": 3004, "doubleSided": true},
+  "TK_AshL5":          {"unlit": true, "emit": [1, 1, 1], "emitTex": "ash_L5.png", "alpha": "blend", "opacity": 1.0, "queue": 3005, "doubleSided": true},
+  "TK_AshL6":          {"unlit": true, "emit": [1, 1, 1], "emitTex": "ash_L6.png", "alpha": "blend", "opacity": 1.0, "queue": 3006, "doubleSided": true},
+  "TK_AshDCRoof":      {"unlit": true, "emit": [1.0, 0.66, 0.2]},
+  "TK_AshDCWallLit":   {"unlit": true, "emit": [0.78, 0.42, 0.09]},
+  "TK_AshDCWallShade": {"unlit": true, "emit": [0.42, 0.2, 0.04]},
+  "TK_AshRoof":        {"unlit": true, "emit": [0.6, 0.63, 0.67]},
+  "TK_AshWallLit":     {"unlit": true, "emit": [0.4, 0.42, 0.46]},
+  "TK_AshWallShade":   {"unlit": true, "emit": [0.22, 0.24, 0.27]}
+}

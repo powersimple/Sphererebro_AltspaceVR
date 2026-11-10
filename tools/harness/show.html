@@ -66,7 +66,7 @@ async function make(node, make, elId) {
     if (!g) obj = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), MAT(0xff00ff));
     else {
       obj = g.clone(true);
-      if (make.part) { let p = null; obj.traverse((o) => { if (o.name === make.part) p = o; }); if (p) { obj = p.clone(true); obj.position.set(0, 0, 0); } }
+      if (make.part) { let p = null; obj.traverse((o) => { if (o.name === make.part) p = o; }); if (p) { obj = p.clone(true); obj.position.set(0, 0, 0); obj.traverse((o) => { if (o.material) o.material = o.material.clone(); }); } }   // its own material, as in Unity: an alpha track fades this node only
     }
     const w = asUnity(obj); node.add(w); return;
   }
@@ -78,15 +78,18 @@ async function make(node, make, elId) {
     return;
   }
   if (make.special === "envsphere") {
-    const tex = { TK_EnvDark: 0x06070c, TK_WarmRoom: 0x8a5a33 }[make.mat] ?? 0x222222;
-    node.add(new THREE.Mesh(new THREE.SphereGeometry(make.radius, 48, 24), MAT(tex, { side: THREE.BackSide, depthWrite: false })));
+    const tex = /Space(Fade)?$/.test(make.mat || "") ? 0x010204 : ({ TK_EnvDark: 0x06070c, TK_WarmRoom: 0x8a5a33 }[make.mat] ?? 0x222222);   // *Space: a module's black bubble
+    const env = new THREE.Mesh(new THREE.SphereGeometry(make.radius, 48, 24), MAT(tex, { side: THREE.BackSide, depthWrite: false }));
+    env.userData.env = true; node.add(env);     // a shell around the audience, not a moving object (the clearance test skips it)
   } else if (make.special === "stars") {
     const n = make.count, pos = new Float32Array(n * 3);
     for (let i = 0; i < n; i++) { const z = Math.random() * 2 - 1, p = Math.random() * 6.283, r = Math.sqrt(1 - z * z); pos.set([make.radius * r * Math.cos(p), make.radius * z, make.radius * r * Math.sin(p)], i * 3); }
     const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
     node.add(new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size: 0.15, transparent: true })));
   } else if (make.special === "floor") {
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(make.size, make.size), new THREE.MeshStandardMaterial({ color: 0xdddddf, roughness: 0.5, transparent: true }));
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(make.size, make.size), /Space(Fade)?$/.test(make.mat || "") ? MAT(0x010204)
+      : new THREE.MeshStandardMaterial({ color: 0xdddddf, roughness: 0.5, transparent: true }));
+    m.userData.env = /Space(Fade)?$/.test(make.mat || "");
     m.rotation.x = -Math.PI / 2; m.position.y = make.y; node.add(m);
   } else if (make.special === "feedsector") {
     const cols = Math.floor((Math.PI / 180) * (make.a1 - make.a0) * make.radius / (make.tileW + make.gapW));
@@ -129,13 +132,13 @@ async function make(node, make, elId) {
     const tex = await new THREE.TextureLoader().loadAsync(BASE + `talk/gen/tl_cards_${c.atlas}.png`); tex.colorSpace = THREE.SRGBColorSpace;
     tex.repeat.set(c.u1 - c.u0, c.v1 - c.v0); tex.offset.set(c.u0, c.v0);
     const m = new THREE.Mesh(new THREE.PlaneGeometry(make.w, make.h), new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide }));
-    m.scale.x = -1; node.add(m);
+    node.add(m);      // u runs to the viewer's right, as in Unity (was mirrored until 2026-11-10)
   } else if (make.timeline === "ribbon") {
     for (let k = 0; k < make.segments; k++) {
       const pts = [];
       for (let i = 0; i <= 8; i++) { const f = (k + i / 8) / make.segments; const a = THREE.MathUtils.degToRad(make.a0 + (make.a1 - make.a0) * f); pts.push(new THREE.Vector3(make.center[0] + make.radius * Math.sin(a), make.h0, make.center[2] + make.radius * Math.cos(a))); }
       const seg = new THREE.Group(); seg.name = "Seg" + String(k).padStart(2, "0");
-      seg.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 16, 0.25, 6), MAT(0xffd9a0, { opacity: 0.85 })));
+      seg.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 16, make.half || 0.25, 6), MAT(0xffd9a0, { opacity: 0.85 })));
       node.add(seg);
     }
   } else if (make.timeline === "comet") {
@@ -282,6 +285,7 @@ function clearance() {
         evalTwin(T, t); T.root.updateMatrixWorld(true);
         T.root.traverse((o) => {
           if (!o.isMesh && !o.isPoints && !o.isInstancedMesh) return;
+          if (o.userData.env || (id === "datahall" && /^(Floor|Case)/.test(o.name))) return;   // datahall: its floor lies under the seats, like the bubbles' black floor
           let vis = true; for (let p = o; p && p !== T.root; p = p.parent) if (!p.visible) { vis = false; break; }
           if (!vis) return;
           box.setFromObject(o);
@@ -301,20 +305,22 @@ function clearance() {
 }
 function triDist(o, zone) {
   const pos = o.geometry.attributes.position, idx = o.geometry.index, n = idx ? idx.count : pos.count, M = o.matrixWorld;
-  const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3(), tb = new THREE.Box3(); let best = Infinity;
+  const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3(), tb = new THREE.Box3(), sz = new THREE.Vector3(); let best = Infinity;
   const U3 = (v) => { v.applyMatrix4(M); v.z = -v.z; return v; };
   for (let k = 0; k < n; k += 3) {
     const i0 = idx ? idx.getX(k) : k, i1 = idx ? idx.getX(k + 1) : k + 1, i2 = idx ? idx.getX(k + 2) : k + 2;
     U3(a.fromBufferAttribute(pos, i0)); U3(b.fromBufferAttribute(pos, i1)); U3(c.fromBufferAttribute(pos, i2));
-    tb.makeEmpty(); tb.expandByPoint(a); tb.expandByPoint(b); tb.expandByPoint(c);
-    // big triangles: split their box into 4 by the edge midpoints (still conservative, much tighter)
-    const d = distBoxBox(tb, zone);
-    if (d < best) {
-      if (tb.getSize(new THREE.Vector3()).length() > 4) {
-        const ab = a.clone().add(b).multiplyScalar(0.5), bc = b.clone().add(c).multiplyScalar(0.5), ca = c.clone().add(a).multiplyScalar(0.5);
-        for (const [p, q, r] of [[a, ab, ca], [ab, b, bc], [ca, bc, c], [ab, bc, ca]]) { tb.makeEmpty(); tb.expandByPoint(p); tb.expandByPoint(q); tb.expandByPoint(r); best = Math.min(best, distBoxBox(tb, zone)); }
-      } else best = d;
-    }
+    // big triangles: split into 4 by the edge midpoints, again and again while the piece is big and could still be the
+    // nearest (still conservative, and tight even for a tilted map layer whose triangles are tens of metres across)
+    const split = (p, q, r, depth) => {
+      tb.makeEmpty(); tb.expandByPoint(p); tb.expandByPoint(q); tb.expandByPoint(r);
+      const d = distBoxBox(tb, zone);
+      if (d >= best) return;
+      if (depth >= 8 || tb.getSize(sz).length() <= 1.5) { best = d; return; }
+      const pq = p.clone().add(q).multiplyScalar(0.5), qr = q.clone().add(r).multiplyScalar(0.5), rp = r.clone().add(p).multiplyScalar(0.5);
+      split(p, pq, rp, depth + 1); split(pq, q, qr, depth + 1); split(rp, qr, r, depth + 1); split(pq, qr, rp, depth + 1);
+    };
+    split(a.clone(), b.clone(), c.clone(), 0);
   }
   return best;
 }
@@ -362,7 +368,9 @@ document.getElementById("perf").onclick = async () => {
   auto = true; window.__perf = rows; log("perf + motion run done");
 };
 window.__ready = true; log("ready: Next / arrow keys; Clearance test; Perf + motion run");
-window.__go = go;
+window.__go = go; window.__run = (seconds) => { auto = false; for (let k = Math.round(seconds * 30); k > 0; k--) step(1 / 30); renderer.render(scene, camera); };   // __run(s): advance s seconds of show time now, then draw (stills that do not depend on the frame rate)
+window.__solo = (cueId) => { const i = S.cues.findIndex((c) => c.id === cueId); for (const id of Object.keys(S.elements)) state[id] = S.cues[i].on.includes(id) ? { mode: "play", t0: simTime } : null; cue = i + 1; };   // __solo("4B2"): a Console key's "alone" cue: only its own elements, from the start
+window.__view = view;   // __view(eye, target, fov): look where a module plays (e.g. up at a globe) window.__view = view; window.__frame = (dt) => { step(dt || 0); renderer.render(scene, camera); return renderer.domElement.toDataURL('image/png'); };   // a frame on demand (works while the tab is hidden)
 </script>
 </body>
 </html>

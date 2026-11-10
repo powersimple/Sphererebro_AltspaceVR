@@ -1,17 +1,19 @@
 # Clearance test (3 m around every seat)
 
-Run 2026-11-08T04:42:55.232Z by tools/harness/show.html: every entrance and exit of every element, sampled 15 times a second;
+Run 2026-11-10T12:51:19.551Z by tools/harness/show.html: every entrance and exit of every element, sampled 15 times a second;
 each visible mesh's world box against the seating block (all 76 seats, the occupants' heads included) grown by 3 m.
 Environment shells (the dark dome, the white room, the dusk dome, the star field, the shatter particles) surround the audience by design and are not moving objects; they are listed but excluded.
 
-Result: **PASS**: 79 motions checked.
+Result: **PASS**: 87 motions checked.
 
 | Element | Motion | Closest approach (m) | At (s) | Part |
 |---|---|---:|---:|---|
 | stars | play | 0.00 | 0.0 | Spin |
-| env_dark | play | 0.51 | 0.0 | Talk_env_dark_play |
+| media_capture | play | 3.00 | 13.5 | Unknown |
+| datahall | play | 3.01 | 16.7 | Scene |
+| media_tour | play | 3.01 | 27.9 | GlobeE |
+| ashburn | play | 3.02 | 35.7 | L5 |
 | halls | play | 3.75 | 5.5 | Scene |
-| timeline | play | 3.86 | 41.6 | Cards |
 | feedwall | play | 3.94 | 0.0 | S1 |
 | racks_near | play | 4.32 | 13.6 | Scene |
 | halls_bright | play | 5.21 | 0.0 | Hot3 |
@@ -36,15 +38,17 @@ Result: **PASS**: 79 motions checked.
 | label2 | play | 18.10 | 6.3 | Scene |
 | label4 | play | 18.10 | 6.3 | Scene |
 | screen | play | 19.46 | 1.1 | Scene |
+| timeline | play | 26.31 | 19.3 | Cards |
 | racks_near_parted | play | 27.40 | 3.0 | Scene |
 | bill | play | 29.68 | 0.0 | Dollar |
 | tanks | play | 38.41 | 0.9 | Scene |
-| env_warm | play | 375.35 | 0.0 | Talk_env_warm_play |
-| env_white | play | 384.89 | 0.0 | Scene |
+| env_white | play | 400.34 | 0.0 | Scene |
+| env_dark | play | - | 0.0 |  |
 | env_dark | exit | - | 0.0 |  |
 | stars | exit | - | 0.0 |  |
 | env_white | exit | - | 0.0 |  |
 | dust | play | - | 0.0 |  |
+| env_warm | play | - | 0.0 |  |
 | env_warm | exit | - | 0.0 |  |
 | warm_light | play | - | 0.0 |  |
 | warm_light | exit | - | 0.0 |  |
@@ -87,3 +91,7 @@ Result: **PASS**: 79 motions checked.
 | stamp1 | exit | - | 0.0 |  |
 | stamp2 | exit | - | 0.0 |  |
 | stamp3 | exit | - | 0.0 |  |
+| datahall | exit | - | 0.0 |  |
+| ashburn | exit | - | 0.0 |  |
+| media_tour | exit | - | 0.0 |  |
+| media_capture | exit | - | 0.0 |  |

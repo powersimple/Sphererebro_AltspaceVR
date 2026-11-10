@@ -26,6 +26,10 @@ GLB_DIR = os.path.join(REPO, "talk", "models")
 PREV_DIR = os.path.join(REPO, "talk", "previews")
 FBX_DIR = os.path.join(REPO, "Assets", "_Sphererebro", "Talk", "Models")
 MATS = {k: v for k, v in json.load(open(os.path.join(HERE, "talk_materials.json"))).items() if not k.startswith("_")}
+# optional modules bring their own materials: talk_materials_<module>.json beside this file (e.g. the Ashburn zoom)
+for _f in sorted(os.listdir(HERE)):
+    if _f.startswith("talk_materials_") and _f.endswith(".json"):
+        MATS.update({k: v for k, v in json.load(open(os.path.join(HERE, _f))).items() if not k.startswith("_")})
 
 ARGS = {"out": None, "preview": True, "fbx": True}
 ROOT = None

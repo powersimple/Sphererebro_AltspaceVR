@@ -2,6 +2,274 @@
 
 Newest first. Each entry: what changed, where, and what is **not** verified. Rules and pipeline: `CLAUDE.md`.
 
+## 2026-11-10, 15:00: arrive at the foot of the escalator, by script; NOT uploaded (Claude; Ben commits and uploads)
+
+Ben: "can we move the spawn point back to the bottom of the escalator without a drawn out build?" The spawn point is in
+`asset.world`, so moving it needs a full build. Instead `Assets/WebRoot/script.js` (`SB.arriveOnPlaza`) takes each
+device to `SB_DIMS.spawn` (the plaza, facing the venue) once as it loads: a script-only upload (`tools\ship.ps1 -Web`,
+about 40 s). People still appear inside the desk for the moment before the script runs. `SpawnAtDesk` is false again in
+the builder, so the next full build moves the real spawn point; then set `arriveOnPlaza` false. `show_test.html` 41/41;
+not tried in the app (whether `TeleportTo` is honoured that early in loading is unverified).
+
+## 2026-11-10, 14:30: Stewart puts the house lights out; IPN Logo key on the Console; cube logos; NOT built (Claude; Ben commits and builds)
+
+- **Stewart and the house lights:** Ben asked whether the Stewart key "turns the house lights off". It did not: the black
+  bubble hid the dome and hall, but the theatre's own lights (key, three house lights) stayed as LIGHTS had them. Now
+  `SB.lx.darkCues = ["S3"]` in `Assets/WebRoot/script.js`: while that cue is up the lights use the LIGHTS OUT preset
+  (desk spot at half), and come back as they were when it ends. Script only; not seen.
+- **"The IPN 3D logo button needs to work on the console":** the desk Console (keys only) had no key for the cube show.
+  New `ui.worldKeys` in `XRTimeMachine/src/adapter-altspace.js` (a world's own keys after the show's); Sphererebro gives
+  it one, "IPN Logo", which ends any running cue and then runs `SB.actions.Show` (the cube show, as the old desk key).
+  Nine keys now: five rows of two. `install_xrtm.ps1` wrote script.js but could not rewrite the plugin's own dist file
+  (locked by another program): the dist copy is one change behind.
+- **"Seen outside the venue and above the bar", "cube IPN logo", "over the entrance to the theatre":** `SetupBarSign`
+  now places two whole cubes (new helper `IpnLogo`): 1.0 m beside the word over the bar (it was pressed flat), and
+  2.4 m on the roof's edge over the outer doorway, facing the plaza. Not compiled, not seen; they are not static, so
+  they take their light from the probes and may be dim.
+- Checks: `node --check` ok, `show_test.html` 41/41. The builder is not compiled.
+
+## 2026-11-10, 14:00: a browser over the door, the mirror above it; NOT built (Claude; Ben commits and builds)
+
+Ben: "above door, move the mirror up and add a web browser there and point it here" (his Google Doc). In
+`SphererebroBuilder.cs` `SetupPresenterMirror`: new `Presenter_Browser` (`BS.BSBrowser`, 1280 x 720 page, 8.0 x 4.5 m)
+at (0, 6.4, -(R - 2)) where the mirror was; `Presenter_Mirror` moves to y 11.2 straight above it; both 0.8 m further in
+from the shell so the mirror's top corners stay inside the sphere. The address is `PresenterBrowserUrl`.
+**Not compiled** (Unity had not picked the file up; the MCP bridge is attached to another project) and not seen: which
+way the browser faces (yaw 180, as the mirror) is a guess, and a Google Doc may ask the in-world browser to sign in.
+
+## 2026-11-10, 13:45: three new keys: Innovation, Venus, Stewart; NOT built, NOT uploaded (Claude; Ben commits and builds)
+
+Ben: "add some static images that I can trigger with a button ... come in from a distance and dominate the field of view.
+Not too close, but big." New module `tools/talk/modules/stills.py` (entry `{"name": "stills", "after": "T"}` and ids
+S1, S2, S3 in `keys` of `talk_show.json`; delete both to remove it). Sources in `tools/stills/`; prep
+`tools/geo/stills_art.py`; meshes `tools/blender/stills.py`, `venus_poly.py`; materials `talk_materials_stills.json`.
+Each key is `alone` inside the black bubble of `_space.py`.
+- **Innovation (S1):** `InnovationLogarithm.png` comes in from 27 m to 21 m ahead, 20 x 13.5 m (51 deg wide). The
+  simulator cannot show its transparency (it draws a grey plate); in Unity it uses the same path as the tour's name
+  cards. Its lines are thin and pale: may read faint. It is white text on dark (rule 12), by Ben's request.
+- **Venus (S2):** the carver's picture, 11 m square, left of centre; from 5 s Ben's `VenusPoly.glb` (cut from 393,000
+  to 40,000 triangles) rises through the bubble's floor on the right, 5.5 m tall, floats (9 s bob) and turns clockwise
+  seen from above, one turn in 120 s. Two point lights of her own. Gold made less mirror-like (nothing to reflect in a
+  black room) with a little glow; brightness in Unity is a guess.
+- **Stewart (S3):** dark, the clip at 2 s (`still_stewart_voice.wav`: the mp3 with early reflections and a tail added,
+  played from high ahead, wide spread), the picture fades in from 6 s over 4 s, 14 m high. "Depth map it and make it
+  look 3d": no depth model is installed, so the depth is drawn from the picture (lit silhouette as a dome, brighter
+  parts nearer, caption a flat plate); the picture is a 30,000-triangle relief, 2.2 m deep, that turns 7 deg each way
+  every 18 s. The picture is Ben's replacement, `..\Assets\Images\PatrickStewart.jpg`
+  (copied to `tools/stills/stewart.jpg`, 1710 x 2048 after the 2048 cap), swapped in at 13:55 and seen in the simulator.
+- Checks: `node --check` ok, `show_test.html` 41/41; all three looked at in the simulator. Nothing in Unity or a headset;
+  the resonance has not been listened to.
+
+## 2026-11-10, 09:30: Ben's second list; NOT built, NOT uploaded (Claude; Ben commits and triggers builds)
+
+Ben: "Hold new builds and uploads, let me trigger them." Everything below is in the generators and regenerated outputs
+(show block in `script.js`, talk assets, world FBX); none of it is in the uploaded world until Ben builds.
+- **"Remove that rectangle in the back of the data center hall" / no video screen there:** the end wall and its five
+  racks are gone (`tools/blender/datahall.py`); the last 44 m of the aisle fade into the dark through seven black veils
+  (part `Fog`, `TK_DhFog`). Seen in the simulator; not in a headset.
+- **Lounge "lines":** the ceiling cove strips still used the 50 m sphere's zone edges (120..240 deg) and ran about 50 m
+  past each end wall of the concourse. Cut to the concourse (`..\Assets\scripts\build_sphererebro.py`, `Band_Cove_EMIT`).
+  Zone colours and lights unchanged. Geometry regenerated (SPHEREREBRO_OK); needs a build with bake.
+- **"Do not load any sequence by default":** `XRTimeMachine/src/adapter-altspace.js` `arrival()`: a stored cue is picked
+  up on arrival only while the presenter who set it (another device) is still in the space; otherwise house, and nothing
+  plays until a key is pressed. Not tested with two devices.
+- **Bell:** the chime as the spikes rise in Captured Media is removed, and the Timeline key is now `"alone"` so it no
+  longer sets the earlier cues in their held poses first (the cause of the earlier blink and bell on Ashburn). If Ben
+  means another sound, it is still there.
+- **Media tour:** no chime at the stops.
+- **Spawn "inside the desk":** the dais centre, radius 0.3 m (`SetupNavigation`).
+- **Timeline:** the picture on 1908 "Color movies" is removed, not replaced (`talk_timeline_layers.json`); cards remade.
+- **Captured Media:** the 5F3 key is relabelled; a legend (8 x 4 m, warm, no numbers) stands lower right of the globe
+  from 12 s (`tools/geo/media_legend_art.py`, part `Legend` in `media_globe.py`, `TK_MediaLegend`).
+- **AI data centers layer in Captured Media** ("add the AI Data centers layer, bake that in"): the atlas package's
+  `layers/compute.json` `ai` list (179 markers) is taken by `tools/geo/media_fetch.py` into `media_data.json` and baked
+  into `media_globe` as part `Dots_AI` (magenta diamonds, larger with MW; `TK_MediaDotAI`). They fade in at 21.5 s, after
+  the gold spikes; the cue forms in 25 s (was 22). The legend has a fifth row. The part is in the GLB (179 quads); the
+  simulator does not show these materials' colours, so the look is unchecked.
+- **Globe tilt in Captured Media:** latitude 8 N faces the seats (was 25 N), so both hemispheres show.
+- Checks: `node --check` ok, `show_test.html` 41/41, simulator looked at for the hall and the legend. Nothing in a headset.
+
+## 2026-11-10, 08:00: Ben's walk-round list from `..\ref\*.jpg` (Claude; Ben commits)
+
+Ben, with ten pictures in `B:\VRWorlds\AltspaceVR\Sphererebro\ref`. Generator: `..\Assets\scripts\build_sphererebro.py`
+(backup of the version before: `%TEMP%\claude\ashburn_backup\build_sphererebro_before_ref.py`); builder:
+`Assets/Editor/SphererebroKit/SphererebroBuilder.cs`. Geometry regenerated (SPHEREREBRO_OK).
+- **Globe "too close, move it back":** media globes 18 to 23 m ahead (`_space.py`), Ashburn's 16 to 22 m (`ashburn.py`);
+  sizes and heights as they were. Clearance PASS, logic 42/42.
+- **Desk faces the audience** ("Let's try"): `Vista_Dais_Mount` is turned 180 deg, so the script's yaw 0 is still HOME.
+  The open side now faces the dome. Untested: which way the joystick drives the platform now.
+- **Mirror over the door:** `Presenter_Mirror`, a Banter mirror (BS Mirror) 8 x 4.5 m above the portal, facing the
+  dome. Untested: that the SDK prefab's reflecting side is the one I worked out from its file, and its cost on Quest
+  for whoever looks at it (it is behind the audience).
+- **Escalator banisters:** handrail 1.5 to 1.0 m over the steps, glass and skirt lowered with it.
+- **Feet in the floor:** the recliner is 12 cm higher on a taller plinth (mesh, colliders, sit point, drink holders).
+- **No standing on seats:** seat and arm colliders are on a child on the Invisible layer (teleport arcs stop on it),
+  and a 1 m invisible wall stands on the front edge of the landing and of rows 1 to 4, open at the aisle. Untested:
+  whether that wall gets in the way of clicking a seat from the row behind (enter a row from the aisle).
+- **Lounge benches:** five seats on each sofa, facing its table; the sofa is a plump cushion and rolled back in the
+  recliners' velvet on a carbon plinth.
+- **RESTROOMS signs** (seen as "RESTRO" and "ROOMS"): switched off (`Retired`).
+- **Spawn:** temporary, in the vista layout: on the stage on the dome side of the desk, facing the audience, within
+  0.8 m (`SpawnAtDesk` in the builder; false puts it back on the plaza). I read "behind the deck" as the desk. Why the
+  plaza spawn put Ben over the seats was not found.
+- **Bar sign:** the word "Theatre" in Aldrich, plain gold (no emission), with a 0.9 m copy of the IPN logo cube to its
+  left (`SetupBarSign`). Untested: how the cube is lit there (probes, not baked).
+- **Fall guards:** the plaza rail now runs up to the escalator and stairs (it stopped 4 m short each side) and the
+  slot between them is closed; three invisible walls close the concourse doorway beside and between them; the entry
+  deck's side walls run out to the concourse and two walls close the doorway beside the deck.
+- **NOT done: "remove that part of the lounge"** (`loungExtendsTooFar.jpg`). The lines are the far concourse's light
+  strips seen through its windows. Removing it means shortening the concourse (`arcDeg` in dims.json), which squeezes
+  the bar, lounges and restrooms together; waiting for Ben to say how much to keep.
+- **Built and uploaded at 07:53-08:01** (`tools/ship.ps1`, Ben: "Build and upload"). The builder compiled and reported:
+  mirror placed, 15 sofa seats, bar logo placed, spawn at (0, -2.63, -85.35), 15 objects retired, 76 vista recliners,
+  TALK 48 elements, 0 warnings. (Its "desk faces the dome" log line was stale wording; corrected after the build.)
+  **Not seen in a headset.**
+
+## 2026-11-10, 06:40: all the keys show; the Earth lower, larger, closer; a new data hall module (Claude; Ben commits)
+
+Ben (after the 05:00 build, with three pictures of dark rack aisles): "coming along. When the earth shows up, place it
+lower and make it larger and closer. I'm only getting two buttons at a time, ashburn and the last one. We should now
+have timeline, Ashburn, Public media. Let's rebuild the data center model. Let's have the data centers start small in
+the back and then zoom in and fly past the seats." (His message ended "For the next one, let's": unfinished.)
+- **Keys:** `XRTimeMachine/src/adapter-altspace.js`: the Console put up to five keys in a row, so four keys at 48 % width
+  ran off the panel. Keys-only mode now puts two to a row. Five keys now: Data Centers, Ashburn, Media Tour, 19 of 606,
+  Timeline (three rows).
+- **Earth:** media globes (`tools/talk/modules/_space.py`): radius 9 to 11 m, centre 21 to 18 m ahead, underside 3 to
+  0.6 m above the equator. Ashburn's opening globe (`ashburn.py`): radius 5 to 7.5 m, 18 to 16 m ahead, underside 2 to
+  0.5 m. Both still clear every seat by 3 m.
+- **Data hall, new module `datahall` (cue 4B2, key "Data Centers"):** `tools/talk/modules/datahall.py`,
+  `tools/blender/datahall.py` (4,414 triangles), `tools/geo/datahall_art.py` (two drawn textures; nothing copied from
+  the pictures), `tools/blender/talk_materials_datahall.json`. The dome goes black; a small dark box with a glowing
+  mouth appears far ahead above the equator, comes in and grows ten times until its mouth (23 m wide) stands before the
+  stage, then flies over the audience: 47 bays of 15 m racks pass 3 m outside the seats on both sides at up to 10 m/s,
+  coming to rest inside the aisle with the end wall 81 m ahead. 47.5 s, unlit, one object moved by one clip. The racks
+  stand on the floor beside the seats, so this module alone goes below the equator. The older rack cues (4B..) are
+  untouched; remove the `datahall` entry from `talk_show.json` to drop it.
+- **Harness:** `show.html` gained `__solo(cueId)` (a key's "alone" cue) and skips the hall's floor in the clearance test
+  (it lies under the seats, like the bubbles' floor); `show_test.html` finds cue 5 by id.
+- **Tested:** clearance PASS (87 motions), logic 42/42, `node --check` on script.js (it caught a comment of mine that
+  had swallowed a closing brace; fixed before any build). **Built and uploaded at 06:40-06:47** (`tools/ship.ps1`, Ben:
+  "Build and upload"; TALK: 48 elements, 0 warnings). **Not seen in a headset.** In the
+  simulator the hall's posts and ceiling look lighter than their material says; unknown which Unity will match.
+
+## 2026-11-10, 05:20: desk apron removed; the logo shows in every dome mode (Claude; Ben commits)
+
+Ben (with a screenshot of the desk): "Remove the sidewalls from the desk below the trim. We don't have the immersive x by
+default."
+- **Desk:** `..\Assets\scripts\build_sphererebro.py`: the apron under the top (0.74 m up to it) is gone. `Desk_Body` is a
+  2.5 cm slab under the sloped top with a sloped underside (`ring_solid` gained `z0_outer`), so nothing hangs below the
+  bronze trim on either edge; the pedestal runs up to it (0.965); the underglow strip is tucked under the outer trim.
+  Geometry regenerated (SPHEREREBRO_OK; Desk_Body 0 to 1.06 m, the slab 0.905 to 1.06).
+- **Logo:** the scene had it right (active, 64 m, facing the seats); the script hid it. It showed only with the dome at
+  "stars", and a dome mode saved in the space (DARK or PANELS) outlives every reload. Now: on unless a show is running
+  or the dome is playing video. The reason is inferred (the saved state can't be read from here); the browser console
+  now logs "[Sphererebro] logo on/off (dome ..., show cue ..., found ...)" to settle it if it is still missing.
+- **Built and uploaded at 04:53-05:00** (`tools/ship.ps1`, Ben: "Build and upload"; TALK: 47 elements, 0 warnings).
+  **Not seen in a headset.**
+
+## 2026-11-10, 05:00: desk reset and spot, timeline flipped and its blank cards fixed, tour keys, IX logo (Claude; Ben commits)
+
+Ben: "1) rotate the desk to the correct orientation. I moved it and it's stuck 2) light it up a little bit, put a
+spotlight overhead on that 3) flip the vertical order so the top layer is at the bottom and remove the two empty
+timelines. I don't have buttons for the other tours yet. Grab the Immersive X logo from the Polys build and have that be
+the default when we enter [later: in the center of the sphere, large]. When you click Ashburn it blinks the data center
+model and bell, remove that."
+- **Desk back to HOME, once:** `SB.deskReset` ("2026-11-10a") in script.js. Five seconds after load, the first owner or
+  moderator whose saved state shows a moved or turned desk writes it docked, yaw 0 (facing the dome), and records the
+  id (`sb_reset`), so it happens once. A new id repeats it. WHY it stuck was not found: this undoes it, no more.
+- **Desk spot:** `Desk Top`, a realtime spot 4.2 m over the desk (a child of it, so it rides along), warm, 14 x the
+  preset (house 1, presenter 1.2, lights out 0.5: never fully dark). Builder `SetupDesk`; script `SB.lx.desk*`.
+- **Timeline flipped:** `layers.py` stacks the first layer (Media) lowest, 3D and spatial at the top.
+- **The "two empty timelines" were not empty: their cards were blank.** `make_cards.py` padded a part-filled atlas with
+  ffmpeg colour frames in another pixel format; that sheet (`tl_cards_1.png`) came out with its 25 real cards
+  transparent and the fillers solid black, so Digital video, 3D and spatial and the nine year labels drew nothing.
+  Fillers are now made from a real card with its alpha zeroed. **Both layers are kept** (17 firsts between them): drop
+  them from `talk_timeline_layers.json` if they should still go.
+- **Console keys:** `talk_show.json` `"keys"` now `5B3, 5F2, 5F3, T` (Ashburn, Media Tour, 19 of 606, Timeline). With
+  more than two keys the keys-only Console lays them two to a row (XR Time Machine `drawConsole`).
+- **No flash on a module key:** module cues carry `"alone": true`. Played from a key, such a cue starts from nothing
+  (XR Time Machine `apply`): the cue before it is no longer set in its held poses first, which is what flashed the data
+  hall and replayed its sounds for the 2.5 s the bubble takes to close. Next / Back through the show are unchanged.
+- **Immersive X logo:** `Models/ImmersiveX_Logo.glb` (copied from the Polys build), placed by the builder (`SetupIxLogo`)
+  upright at the centre of the sphere, facing the seats, 64 m wide (0.64 x the radius), centre 16 m up so its underside
+  is above the equator; unlit in its own colours, the letters a soft warm white (rule 12). The script (`SB.logo`) shows
+  it whenever the dome is at its default with no show, video or cube running: so it is what you see on entering.
+- **Checks:** show logic 42/42 (keys and "alone" checks updated); clearance PASS (85 motions); world script tests 65/66
+  (the one failure, "LATTICE toggles off", is the lattice's new off-by-default from earlier today, not this change).
+- **Built and uploaded at 04:21-04:27** (`tools/ship.ps1`, Ben: "Build and upload"): the builder compiled; "IX logo:
+  64.0 x 21.9 m at (0, 16, 0), underside y 5.1, 8 parts"; `Desk Top` and `IX_Logo` are in the scene; TALK: 47 elements,
+  0 warnings. **Not seen in a headset.** The logo's facing is worked out from the model's own parts and has not been
+  looked at; the desk spot's brightness is a guess.
+
+## 2026-11-10, 03:45: Ashburn raised above the equator; two public media globe modules (Claude; Ben commits)
+
+Ben: "When you zoom in, it's too low, all the content should be seen above the equator of the sphere... Next, the
+public media world tour: one where we see where public media is, major outlets around the world bouncing from one to the
+other; then a second one where we see the illustration of 19 of 606 are not captured, with the globe spinning."
+- **Ashburn (cue 5B3) raised:** the globe hangs with its underside 2 m above the equator; the map ends as a steep raked
+  wall (60 deg) whose lower edge is at the equator, 2.4 km = 20 m across (was 30 m, below the seats). A black floor at
+  y -3.2 (just under the stage) hides whatever ground runs on below. Bubble 29 m (inside the curved screen's 30 m).
+  **Fixed with it:** the 1,000 km layer was lifted 0.18 % of the globe's radius, 7 m by the time it switches off: it
+  floated over the next layer, and with the steeper wall it grazed the front row. Now 0.03 % (1.2 m at most).
+- **New module `media_tour`, cue 5F2 "Public Media Around the World"** (after 5F), 52 s: an 18 m Earth, its underside 3 m
+  above the equator, turns from one major public broadcaster to the next (the atlas package's 14: BBC, RTÉ, ARTE, RAI,
+  SVT, Al Jazeera, Prasar Bharati, KBS, NHK, ABC, SABC, EBC, PBS, CBC), a light bouncing along a gold arc to each; a
+  pin rises and a small warm name card (name, city, country, year founded) shows while the stop is in front.
+- **New module `media_capture`, cue 5F3 "19 of 606 Not Captured"** (after 5F2; it takes the tour off): the Earth turns
+  once a minute with a dot for every outlet; the dots take their colours (captured or state-controlled red, independent
+  but state-funded or managed teal, not stated grey), teal and grey dim, and a gold spike rises on each independent
+  public outlet as Europe comes round (20 s). It keeps turning until the next cue. No numbers on stage.
+- **THE NUMBERS DO NOT MATCH THE SLIDE.** The atlas package (`layers/media.json`) holds **586 outlets, 17 "Independent
+  public"** (479 captured or state-controlled, 67 independent state-funded/managed, 23 not stated). The slide says 606,
+  19 and 512 (State Media Monitor's 2025 totals). The globe shows the package. Ben to decide: re-export the package or
+  leave it.
+- **Files:** `tools/geo/media_fetch.py` (reads the atlas package at `D:\Academy\Ben-Presentations\Public Hyperscale\...`,
+  writes `tools/geo/media_data.json` and `talk/gen/media_cards.png`), `tools/blender/media_globe.py` (18,537 triangles),
+  `tools/blender/talk_materials_media.json`, `tools/talk/modules/media_tour.py`, `media_capture.py`, `_space.py` (the
+  bubble and globe rig both share). The globe reuses the Ashburn module's Earth images (`talk/gen/ash_globe_*.png`).
+- **Shared code touched:** `choreo.py`'s module hook (the cue after a module cue no longer takes off what the module cue
+  took off itself); `show.html` (any `*Space` material is a black bubble; each part gets its own material so an alpha
+  track fades one node; `window.__view` and `window.__run(seconds)` for stills that don't depend on the frame rate).
+- **To remove any of the three:** delete its entry from `talk_show.json` `"modules"` and run `tools/talk/build_show.ps1`.
+- **Checks:** show logic 40/40; clearance PASS (85 motions; Ashburn's ground comes no nearer than 4.6 m to a seat).
+  Seen in the browser simulator from a front seat: `review/ashburn/ashburn_raised_sheet.jpg`, `media_tour_sheet.jpg`,
+  `media_capture_sheet.jpg` (the cards' black boxes are the simulator's: its GLB images carry no transparency).
+- **The first Ashburn (the low one) was built and uploaded at 03:07-03:10** (Logs/SphererebroAutomation.txt; TALK: 45
+  elements, 0 warnings), so the builder change compiles and Ben has seen that version. **The raised Ashburn and both
+  media modules were built and uploaded at 03:45-03:51** (`tools/ship.ps1`, Ben: "Build and upload"; TALK: 47 elements,
+  0 warnings; asset.world, index.html and script.js). **Not seen in a headset yet.** Unknown until then: the cards' and dots'
+  transparency and draw order; whether the name cards' second line is readable in a Quest; Quest frame rate. Another session was editing `choreo.py`, `show.html`, `show_test.html`
+  and `talk_show.json` during this work; its changes are intact.
+
+## 2026-11-10, 02:45: module "ashburn": from space to Ashburn, Virginia, in 3D (Claude; Ben commits)
+
+Ben: "make a module that can be played in XR Time Machine. Let's zoom in from space on Ashburn. Bake the whole
+experience... Make this modular in case it doesn't work out, same branch."
+- **What it is:** one element (`ashburn`) and one cue, **5B3 "Ashburn from Space (3D)"**, slotted in after 5B. About 42 s:
+  a black 28 m bubble closes round the seats, the Earth arrives (10 m across), then one 16,000 x zoom about Ashburn
+  through six imagery layers (5,000 km down to 2.4 km) while the ground tips into a raked floor below the seats and
+  570 large buildings rise as blocks (147 data centres amber, the rest grey, heights x 2). Unlit, no lights, no video.
+- **Modular:** switched on by one line in `talk_show.json`: `"modules": [{"name": "ashburn", "after": "5B", ...}]`.
+  **To remove it:** delete that line, run `tools/talk/build_show.ps1` (and Build World if the scene was built with it).
+  The cue list in `talk_show.json` is untouched; `choreo.py` slots module cues in when it runs.
+- **Files:** `tools/geo/ashburn_fetch.py` (downloads + bakes `talk/gen/ash_*.png` and `tools/geo/ashburn_data.json`;
+  tile cache in `tools/geo/cache/`, gitignored), `tools/blender/ashburn_zoom.py` (47,389 triangles),
+  `tools/blender/talk_materials_ashburn.json`, `tools/talk/modules/ashburn.py` (the motion).
+- **Shared code touched, all additive:** `choreo.py` (the MODULES block before "write"), `common.py` and
+  `SphererebroTalk.cs` (merge `talk_materials_*.json`; material keys `queue` and `doubleSided`), `show.html` (bubble
+  colours; shells skip the clearance test; the triangle test splits big triangles further), `show_test.html` (cues 6
+  and 11 found by id, two module checks).
+- **Sources:** NASA Blue Marble, USGS National Map imagery, OpenStreetMap buildings (ODbL: credit required). CREDITS.md.
+- **Checks:** show logic 37/37; clearance PASS (81 motions; the ground's nearest approach to a seat is 10.5 m);
+  seen in the browser simulator from the front seat (`review/ashburn/sim_sheet.jpg`).
+- **NOT built in Unity, not uploaded, not seen in a headset.** The builder change has not been compiled yet. Unknown
+  until a build: the transparent layers' draw order, the FBX's axes (the simulator uses the GLB), Quest frame rate.
+- **Known:** from about 15 to 19 s the growing globe's underside is cut flat by the hall floor (y -12; the module lays
+  a black floor over the white one). The 200 km layer shows USGS mosaic seams and blue fill over Chesapeake Bay.
+  `talk/gen/ash_*.png` are 55 MB together (and Unity copies them into Assets on build).
+- script.js and talk_timeline.json were regenerated with the module on at 02:36; another session changed `choreo.py`
+  (the 2T timeline) at 02:39, after that run.
+
 ## 2026-11-09, 17:30: escalator walked, no ride, no lip (Claude; Ben commits)
 
 Ben: "I hit the escalator and fell off the world. Make it so that I can climb the escalator again, no jump."
@@ -534,3 +802,29 @@ dims pipeline at a radius other than 50.
   requests `web` and `send`, SaveOpenScenes before a Builder build. Full world uploaded 2026-11-09 18:27.
 - Open: Ben's "guard rails around the desk" not identified yet (only Vista_Rails exist near it). Desk logged
   "admin: false" at load for Ben; desk keys may be refused, unconfirmed.
+- 2026-11-10 (later): vista rails are glass only (`GLASS_ONLY` in the generator: no cap, bottom rail, posts, gold strip).
+  Lattice is matt black (`SB_LatticeBlack`) and shown only on request (LATTICE key). Not built or uploaded yet.
+
+## 2026-11-10, 03:00: the media timeline rebuilt (not built in Unity, not uploaded)
+- 01:17 world upload: glass-only vista rails, lattice on request. `tools/ship.ps1` now follows the Builder's log across midnight.
+- Timeline (cue 2T, and new last cue T "Media Timeline"): no world history. Seven rails (Ben's five layers; digital formats
+  drawn as image, video, 3D) on one time axis, on a 46 m sphere about the seats, 156 degrees wide, to 55 degrees up.
+  Data `Config/talk_timeline_layers.json`; layout `tools/talk/layers.py`; cards `make_cards.py` (85 cards, 6 atlases).
+  Dates are from memory, unchecked. The old events file is left in place, unused.
+- Console: only cues named in talk_show.json `"keys"` get a key (now just T). The other 31 cues stay in the show.
+- Harness: cards were drawn mirrored; fixed. show_test 37/37. Previews in `review/timeline/`.
+- Untested: Unity build of the new timeline (needs Build World), anything in the app.
+
+## 2026-11-10, 03:30: timeline pictures; Console is two keys (not built in Unity, not uploaded)
+- Pictures (Ben's, copied to `talk/timeline_img/`): 12 items carry one. After the sweep each opens 9 m wide at its card,
+  holds 1.3 s, then settles as a thumbnail on the card's left end, one at a time in date order (timeline play 34 s).
+  Added to carry his pictures: Pepper's Ghost 1862, View-Master 1939, NASA VIEW headset 1985, Virtuality 1991.
+  Not used: Niepce portrait, Holmes and Brewster stereoscopes, ENIAC, the First Kid still, the small Virtuality image,
+  InnovationLogarithm.png (white line art on clear: rule 12). The Muybridge clip gives one still, it does not play.
+- Texture budget: 3 sheets of 2048 (was 6): text cards packed at 512 x 128, 64 a sheet; pictures 512 x 512, 16 a sheet.
+  Stale `gen_tl_cards_3..5.png` remain in Talk/Textures, unused.
+- Console `ui.keysOnly` (on here): only the centre panel, only the keyed cues as two large pills: Ashburn (cue 5B3, the
+  `ashburn` module) and Timeline (cue T). A key plays its cue alone; the other key takes over; the lit key again ends it.
+  talk_show.json `"keys": ["5B3", "T"]`; the module's cue is now named "Ashburn". show_test 40/40.
+- Open: picture clearance (Wizard of Oz still, the colour TV still, the Philips press photo, the Virtuality photo) is
+  not checked; CREDITS.md not updated. Nothing here has been built in Unity or seen in the app.

@@ -75,7 +75,13 @@ const SB = {
         presenter: { key: 1.2, house: 0.3 },
         out: { key: 0, house: 0 },
         keyName: "Dais Key", houseNames: ["House 1", "House 2", "House 3"],
+        // the spot straight over the desk (Ben, 2026-11-10: "light it up a little bit, put a spotlight overhead"): it rides
+        // with the desk and stays on, dimmed, in LIGHTS OUT, so the presenter's desk is never lost in the dark
+        deskName: "Desk Top", deskBase: 14, desk: { house: 1, presenter: 1.2, out: 0.5 },
         keyBase: 26, houseBase: 30,      // the intensities the builder gives them (SphererebroBuilder.SetupLighting)
+        // show cues that put the theatre's own lights out while they are up, whatever LIGHTS is set to (Ben, 2026-11-10,
+        // the Stewart key: "make the room dark"); the lights come back as they were when the cue ends
+        darkCues: ["S3"],
     },
     sphere: { inner: "Sphere_Shell_Inner", glow: "Sphere_Shell_Glow", screen: "Sphere_Screen", lattice: "Sphere_Lattice" },
     // the dome's default video (VIDEO plays it): the Milky Way drift at 18M. The other bitrates: SB.setVideo() with a file
@@ -83,6 +89,13 @@ const SB = {
     sphereVideo: MEDIA_BASE + MEDIA_EVENT + "video/ipn_milkyway_drift_4096x2048_8M_v1.mp4",
     bannedVideo: /ipn_grid_/,      // bars and tone: never again (and deleted from the host)
     sphereDefault: "stars",        // the dome at load and after VIDEO: the 8K skybox (every shell off), nothing rotating
+    // the Immersive X logo (Ben, 2026-11-10: "in the center of the sphere, large", "the default when we enter"): on
+    // whenever the dome is at its default and no show, video or cube is running
+    logo: "IX_Logo",
+    arriveOnPlaza: true,           // see "Arrive at the foot of the escalator" below; set false once a full build has moved the spawn
+    // the desk's saved place and turn outlive a script change. Ben, 2026-11-10: "I moved it and it's stuck". A new id here
+    // makes the first owner or moderator to arrive put the desk back at HOME (docked, facing the dome), once.
+    deskReset: "2026-11-10a",
     videoMenu: { width: 560, height: 420, scale: 0.05 },   // the VIDEO submenu panel: 560 px = 0.28 m at 0.05
     loadTimeoutS: 30, loadRingDegPerS: 90,                 // the loading ring: gives up after 30 s; a quarter turn a second
     escalatorRide: false,                                  // the carriage ride threw riders off the world (Ben, 2026-11-09): walk it
@@ -94,6 +107,10 @@ const SB = {
         centre: [0, 1.0, 3.2],
         appear: 1.5, holdImmersive: 2.5, toUpright: 2.5, holdUpright: 1.5, toP: 2.0, holdP: 2.0, toN: 2.5, holdN: 2.0, tumble: 6.5,
         tumbleTo: [0, 4.0, 60.0], tumbleTurns: 1.5,
+        // vista layout (Ben, 2026-11-10: "fix the IPN logo"): the seats are 96 m from the sphere's centre, where the cube
+        // was a speck. In vista it shows 35 m in front of the seats, above the equator, 1.6 times the size; its three
+        // lights are moved with it (they are built round the old centre).
+        vista: { centre: [0, 10.0, -58.0], tumbleTo: [0, 14.0, 40.0], scale: 1.6 },
     },
     props: { glasses: 40, bottles: 40, returnSeconds: 10, homeRadius: 0.15, pollMs: 500 },   // stemless wine glasses (2026-11-07)
 };
@@ -326,15 +343,38 @@ if (typeof window !== "undefined" && window.addEventListener) window.addEventLis
     const grip = await find("Desk_Joystick_Grip");             // the invisible grip the hand holds
     const stickBase = await find("Desk_Joystick_Base");
 
+    // Arrive at the foot of the escalator (Ben, 2026-11-10: "move the spawn point back to the bottom of the escalator
+    // without a drawn out build"). The world as built still has its spawn point inside the desk; until a full build
+    // moves it (SphererebroBuilder.SpawnAtDesk is false again), each device is taken to the plaza once, as it loads.
+    if (SB.arriveOnPlaza && scene.TeleportTo && SB_DIMS.spawn && !window._sbArrived) {
+        window._sbArrived = true;
+        try { await scene.TeleportTo(new BS.Vector3(SB_DIMS.spawn[0], SB_DIMS.spawn[1] + 0.05, SB_DIMS.spawn[2]), 0, true); }
+        catch (e) { console.log("[Sphererebro] arrive on plaza", e); }
+    }
+
     const cube = await find(SB.show.cube);                     // the IPN cube show: hidden until IPN CUBE is pressed
     const cubeLights = await Promise.all(SB.show.lights.map(find));
+    const showCfg = vista && SB.show.vista ? Object.assign({}, SB.show, SB.show.vista) : SB.show;
+    const cubeScale = showCfg.scale || 1;
+    let cubeLightsMoved = showCfg === SB.show;
+    function moveCubeLights() {       // once: each light by the same offset as the cube's centre (their built positions)
+        if (cubeLightsMoved) return; cubeLightsMoved = true;
+        const d = showCfg.centre.map((v, i) => v - SB.show.centre[i]);
+        const built = [[0, 10, -12], [-10, 7, 15], [10, 7, 15]];
+        cubeLights.forEach((l, i) => { try { if (l && built[i]) l.SetPosition(new BS.Vector3(built[i][0] + d[0], built[i][1] + d[1], built[i][2] + d[2])); } catch (e) { } });
+    }
+    // the spot over the desk and the Immersive X logo at the centre of the sphere: looked for in the background (a
+    // world built before they existed has neither, and waiting for each would hold the whole desk up for seconds)
+    var deskTop = null, ixLogo = null;
+    Promise.resolve(find(SB.lx.deskName)).then((o) => { deskTop = o; if (o) apply(); }).catch(() => { });
+    Promise.resolve(find(SB.logo)).then((o) => { ixLogo = o; if (o) apply(); }).catch(() => { });
     const videoMount = await find("Desk_Video_Mount");         // the VIDEO submenu's place on the desk
     const loadRing = await find("Sphere_Load_Ring_EMIT");      // the video loading meter
     const escCar = await find("Esc_Carriage");                 // the escalator ride
     console.log("[Sphererebro] desk (" + SB.seating + "):", !!dais, "bridge", segs.filter(Boolean).length, "lights", [keyLight].concat(houseLights).filter(Boolean).length);
 
     // ---- state ------------------------------------------------------------------------------------------------------
-    const KEYS = ["dais", "drive", "bridge", "draw", "sphere", "lattice", "lx", "video", "show"];
+    const KEYS = ["dais", "drive", "bridge", "draw", "sphere", "lattice", "lx", "video", "show", "reset"];
     const state = {};
     function readState() {
         const s = scene.spaceState || {};
@@ -392,9 +432,14 @@ if (typeof window !== "undefined" && window.addEventListener) window.addEventLis
         if (l && v > 0 && o._sbIntensity !== v) { o._sbIntensity = v; try { l.intensity = v; } catch (e) { } }
     }
 
-    let talkCue = 0;
+    let talkCue = 0, talkCueId = "";
     if (typeof window !== "undefined" && window.addEventListener)
-        window.addEventListener("xrtm-show", (e) => { const i = e.detail?.i | 0; if ((i > 0) !== (talkCue > 0)) { talkCue = i; apply(); } else talkCue = i; });
+        window.addEventListener("xrtm-show", (e) => {
+            const i = e.detail?.i | 0, id = String(e.detail?.cue || "");
+            const change = (i > 0) !== (talkCue > 0) || SB.lx.darkCues.includes(id) !== SB.lx.darkCues.includes(talkCueId);
+            talkCue = i; talkCueId = id;
+            if (change) apply();
+        });
     function apply() {
         // the dome by default: the 8K skybox (every shell off, so the sky shows), Ben 2026-11-07: "make that skybox I gave
         // you the default", nothing rotating. PANELS (the purple grid) and DARK stay on their keys; LIGHTS OUT darkens panels.
@@ -406,10 +451,17 @@ if (typeof window !== "undefined" && window.addEventListener) window.addEventLis
         setActive(sph.inner, !showOn && mode === "dark");
         setActive(sph.glow, !showOn && mode === "panels");
         setActive(sph.screen, !showOn && mode === "video");
-        setActive(sph.lattice, !showOn && state.lattice !== "0");   // on (matt black since 2026-11-10); LATTICE switches it off
-        const p = SB.lx[SBState.lx(state.lx, SB.lx)];
+        setActive(sph.lattice, !showOn && state.lattice === "1");   // only on request (Ben, 2026-11-10: "should not be seen by default"); matt black
+        const lxNow = talkCue > 0 && SB.lx.darkCues.includes(talkCueId) ? "out" : SBState.lx(state.lx, SB.lx);
+        const p = SB.lx[lxNow];
         setLight(keyLight, SB.lx.keyBase * p.key);
         for (const h of houseLights) setLight(h, SB.lx.houseBase * p.house);
+        setLight(deskTop, SB.lx.deskBase * (SB.lx.desk[lxNow] ?? 1));
+        // the logo: on unless a show is running or the dome is playing video. (It first showed only with the dome at
+        // its default, "stars"; a dome mode saved in the space, DARK or PANELS, outlives every reload, so on entering
+        // the logo was hidden: Ben, 2026-11-10, "we don't have the immersive x by default".)
+        logoOn = !showOn && mode !== "video";
+        if (apply.logoSaid !== `${logoOn}|${mode}|${talkCue}`) { apply.logoSaid = `${logoOn}|${mode}|${talkCue}`; console.log("[Sphererebro] logo", logoOn ? "on" : "off", "(dome " + mode + ", show cue " + talkCue + ", found " + !!ixLogo + ")"); }
         // the old bars-and-tone grids must never play again (Ben, 2026-11-07): a saved choice of one (space state outlives a
         // script change) is ignored, and cleared from the space by anyone allowed to write it
         if (state.video && SB.bannedVideo.test(state.video)) {
@@ -431,9 +483,14 @@ if (typeof window !== "undefined" && window.addEventListener) window.addEventLis
     // ---- the IPN cube show: "show" = "cube|<start ms>"; everyone animates from the same start (late joiners too). The
     // cube and its three lights are on only while it runs (realtime lights cost a frame on Quest; SDK performance doc).
     function showStart() { const [what, t0] = String(state.show || "").split("|"); return what === "cube" ? Number(t0) : NaN; }
+    var logoOn = false;   // var: apply() sets it (the dome at its default, no show running)
     function showCube(now) {
+        // the logo gives way to the cube show (they share the middle of the sphere)
+        const cubeOn = !!cube && SBState.cubePose(showCfg, (now - showStart()) / 1000).on;
+        setActive(ixLogo, logoOn && !cubeOn);
         if (!cube) return;
-        const pose = SBState.cubePose(SB.show, (now - showStart()) / 1000);
+        const pose = SBState.cubePose(showCfg, (now - showStart()) / 1000);
+        if (pose.on) moveCubeLights();
         setActive(cube, pose.on);
         for (const l of cubeLights) setActive(l, pose.on);
         if (!pose.on) return;
@@ -442,7 +499,7 @@ if (typeof window !== "undefined" && window.addEventListener) window.addEventLis
         showCube.last = k;
         cube.SetPosition(new BS.Vector3(pose.p[0], pose.p[1], pose.p[2]));
         cube.SetRotation(new BS.Quaternion(pose.q[0], pose.q[1], pose.q[2], pose.q[3]));
-        if (cube.SetLocalScale) cube.SetLocalScale(new BS.Vector3(pose.s, pose.s, pose.s));
+        if (cube.SetLocalScale) cube.SetLocalScale(new BS.Vector3(pose.s * cubeScale, pose.s * cubeScale, pose.s * cubeScale));
     }
 
     // ---- the tick: dais yaw, bridge, drawspan, orbs ------------------------------------------------------------------
@@ -679,7 +736,7 @@ if (typeof window !== "undefined" && window.addEventListener) window.addEventLis
         },
         SphereDark: () => write({ sphere: state.sphere === "dark" ? "stars" : "dark" }),
         SpherePanels: () => write({ sphere: "panels" }),
-        SphereLattice: () => write({ lattice: state.lattice === "0" ? "1" : "0" }),
+        SphereLattice: () => write({ lattice: state.lattice === "1" ? "0" : "1" }),
         // VIDEO: on and off (2026-11-07, Ben: pressing it again restarted the video, "obnoxious"). Off = back to the panels.
         // Choosing what plays belongs to the playlist console (coming); SB.setVideo() from the console meanwhile.
         // VIDEO: the dome to video (or back to the panels) AND its submenu opens (or closes) on the desk: the videos to pick
@@ -691,7 +748,7 @@ if (typeof window !== "undefined" && window.addEventListener) window.addEventLis
         // IPN CUBE: the cube show, once, for everyone. Pressed while it runs: ignored (it finishes on its own).
         Show: () => {
             const t = (Date.now() - showStart()) / 1000;
-            if (t >= 0 && t < SBState.showLength(SB.show)) { say("The cube show is running"); return; }
+            if (t >= 0 && t < SBState.showLength(showCfg)) { say("The cube show is running"); return; }
             write({ show: "cube|" + Date.now() });
         },
     };
@@ -764,6 +821,17 @@ if (typeof window !== "undefined" && window.addEventListener) window.addEventLis
 
     readState();
     apply();
+    // the one-time desk reset (SB.deskReset): only once the space's saved state has arrived and shows a desk that has been
+    // moved or turned; an empty state means there is nothing to undo
+    setTimeout(() => {
+        try {
+            readState();
+            if (!admin || state.reset === SB.deskReset || (state.dais === undefined && state.drive === undefined)) return;
+            const now = Date.now();
+            write({ dais: SBState.daisRaw(0, 0, now, 0), drive: SBState.driveRaw(0, 0, 0, 0, now, 0), reset: SB.deskReset });
+            console.log("[Sphererebro] desk put back at HOME (reset " + SB.deskReset + ")");
+        } catch (e) { console.log("[Sphererebro] desk reset", e); }
+    }, 5000);
     console.log("[Sphererebro] desk ready; admin:", admin);
 });
 
@@ -821,7 +889,7 @@ if (typeof window !== "undefined" && window.addEventListener) window.addEventLis
 });
 
 // >>> Sphererebro talk show (generated by tools/talk/choreo.py from Assets/_Sphererebro/Config/talk_show.json; do not edit)
-window.SB_TALK = {"title":"IPN talk, 10 Nov 2026","root":"Talk","home":[0.0,0.0,-50.0],"mediaBase":"https://media.immersivepublic.network/events/ImmersiveX2026/talk/","rehearsalSeconds":20,"videos":["Talk_Video_curved_mono","Talk_Video_curved_sbs","Talk_Video_curved_tb","Talk_Video_dome360_mono","Talk_Video_dome360_sbs","Talk_Video_dome360_tb","Talk_Video_dome180_mono","Talk_Video_dome180_sbs","Talk_Video_dome180_tb"],"cues":[{"id":"1","name":"So Who Will?","on":["env_dark","stars","bed_space","title1","title2"],"off":[],"video":null},{"id":"2","name":"A Hundred Years of Public Media","on":["radio","warm_light","bed_media"],"off":["title1","title2"],"video":null},{"id":"2B","name":"Television","on":["tv"],"off":[],"video":null},{"id":"2C","name":"The Web","on":["monitor"],"off":[],"video":null},{"id":"2T","name":"200 Years of Media","on":["timeline"],"off":[],"video":null},{"id":"3","name":"The Commercial Turn","on":["feedwall","blue_light","bed_feed"],"off":["timeline","warm_light","bed_media"],"video":null},{"id":"4","name":"The Construct","on":["shatter","env_white","white_light","dust"],"off":["feedwall","blue_light","bed_feed","radio","tv","monitor","env_dark","stars","bed_space"],"video":null},{"id":"4B","name":"Lots of Data Centers","on":["racks","racks_near","flyover","bed_hall"],"off":["shatter"],"video":null},{"id":"4C","name":"The Figures: 415 TWh","on":["label1"],"off":[],"video":null},{"id":"4D","name":"The Figures: 945 TWh","on":["label2"],"off":["label1"],"video":null},{"id":"4E","name":"The Figures: $500 billion","on":["label3"],"off":["label2"],"video":null},{"id":"4F","name":"The Figures: $500 billion","on":["label4"],"off":[],"video":null},{"id":"4G","name":"The Figures: 2 trillion yuan","on":["label5"],"off":[],"video":null},{"id":"5","name":"Inside the Buildout","on":["racks_near_parted","screen"],"off":["racks_near","flyover","label3","label4","label5"],"video":{"surface":"curved","clip":"hyperscale/01_night_globe.mp4","layout":"mono"}},{"id":"5B","name":"Ashburn","on":[],"off":[],"video":{"surface":"curved","clip":"hyperscale/02_ashburn.mp4","layout":"mono"}},{"id":"5C","name":"Richland Parish","on":[],"off":[],"video":{"surface":"curved","clip":"hyperscale/03_richland_parish.mp4","layout":"mono"}},{"id":"5D","name":"Africa at Night","on":[],"off":[],"video":{"surface":"curved","clip":"hyperscale/04_africa_night.mp4","layout":"mono"}},{"id":"5E","name":"Cables in the Red Sea","on":[],"off":[],"video":{"surface":"curved","clip":"hyperscale/05_cables_red_sea.mp4","layout":"mono"}},{"id":"5F","name":"Outlets Around the Globe","on":[],"off":[],"video":{"surface":"curved","clip":"hyperscale/06_outlets_globe.mp4","layout":"mono"}},{"id":"6","name":"Who Pays","on":["bill"],"off":["screen"],"video":"stop"},{"id":"6B","name":"Water","on":["tanks"],"off":[],"video":null},{"id":"7","name":"Trust","on":["locked"],"off":["bill","tanks"],"video":null},{"id":"8","name":"Terms Already Attached: Ohio","on":["stamp1"],"off":[],"video":null},{"id":"8B","name":"Terms: European Union","on":["stamp2"],"off":[],"video":null},{"id":"8C","name":"Terms: Singapore","on":["stamp3"],"off":[],"video":null},{"id":"9","name":"A Public Commons","on":["racks_open","beams","halls","env_warm","warm_fill","bed_commons"],"off":["racks","racks_near_parted","env_white","white_light","dust","bed_hall","locked","stamp1","stamp2","stamp3"],"video":null},{"id":"9B","name":"Devices at Every Doorway","on":["devices"],"off":[],"video":null},{"id":"10","name":"So Who Will?","on":["halls_bright","title3"],"off":[],"video":null},{"id":"11","name":"Quest Capture 1 (spare)","on":["screen"],"off":[],"video":{"surface":"curved","clip":"quest3d/01_capture.mp4","layout":"sbs"}},{"id":"11B","name":"Quest Capture 2 (spare)","on":[],"off":[],"video":{"surface":"curved","clip":"quest3d/02_capture.mp4","layout":"sbs"}}],"elements":{"env_dark":{"play":"Talk_env_dark_Play","hold":"Talk_env_dark_Hold","exit":"Talk_env_dark_Exit","playDur":3.0,"exitDur":2.6,"swap":true},"stars":{"play":"Talk_stars_Play","hold":"Talk_stars_Hold","exit":"Talk_stars_Exit","playDur":4.5,"exitDur":2.1},"env_white":{"play":"Talk_env_white_Play","hold":"Talk_env_white_Hold","exit":"Talk_env_white_Exit","playDur":3.0,"exitDur":4.1,"swap":true},"dust":{"play":"Talk_dust_Play","hold":"Talk_dust_Hold","exit":null,"playDur":0.8,"exitDur":0,"swap":true},"env_warm":{"play":"Talk_env_warm_Play","hold":"Talk_env_warm_Hold","exit":"Talk_env_warm_Exit","playDur":5.5,"exitDur":3.1,"swap":true},"warm_light":{"play":"Talk_warm_light_Play","hold":"Talk_warm_light_Hold","exit":"Talk_warm_light_Exit","playDur":3.0,"exitDur":2.55,"swap":true},"blue_light":{"play":"Talk_blue_light_Play","hold":"Talk_blue_light_Hold","exit":"Talk_blue_light_Exit","playDur":3.0,"exitDur":2.55,"swap":true},"white_light":{"play":"Talk_white_light_Play","hold":"Talk_white_light_Hold","exit":"Talk_white_light_Exit","playDur":2.0,"exitDur":2.55,"swap":true},"warm_fill":{"play":"Talk_warm_fill_Play","hold":"Talk_warm_fill_Hold","exit":"Talk_warm_fill_Exit","playDur":5.0,"exitDur":2.55,"swap":true},"bed_space":{"play":"Talk_bed_space_Play","hold":"Talk_bed_space_Hold","exit":"Talk_bed_space_Exit","playDur":3.0,"exitDur":2.6},"bed_media":{"play":"Talk_bed_media_Play","hold":"Talk_bed_media_Hold","exit":"Talk_bed_media_Exit","playDur":3.0,"exitDur":2.6},"bed_feed":{"play":"Talk_bed_feed_Play","hold":"Talk_bed_feed_Hold","exit":"Talk_bed_feed_Exit","playDur":3.0,"exitDur":2.6},"bed_hall":{"play":"Talk_bed_hall_Play","hold":"Talk_bed_hall_Hold","exit":"Talk_bed_hall_Exit","playDur":3.0,"exitDur":2.6},"bed_commons":{"play":"Talk_bed_commons_Play","hold":"Talk_bed_commons_Hold","exit":"Talk_bed_commons_Exit","playDur":3.0,"exitDur":2.6},"title1":{"play":"Talk_title1_Play","hold":"Talk_title1_Hold","exit":"Talk_title1_Exit","playDur":6.44,"exitDur":2.22,"swap":true},"title2":{"play":"Talk_title2_Play","hold":"Talk_title2_Hold","exit":"Talk_title2_Exit","playDur":14.44,"exitDur":1.82,"swap":true},"title3":{"play":"Talk_title3_Play","hold":"Talk_title3_Hold","exit":"Talk_title3_Exit","playDur":3.3,"exitDur":1.82,"swap":true},"radio":{"play":"Talk_radio_Play","hold":"Talk_radio_Hold","exit":"Talk_radio_Exit","playDur":22.0,"exitDur":2.6,"swap":true},"tv":{"play":"Talk_tv_Play","hold":"Talk_tv_Hold","exit":"Talk_tv_Exit","playDur":22.0,"exitDur":2.6,"swap":true},"monitor":{"play":"Talk_monitor_Play","hold":"Talk_monitor_Hold","exit":"Talk_monitor_Exit","playDur":22.0,"exitDur":2.6,"swap":true},"timeline":{"play":"Talk_timeline_Play","hold":"Talk_timeline_Hold","exit":"Talk_timeline_Exit","playDur":55.0,"exitDur":3.05,"swap":true},"feedwall":{"play":"Talk_feedwall_Play","hold":"Talk_feedwall_Hold","exit":"Talk_feedwall_Exit","playDur":8.725,"exitDur":0.15},"shatter":{"play":"Talk_shatter_Play","hold":"Talk_shatter_Hold","exit":"Talk_shatter_Exit","playDur":0.0,"exitDur":0.1},"racks":{"play":"Talk_racks_Play","hold":"Talk_racks_Hold","exit":"Talk_racks_Exit","playDur":22.1,"exitDur":1.6,"swap":true},"racks_near":{"play":"Talk_racks_near_Play","hold":"Talk_racks_near_Hold","exit":"Talk_racks_near_Exit","playDur":18.9,"exitDur":3.0,"swap":true},"racks_near_parted":{"play":"Talk_racks_near_parted_Play","hold":"Talk_racks_near_parted_Hold","exit":null,"playDur":3.0,"exitDur":0,"swap":true},"flyover":{"play":"Talk_flyover_Play","hold":"Talk_flyover_Hold","exit":null,"playDur":16,"exitDur":0,"swap":true},"label1":{"play":"Talk_label1_Play","hold":"Talk_label1_Hold","exit":"Talk_label1_Exit","playDur":8.2,"exitDur":4.6},"label2":{"play":"Talk_label2_Play","hold":"Talk_label2_Hold","exit":"Talk_label2_Exit","playDur":8.2,"exitDur":4.6},"label3":{"play":"Talk_label3_Play","hold":"Talk_label3_Hold","exit":"Talk_label3_Exit","playDur":8.2,"exitDur":4.6},"label4":{"play":"Talk_label4_Play","hold":"Talk_label4_Hold","exit":"Talk_label4_Exit","playDur":8.2,"exitDur":4.6},"label5":{"play":"Talk_label5_Play","hold":"Talk_label5_Hold","exit":"Talk_label5_Exit","playDur":8.2,"exitDur":4.6},"screen":{"play":"Talk_screen_Play","hold":"Talk_screen_Hold","exit":"Talk_screen_Exit","playDur":7.0,"exitDur":4.05,"video":{"surface":"curved","pos":[0.0,-9.0,-13.0],"delay":4.0},"swap":true},"bill":{"play":"Talk_bill_Play","hold":"Talk_bill_Hold","exit":"Talk_bill_Exit","playDur":9.6,"exitDur":3.05,"swap":true},"tanks":{"play":"Talk_tanks_Play","hold":"Talk_tanks_Hold","exit":"Talk_tanks_Exit","playDur":12.5,"exitDur":3.95,"swap":true},"locked":{"play":"Talk_locked_Play","hold":"Talk_locked_Hold","exit":"Talk_locked_Exit","playDur":16.8,"exitDur":3.05,"swap":true},"stamp1":{"play":"Talk_stamp1_Play","hold":"Talk_stamp1_Hold","exit":"Talk_stamp1_Exit","playDur":4.65,"exitDur":1.05,"swap":true},"stamp2":{"play":"Talk_stamp2_Play","hold":"Talk_stamp2_Hold","exit":"Talk_stamp2_Exit","playDur":4.65,"exitDur":1.05,"swap":true},"stamp3":{"play":"Talk_stamp3_Play","hold":"Talk_stamp3_Hold","exit":"Talk_stamp3_Exit","playDur":4.65,"exitDur":1.05,"swap":true},"racks_open":{"play":"Talk_racks_open_Play","hold":"Talk_racks_open_Hold","exit":null,"playDur":4.15,"exitDur":0,"swap":true},"halls":{"play":"Talk_halls_Play","hold":"Talk_halls_Hold","exit":null,"playDur":10.0,"exitDur":0,"swap":true},"beams":{"play":"Talk_beams_Play","hold":"Talk_beams_Hold","exit":null,"playDur":6.95,"exitDur":0,"swap":true},"devices":{"play":"Talk_devices_Play","hold":"Talk_devices_Hold","exit":null,"playDur":3.72,"exitDur":0,"swap":true},"halls_bright":{"play":"Talk_halls_bright_Play","hold":"Talk_halls_bright_Hold","exit":null,"playDur":4.0,"exitDur":0,"swap":true}}};
+window.SB_TALK = {"title":"IPN talk, 10 Nov 2026","root":"Talk","home":[0.0,0.0,-50.0],"mediaBase":"https://media.immersivepublic.network/events/ImmersiveX2026/talk/","rehearsalSeconds":20,"videos":["Talk_Video_curved_mono","Talk_Video_curved_sbs","Talk_Video_curved_tb","Talk_Video_dome360_mono","Talk_Video_dome360_sbs","Talk_Video_dome360_tb","Talk_Video_dome180_mono","Talk_Video_dome180_sbs","Talk_Video_dome180_tb"],"cues":[{"id":"1","name":"So Who Will?","on":["env_dark","stars","bed_space","title1","title2"],"off":[],"video":null,"key":false},{"id":"2","name":"A Hundred Years of Public Media","on":["radio","warm_light","bed_media"],"off":["title1","title2"],"video":null,"key":false},{"id":"2B","name":"Television","on":["tv"],"off":[],"video":null,"key":false},{"id":"2C","name":"The Web","on":["monitor"],"off":[],"video":null,"key":false},{"id":"2T","name":"200 Years of Media","on":["timeline"],"off":[],"video":null,"key":false},{"id":"3","name":"The Commercial Turn","on":["feedwall","blue_light","bed_feed"],"off":["timeline","warm_light","bed_media"],"video":null,"key":false},{"id":"4","name":"The Construct","on":["shatter","env_white","white_light","dust"],"off":["feedwall","blue_light","bed_feed","radio","tv","monitor","env_dark","stars","bed_space"],"video":null,"key":false},{"id":"4B","name":"Lots of Data Centers","on":["racks","racks_near","flyover","bed_hall"],"off":["shatter"],"video":null,"key":false},{"id":"4B2","name":"Data Centers","on":["datahall"],"off":[],"video":"stop","alone":true},{"id":"4C","name":"The Figures: 415 TWh","on":["label1"],"off":["datahall"],"video":null,"key":false},{"id":"4D","name":"The Figures: 945 TWh","on":["label2"],"off":["label1"],"video":null,"key":false},{"id":"4E","name":"The Figures: $500 billion","on":["label3"],"off":["label2"],"video":null,"key":false},{"id":"4F","name":"The Figures: $500 billion","on":["label4"],"off":[],"video":null,"key":false},{"id":"4G","name":"The Figures: 2 trillion yuan","on":["label5"],"off":[],"video":null,"key":false},{"id":"5","name":"Inside the Buildout","on":["racks_near_parted","screen"],"off":["racks_near","flyover","label3","label4","label5"],"video":{"surface":"curved","clip":"hyperscale/01_night_globe.mp4","layout":"mono"},"key":false},{"id":"5B","name":"Ashburn","on":[],"off":[],"video":{"surface":"curved","clip":"hyperscale/02_ashburn.mp4","layout":"mono"},"key":false},{"id":"5B3","name":"Ashburn","on":["ashburn"],"off":[],"video":"stop","alone":true},{"id":"5C","name":"Richland Parish","on":[],"off":["ashburn"],"video":{"surface":"curved","clip":"hyperscale/03_richland_parish.mp4","layout":"mono"},"key":false},{"id":"5D","name":"Africa at Night","on":[],"off":[],"video":{"surface":"curved","clip":"hyperscale/04_africa_night.mp4","layout":"mono"},"key":false},{"id":"5E","name":"Cables in the Red Sea","on":[],"off":[],"video":{"surface":"curved","clip":"hyperscale/05_cables_red_sea.mp4","layout":"mono"},"key":false},{"id":"5F","name":"Outlets Around the Globe","on":[],"off":[],"video":{"surface":"curved","clip":"hyperscale/06_outlets_globe.mp4","layout":"mono"},"key":false},{"id":"5F2","name":"Media Tour","on":["media_tour"],"off":[],"video":"stop","alone":true},{"id":"5F3","name":"Captured Media","on":["media_capture"],"off":["media_tour"],"video":"stop","alone":true},{"id":"6","name":"Who Pays","on":["bill"],"off":["screen","media_capture"],"video":"stop","key":false},{"id":"6B","name":"Water","on":["tanks"],"off":[],"video":null,"key":false},{"id":"7","name":"Trust","on":["locked"],"off":["bill","tanks"],"video":null,"key":false},{"id":"8","name":"Terms Already Attached: Ohio","on":["stamp1"],"off":[],"video":null,"key":false},{"id":"8B","name":"Terms: European Union","on":["stamp2"],"off":[],"video":null,"key":false},{"id":"8C","name":"Terms: Singapore","on":["stamp3"],"off":[],"video":null,"key":false},{"id":"9","name":"A Public Commons","on":["racks_open","beams","halls","env_warm","warm_fill","bed_commons"],"off":["racks","racks_near_parted","env_white","white_light","dust","bed_hall","locked","stamp1","stamp2","stamp3"],"video":null,"key":false},{"id":"9B","name":"Devices at Every Doorway","on":["devices"],"off":[],"video":null,"key":false},{"id":"10","name":"So Who Will?","on":["halls_bright","title3"],"off":[],"video":null,"key":false},{"id":"11","name":"Quest Capture 1 (spare)","on":["screen"],"off":[],"video":{"surface":"curved","clip":"quest3d/01_capture.mp4","layout":"sbs"},"key":false},{"id":"11B","name":"Quest Capture 2 (spare)","on":[],"off":[],"video":{"surface":"curved","clip":"quest3d/02_capture.mp4","layout":"sbs"},"key":false},{"id":"T","name":"Timeline","on":["timeline"],"off":["beams","bed_commons","devices","env_warm","halls","halls_bright","racks_open","screen","title3","warm_fill"],"video":"stop","alone":true},{"id":"S1","name":"Innovation","on":["still_innovation"],"off":[],"video":"stop","alone":true},{"id":"S2","name":"Venus","on":["still_venus"],"off":[],"video":"stop","alone":true},{"id":"S3","name":"Stewart","on":["still_stewart"],"off":[],"video":"stop","alone":true}],"elements":{"env_dark":{"play":"Talk_env_dark_Play","hold":"Talk_env_dark_Hold","exit":"Talk_env_dark_Exit","playDur":3.0,"exitDur":2.6,"swap":true},"stars":{"play":"Talk_stars_Play","hold":"Talk_stars_Hold","exit":"Talk_stars_Exit","playDur":4.5,"exitDur":2.1},"env_white":{"play":"Talk_env_white_Play","hold":"Talk_env_white_Hold","exit":"Talk_env_white_Exit","playDur":3.0,"exitDur":4.1,"swap":true},"dust":{"play":"Talk_dust_Play","hold":"Talk_dust_Hold","exit":null,"playDur":0.8,"exitDur":0,"swap":true},"env_warm":{"play":"Talk_env_warm_Play","hold":"Talk_env_warm_Hold","exit":"Talk_env_warm_Exit","playDur":5.5,"exitDur":3.1,"swap":true},"warm_light":{"play":"Talk_warm_light_Play","hold":"Talk_warm_light_Hold","exit":"Talk_warm_light_Exit","playDur":3.0,"exitDur":2.55,"swap":true},"blue_light":{"play":"Talk_blue_light_Play","hold":"Talk_blue_light_Hold","exit":"Talk_blue_light_Exit","playDur":3.0,"exitDur":2.55,"swap":true},"white_light":{"play":"Talk_white_light_Play","hold":"Talk_white_light_Hold","exit":"Talk_white_light_Exit","playDur":2.0,"exitDur":2.55,"swap":true},"warm_fill":{"play":"Talk_warm_fill_Play","hold":"Talk_warm_fill_Hold","exit":"Talk_warm_fill_Exit","playDur":5.0,"exitDur":2.55,"swap":true},"bed_space":{"play":"Talk_bed_space_Play","hold":"Talk_bed_space_Hold","exit":"Talk_bed_space_Exit","playDur":3.0,"exitDur":2.6},"bed_media":{"play":"Talk_bed_media_Play","hold":"Talk_bed_media_Hold","exit":"Talk_bed_media_Exit","playDur":3.0,"exitDur":2.6},"bed_feed":{"play":"Talk_bed_feed_Play","hold":"Talk_bed_feed_Hold","exit":"Talk_bed_feed_Exit","playDur":3.0,"exitDur":2.6},"bed_hall":{"play":"Talk_bed_hall_Play","hold":"Talk_bed_hall_Hold","exit":"Talk_bed_hall_Exit","playDur":3.0,"exitDur":2.6},"bed_commons":{"play":"Talk_bed_commons_Play","hold":"Talk_bed_commons_Hold","exit":"Talk_bed_commons_Exit","playDur":3.0,"exitDur":2.6},"title1":{"play":"Talk_title1_Play","hold":"Talk_title1_Hold","exit":"Talk_title1_Exit","playDur":6.44,"exitDur":2.22,"swap":true},"title2":{"play":"Talk_title2_Play","hold":"Talk_title2_Hold","exit":"Talk_title2_Exit","playDur":14.44,"exitDur":1.82,"swap":true},"title3":{"play":"Talk_title3_Play","hold":"Talk_title3_Hold","exit":"Talk_title3_Exit","playDur":3.3,"exitDur":1.82,"swap":true},"radio":{"play":"Talk_radio_Play","hold":"Talk_radio_Hold","exit":"Talk_radio_Exit","playDur":22.0,"exitDur":2.6,"swap":true},"tv":{"play":"Talk_tv_Play","hold":"Talk_tv_Hold","exit":"Talk_tv_Exit","playDur":22.0,"exitDur":2.6,"swap":true},"monitor":{"play":"Talk_monitor_Play","hold":"Talk_monitor_Hold","exit":"Talk_monitor_Exit","playDur":22.0,"exitDur":2.6,"swap":true},"timeline":{"play":"Talk_timeline_Play","hold":"Talk_timeline_Hold","exit":"Talk_timeline_Exit","playDur":32.2,"exitDur":1.25,"swap":true},"feedwall":{"play":"Talk_feedwall_Play","hold":"Talk_feedwall_Hold","exit":"Talk_feedwall_Exit","playDur":8.725,"exitDur":0.15},"shatter":{"play":"Talk_shatter_Play","hold":"Talk_shatter_Hold","exit":"Talk_shatter_Exit","playDur":0.0,"exitDur":0.1},"racks":{"play":"Talk_racks_Play","hold":"Talk_racks_Hold","exit":"Talk_racks_Exit","playDur":22.1,"exitDur":1.6,"swap":true},"racks_near":{"play":"Talk_racks_near_Play","hold":"Talk_racks_near_Hold","exit":"Talk_racks_near_Exit","playDur":18.9,"exitDur":3.0,"swap":true},"racks_near_parted":{"play":"Talk_racks_near_parted_Play","hold":"Talk_racks_near_parted_Hold","exit":null,"playDur":3.0,"exitDur":0,"swap":true},"flyover":{"play":"Talk_flyover_Play","hold":"Talk_flyover_Hold","exit":null,"playDur":16,"exitDur":0,"swap":true},"label1":{"play":"Talk_label1_Play","hold":"Talk_label1_Hold","exit":"Talk_label1_Exit","playDur":8.2,"exitDur":4.6},"label2":{"play":"Talk_label2_Play","hold":"Talk_label2_Hold","exit":"Talk_label2_Exit","playDur":8.2,"exitDur":4.6},"label3":{"play":"Talk_label3_Play","hold":"Talk_label3_Hold","exit":"Talk_label3_Exit","playDur":8.2,"exitDur":4.6},"label4":{"play":"Talk_label4_Play","hold":"Talk_label4_Hold","exit":"Talk_label4_Exit","playDur":8.2,"exitDur":4.6},"label5":{"play":"Talk_label5_Play","hold":"Talk_label5_Hold","exit":"Talk_label5_Exit","playDur":8.2,"exitDur":4.6},"screen":{"play":"Talk_screen_Play","hold":"Talk_screen_Hold","exit":"Talk_screen_Exit","playDur":7.0,"exitDur":4.05,"video":{"surface":"curved","pos":[0.0,-9.0,-13.0],"delay":4.0},"swap":true},"bill":{"play":"Talk_bill_Play","hold":"Talk_bill_Hold","exit":"Talk_bill_Exit","playDur":9.6,"exitDur":3.05,"swap":true},"tanks":{"play":"Talk_tanks_Play","hold":"Talk_tanks_Hold","exit":"Talk_tanks_Exit","playDur":12.5,"exitDur":3.95,"swap":true},"locked":{"play":"Talk_locked_Play","hold":"Talk_locked_Hold","exit":"Talk_locked_Exit","playDur":16.8,"exitDur":3.05,"swap":true},"stamp1":{"play":"Talk_stamp1_Play","hold":"Talk_stamp1_Hold","exit":"Talk_stamp1_Exit","playDur":4.65,"exitDur":1.05,"swap":true},"stamp2":{"play":"Talk_stamp2_Play","hold":"Talk_stamp2_Hold","exit":"Talk_stamp2_Exit","playDur":4.65,"exitDur":1.05,"swap":true},"stamp3":{"play":"Talk_stamp3_Play","hold":"Talk_stamp3_Hold","exit":"Talk_stamp3_Exit","playDur":4.65,"exitDur":1.05,"swap":true},"racks_open":{"play":"Talk_racks_open_Play","hold":"Talk_racks_open_Hold","exit":null,"playDur":4.15,"exitDur":0,"swap":true},"halls":{"play":"Talk_halls_Play","hold":"Talk_halls_Hold","exit":null,"playDur":10.0,"exitDur":0,"swap":true},"beams":{"play":"Talk_beams_Play","hold":"Talk_beams_Hold","exit":null,"playDur":6.95,"exitDur":0,"swap":true},"devices":{"play":"Talk_devices_Play","hold":"Talk_devices_Hold","exit":null,"playDur":3.72,"exitDur":0,"swap":true},"halls_bright":{"play":"Talk_halls_bright_Play","hold":"Talk_halls_bright_Hold","exit":null,"playDur":4.0,"exitDur":0,"swap":true},"datahall":{"play":"Talk_datahall_Play","hold":"Talk_datahall_Hold","exit":"Talk_datahall_Exit","playDur":47.5,"exitDur":5.1,"swap":true},"ashburn":{"play":"Talk_ashburn_Play","hold":"Talk_ashburn_Hold","exit":"Talk_ashburn_Exit","playDur":42.0,"exitDur":5.1,"swap":true},"media_tour":{"play":"Talk_media_tour_Play","hold":"Talk_media_tour_Hold","exit":"Talk_media_tour_Exit","playDur":52.5,"exitDur":5.1,"swap":true},"media_capture":{"play":"Talk_media_capture_Play","hold":"Talk_media_capture_Hold","exit":"Talk_media_capture_Exit","playDur":25.0,"exitDur":5.1},"still_innovation":{"play":"Talk_still_innovation_Play","hold":"Talk_still_innovation_Hold","exit":"Talk_still_innovation_Exit","playDur":6.5,"exitDur":5.1,"swap":true},"still_venus":{"play":"Talk_still_venus_Play","hold":"Talk_still_venus_Hold","exit":"Talk_still_venus_Exit","playDur":11.5,"exitDur":5.1},"still_stewart":{"play":"Talk_still_stewart_Play","hold":"Talk_still_stewart_Hold","exit":"Talk_still_stewart_Exit","playDur":33.65,"exitDur":5.1}}};
 // <<< Sphererebro talk show
 
 // >>> XR Time Machine config (yours to edit: install keeps it; install.mjs --off / --on set "enabled")
@@ -834,7 +902,11 @@ window.XRTM_CONFIG = {
     // built into the desk (Ben, 2026-11-07: "not stuck in the floor"): the desk's XR TIME MACHINE key opens it on the
     // mount above the desk front, on the Sequences tab, one button per sequence (recording). Owners and moderators only,
     // drawn on their own device: the audience never sees it.
-    ui: { anchor: "Desk_XRTM_Mount", anchorScale: 0.06 },
+    ui: { anchor: "Desk_XRTM_Mount", anchorScale: 0.06, keysOnly: true,
+          // the IPN cube show on the Console (Ben, 2026-11-10: "the IPN 3D logo button needs to work on the console")
+          worldKeys: [{ name: "IPN Logo", run: () => { if (typeof SB !== "undefined" && SB.actions && SB.actions.Show) SB.actions.Show(); } },
+                      // LIGHTS on the Console (Ben, 2026-11-10: "make the lights button work"): house, presenter, out; keeps the cue
+                      { name: "Lights", keepCue: true, run: () => { if (typeof SB !== "undefined" && SB.actions && SB.actions.Lights) SB.actions.Lights(); } }] },
     // the talk (Ben, 10 Nov 2026): XR Time Machine's Show tab steps through its cues. SB_TALK is generated above
     // (tools/talk/choreo.py from Assets/_Sphererebro/Config/talk_show.json).
     show: window.SB_TALK || null,
@@ -1193,6 +1265,9 @@ const XRTMCore = (() => {
             // built into a desk (ui.anchor): three low panels wrapped around the presenter (Ben, 2026-11-09: "low
             // profile, horizontal and wrap around"). Metres and degrees in the DESK's frame; mount = the anchor's own
             // place there, so the panels land right whatever the anchor's tilt.
+            // keysOnly (Ben, 2026-11-10: "I should only have two buttons"): on a desk the Console is nothing but the
+            // show's keys, large, on the centre panel. A key plays its cue; the lit key again ends it (back to house).
+            keysOnly: false,
             wrap: { on: true, scale: 0.07, width: 1000, height: 340, radius: 1.0, y: 1.2, tilt: 52, spread: 40,
                     mount: { pos: [0, 1.42, 0.98], tiltX: 20 } },
             fontScale: 1,                       // multiplies every font size on the panel
@@ -2153,6 +2228,7 @@ const XRTMCore = (() => {
         const panelOf = new Map();
         const W = U.wrap || {};
         const wrap = !!anchor && W.on !== false;
+        const keysOnly = wrap && !!U.keysOnly;
         async function makePanel(host, w, h, pad) {
             const pn = await host.AddComponent(new BS.UIPanel({ resolution: new BS.Vector2(w, h), enableHaptics: true }));
             pn.SetBackgroundColor(new BS.Vector4(0.04, 0.04, 0.05, 0.9));
@@ -2175,7 +2251,8 @@ const XRTMCore = (() => {
                 const lp = inv.map((r) => (r[0] * P[0] + r[1] * P[1] + r[2] * P[2]) / size1);
                 const m = mul(inv, mul(Ry(rad(phi)), Rx(rad(W.tilt))));       // Unity Euler order: Ry * Rx * Rz
                 const ex = Math.asin(Math.max(-1, Math.min(1, -m[1][2]))), ey = Math.atan2(m[0][2], m[2][2]), ez = Math.atan2(m[1][0], m[1][1]);
-                const g = l.obj(new BS.GameObject({ name, parent: obj, localPosition: new BS.Vector3(lp[0], lp[1], lp[2]),
+                const s1 = keysOnly && phi !== 0 ? 0 : 1;                     // keys only: the side panels are not shown
+                const g = l.obj(new BS.GameObject({ name, parent: obj, localPosition: new BS.Vector3(lp[0], lp[1], lp[2]), localScale: new BS.Vector3(s1, s1, s1),
                     localEulerAngles: new BS.Vector3(ex * 180 / Math.PI, ey * 180 / Math.PI, ez * 180 / Math.PI) }));
                 return makePanel(g, W.width, W.height, "14px");
             };
@@ -2244,9 +2321,12 @@ const XRTMCore = (() => {
             click(b, () => { filter = id; drawConsole(); }, "console filter");
             return b;
         });
+        if (keysOnly) filterRow.visible = false;
         const seqNow = el(BS.UILabel, { fontSize: fs(wrap ? 15 : 18), color: "#e0e0e0", marginBottom: wrap ? "2px" : "6px" }, showMid);
-        const cueList = el(BS.UIScrollView, { height: `${wrap ? W.height - 28 - 76 : U.panelHeight - 660}px`, width: "100%" }, showMid);
+        if (keysOnly) seqNow.visible = false;
+        const cueList = el(BS.UIScrollView, { height: `${keysOnly ? W.height - 28 : wrap ? W.height - 28 - 76 : U.panelHeight - 660}px`, width: "100%" }, showMid);
         cueList.horizontalScrolling = false;
+        let lastKeyAt = 0;
         const conRows = [];         // { b, cue: k } or { b, rec: id }
         let seqs = [];              // this device's finished recordings, oldest first
         function refreshShow() {
@@ -2270,7 +2350,19 @@ const XRTMCore = (() => {
         function drawConsole() {
             for (const r of conRows.splice(0)) r.b.Destroy();
             FILTERS.forEach(([id], n) => { filterBtns[n].style.backgroundColor = id === filter ? "#b8860b" : "#37474f"; });
-            const row = wrap
+            // keys only: two keys fill the panel side by side; more than two go two to a row, in as many rows as they need
+            // (Ben, 2026-11-10: keys for the public media tours beside Ashburn and the Timeline), all on the one panel
+            let nKeys = 0;
+            if (keysOnly && show) for (let k = 1; k <= show.count; k++) if (show.cue(k).key !== false) nKeys++;
+            // the world's own keys (ui.worldKeys: [{ name, run }]), after the show's: things the world does itself, such
+            // as Sphererebro's IPN cube show (Ben, 2026-11-10: "the IPN 3D logo button needs to work on the console")
+            const worldKeys = keysOnly && Array.isArray(U.worldKeys) ? U.worldKeys.filter((k) => k && k.name && typeof k.run === "function") : [];
+            nKeys += worldKeys.length;
+            const keyRows = Math.max(1, Math.ceil(nKeys / 2));
+            const keyH = Math.floor((W.height - 80 - (keyRows - 1) * 14) / keyRows);
+            const row = keysOnly
+                ? { height: `${keyH}px`, width: "48%", fontSize: fs(keyRows > 1 ? 34 : 44), marginTop: keyRows > 1 ? "10px" : "20px", marginRight: "2%", borderRadius: `${keyH / 2}px`, backgroundColor: "#263238" }
+                : wrap
                 ? { height: "38px", width: "19%", fontSize: fs(14), marginBottom: "5px", marginRight: "1%", borderRadius: "19px", backgroundColor: "#263238" }
                 : { height: "48px", fontSize: fs(19), marginBottom: "5px", borderRadius: "24px", backgroundColor: "#263238" };
             // wrapped: keys go five to a row, left to right, top to bottom
@@ -2278,20 +2370,30 @@ const XRTMCore = (() => {
             const lines = [];
             const slot = () => {
                 if (!wrap) return cueList;
-                if (!line || inLine >= 5) { line = el(BS.UIVisualElement, { flexDirection: "row" }, cueList); lines.push(line); inLine = 0; }
+                // keys only: two big keys to a row (four in one row of five ran off the panel: Ben saw two of his four)
+                if (!line || inLine >= (keysOnly ? 2 : 5)) { line = el(BS.UIVisualElement, { flexDirection: "row" }, cueList); lines.push(line); inLine = 0; }
                 inLine++;
                 return line;
             };
             const short = (t) => (wrap && t.length > 17 ? t.slice(0, 16) + "…" : t);
-            if (show && filter !== "rec") for (let k = 1; k <= show.count; k++) {
+            if (show && (keysOnly || filter !== "rec")) for (let k = 1; k <= show.count; k++) {
                 const c = show.cue(k);
+                if (c.key === false) continue;          // a cue kept in the show but without a Console key
                 const video = !!(c.video && c.video.clip);
                 if (filter === "video" && !video) continue;
-                const b = button(wrap ? `${c.id}   ${short(c.name)}` : `${c.id}   ${c.name}${video ? "   ▶ video" : ""}`, row, slot());
-                click(b, () => show.play(k), "console cue");
+                const b = button(keysOnly ? c.name : wrap ? `${c.id}   ${short(c.name)}` : `${c.id}   ${c.name}${video ? "   ▶ video" : ""}`, row, slot());
+                // one press, one action: the app delivered each press twice (Ben's Player.log, 2026-11-10: every key
+                // went to its cue and straight back to house), so a second press within 1.2 s is ignored
+                click(b, () => { const now = Date.now(); if (now - lastKeyAt < 1200) return; lastKeyAt = now; return keysOnly && show.i === k ? show.house() : show.play(k); }, "console cue");
                 conRows.push({ b, cue: k });
             }
-            if (filter === "all" || filter === "rec") seqs.forEach((item, n) => {
+            for (const wk of worldKeys) {
+                const b = button(wk.name, row, slot());
+                // the world shows it in its house state: a running cue ends first
+                click(b, async () => { const now = Date.now(); if (now - lastKeyAt < 1200) return; lastKeyAt = now; if (!wk.keepCue && show && show.i > 0) await show.house(); return wk.run(); }, "console world key");
+                conRows.push({ b, cue: -1 });
+            }
+            if (!keysOnly && (filter === "all" || filter === "rec")) seqs.forEach((item, n) => {
                 const b = button(wrap ? `● ${n + 1}   ${short(item.name)}` : `● ${n + 1}   ${item.name}   ${C.clock(item.durationMs)}`, row, slot());
                 click(b, () => startPlayback(item, true), "console recording");
                 conRows.push({ b, rec: item.id });
@@ -2772,7 +2874,17 @@ const XRTMCore = (() => {
             if (rootObj) await rootObj.SetPosition(new BS.Vector3(...(S.home || [0, 0, 0])));
             ready = true;
             log(`show ready: ${S.cues.length} cues, ${Object.keys(S.elements).length} elements`);
-            await apply(read(), true);
+            await apply(arrival(), true);
+        }
+
+        // What a device shows when it arrives. Ben, 2026-11-10: "Do not load any sequence by default... nothing else
+        // should trigger automatically": the space remembered the last cue for ever, so the world opened in it. Now a
+        // stored cue is picked up only while the presenter who set it is still here (someone joining a talk in
+        // progress); otherwise the house state, and nothing plays until a key is pressed.
+        function arrival() {
+            const s = read();
+            const live = s.i > 0 && s.bySid && s.bySid !== scene.localUser?.id && C.present(scene.users, s.bySid, s.byUid);
+            return live ? s : { i: 0, at: 0 };
         }
 
         function read() {
@@ -2789,9 +2901,14 @@ const XRTMCore = (() => {
             const solo = !!state.play && !arriving && i >= 1 && Date.now() - (state.at || 0) < 4000;
             // the echo of our own write (and repeats): already there, leave every running entrance alone
             if (i === applied && !arriving && !(solo && state.at !== appliedStamp)) { ui?.(); return; }
-            if (solo && applied !== i - 1) {
+            // a cue marked "alone" (a module that hides the whole hall behind its own black bubble) starts from nothing:
+            // setting the cue before it in its held poses flashed the data hall and replayed its sounds for a moment
+            // (Ben, 2026-11-10: "when you click Ashburn it blinks the data center model and bell, remove that"). Nothing
+            // else is shown or played out, whatever was showing: only this cue's own entrances.
+            const alone = solo && !!S.cues[i - 1].alone;
+            if (solo && (alone || applied !== i - 1)) {
                 clearTimers();
-                const base = liveAt(i - 1);
+                const base = alone ? new Set() : liveAt(i - 1);
                 for (const e of Object.keys(S.elements)) {
                     const el = S.elements[e];
                     clearTimeout(exitTimers[e]); delete exitTimers[e]; clearTimeout(swapTimers[e]); delete swapTimers[e];
@@ -2803,7 +2920,7 @@ const XRTMCore = (() => {
             if (solo) videoNow = null;      // its clip starts again from the top
             const prev = applied;
             const fresh = !arriving && prev >= 0 && i === prev + 1 && Date.now() - (state.at || 0) < 4000;
-            const now = liveAt(i), before = prev >= 0 ? liveAt(prev) : new Set();
+            const now = alone ? new Set(S.cues[i - 1].on || []) : liveAt(i), before = alone ? new Set() : prev >= 0 ? liveAt(prev) : new Set();
             clearTimers();
             for (const e of Object.keys(S.elements)) {
                 const el = S.elements[e];
@@ -2880,7 +2997,7 @@ const XRTMCore = (() => {
         async function go(i, play = false) {
             if (!(await canDrive())) return;
             i = Math.max(0, Math.min(S.cues.length, i));
-            const state = { i, at: Date.now(), by: scene.localUser?.name || "presenter", ...(play ? { play: 1 } : {}) };
+            const state = { i, at: Date.now(), by: scene.localUser?.name || "presenter", bySid: scene.localUser?.id, byUid: scene.localUser?.uid, ...(play ? { play: 1 } : {}) };
             await scene.SpaceStateSet(key, JSON.stringify(state), { protected: true });
             await apply(state);
         }

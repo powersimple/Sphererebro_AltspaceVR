@@ -26,11 +26,13 @@ Step "Build World + Bake"; Run build
 Step "build asset.world"
 $log = Get-ChildItem *BanterBuilder.log | Sort-Object LastWriteTime | Select-Object -Last 1
 $n0 = if ($log) { (Get-Content $log.FullName).Count } else { 0 }
+$name0 = if ($log) { $log.Name } else { '' }
 Set-Content Logs\sb_automation_request.txt "upload" -NoNewline
 $ok = $false
 for ($k = 0; $k -lt 180 -and -not $ok; $k++) {
     Start-Sleep 3
     $log = Get-ChildItem *BanterBuilder.log | Sort-Object LastWriteTime | Select-Object -Last 1
+    if ($log.Name -ne $name0) { $n0 = 0; $name0 = $log.Name }   # a new day's log file starts from its top
     $new = @(Get-Content $log.FullName | Select-Object -Skip $n0)
     if ($new -match 'Build finished') { $ok = $true }
     if ($new -match 'Build failed|error') { $new | Select-Object -Last 5; "SHIP FAILED at asset.world"; exit 1 }

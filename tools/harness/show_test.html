@@ -130,15 +130,26 @@ const key = (k) => emit(scene.ev, "key-press", { key: k });
   check("Left arrow -> cue 2C restores it exactly (Hold twins of cue 2C only)", ctl.i === 4 && same(activeTwins(S), holdsOf(S, 4)), [...activeTwins(S)]);
 
   // jump to cue 5 (video): the curved screen's mono surface gets clip 01
-  await ctl.goto(14); await wait(80);
+  const i5 = S.cues.findIndex((c) => c.id === "5") + 1;   // found by id: modules insert cues before it
+  await ctl.goto(i5); await wait(80);
   const vp = objs.Talk_Video_curved_mono.comps.VideoPlayer;
   check("jump to cue 5: screen held, mono curved surface on, clip 01 from the media host",
     objs.Talk_Video_curved_mono.active && vp.url === S.mediaBase + "hyperscale/01_night_globe.mp4" && vp.loop === false, vp.url);
   key(275); await wait(80);
-  check("cue 5B: the next clip on the same surface", vp.url.endsWith("02_ashburn.mp4") && ctl.i === 15, vp.url);
-  await ctl.goto(20); await wait(80);
+  check("cue 5B: the next clip on the same surface", vp.url.endsWith("02_ashburn.mp4") && ctl.i === i5 + 1, vp.url);
+  // cues are found by id from here on: an optional module (talk_show.json "modules") may slot a cue in after 5B
+  const at = (id) => S.cues.findIndex((c) => c.id === id) + 1;
+  if (at("5B3")) {
+    await ctl.goto(at("5B3") - 1); await wait(40); key(275); await wait(80);
+    check("module cue 5B3 (Ashburn in 3D): its entrance plays and every video surface is off",
+      objs[S.elements.ashburn.play].active && S.videos.every((v) => !objs[v].active) && ctl.i === at("5B3"), ctl.i);
+    key(275); await wait(80);
+    check("…and the next cue takes it off (its exit plays) and starts the next clip",
+      objs[S.elements.ashburn.exit].active && !objs[S.elements.ashburn.play].active && vp.url.endsWith("03_richland_parish.mp4"), vp.url);
+  }
+  await ctl.goto(at("6")); await wait(80);
   check("cue 6 (video stop): every video surface off", S.videos.every((v) => !objs[v].active));
-  await ctl.goto(29); await wait(80);
+  await ctl.goto(at("11")); await wait(80);
   const sbs = objs.Talk_Video_curved_sbs;
   check("cue 11: side-by-side stereo clip on the SBS surface", sbs.active && sbs.comps.VideoPlayer.url.endsWith("quest3d/01_capture.mp4"), sbs.comps.VideoPlayer.url);
 
@@ -203,19 +214,40 @@ const key = (k) => emit(scene.ev, "key-press", { key: k });
   check("R again stops it", !ctl.rehearsing && ctl.i === stopped, ctl.i);
   await ctl.goto(S.cues.length - 1); key(114); await wait(800);
   check("rehearsal stops at the last cue", !ctl.rehearsing && ctl.i === S.cues.length, ctl.i);
-  // the Console (v0.5): one list, tap an item and that cue alone plays from its start
+  // the Console, keys only (2026-11-10): just the show's keyed cues (Ashburn, Timeline); a key plays its cue alone
+  // from its start, the other key takes over cleanly, and the lit key again ends the show
   await ctl.house(); await wait(60);
-  const row8 = ui.filter((u) => u.click && !u.destroyed && String(u.text).startsWith(S.cues[7].id + "   ")).pop();
-  check("console: every cue is a row in the list", !!row8);
-  if (row8) { await row8.click(); await wait(80); }
-  const racksPlay = objs[S.elements.racks.play];
-  check("console: tap cue 4B from house -> cue 8, its entrances play, the cue before it is held",
-    ctl.i === 8 && racksPlay.active && [...liveAt(S, 7)].filter((e) => liveAt(S, 8).has(e)).every((e) => objs[S.elements[e].hold].active), [...activeTwins(S)]);
-  const onsBefore = racksPlay.log.filter((x) => x === "on").length;
+  const keyed = S.cues.map((c, k) => ({ c, k: k + 1 })).filter((x) => x.c.key !== false);
+  const keyOf = (name) => ui.filter((u) => u.click && !u.destroyed && u.text === name).pop();
+  const cueKeys = ui.filter((u) => u.click && !u.destroyed && S.cues.some((c) => u.text === c.name || String(u.text).startsWith(c.id + "   ")));
+  // the keys are talk_show.json "keys" (Ben, 2026-11-10: the two public media tours joined Ashburn and the Timeline)
+  check("console: one key for every keyed cue, Ashburn and Timeline among them", keyed.length >= 2 && cueKeys.length === keyed.length && !!keyOf("Ashburn") && !!keyOf("Timeline"), cueKeys.map((u) => u.text));
+  const ash = keyed.find((x) => x.c.name === "Ashburn"), tl = keyed.find((x) => x.c.name === "Timeline");
+  await keyOf("Ashburn").click(); await wait(80);
+  const ashPlay = objs[S.elements.ashburn.play];
+  // a cue marked "alone" (a module inside its own black bubble) starts from nothing: no other element is switched on,
+  // so the data hall never flashes and none of its sounds replay (Ben, 2026-11-10). Other cues: the cue before is held.
+  check(ash.c.alone ? "console: Ashburn from house -> its cue, its entrance plays alone (nothing else on)"
+                    : "console: Ashburn from house -> its cue, the entrance plays, the cue before it is held",
+    ctl.i === ash.k && ashPlay.active && (ash.c.alone ? same(activeTwins(S), new Set([S.elements.ashburn.play]))
+      : [...liveAt(S, ash.k - 1)].filter((e) => liveAt(S, ash.k).has(e)).every((e) => objs[S.elements[e].hold].active)), [...activeTwins(S)]);
+  for (const nm of ["Media Tour", "19 of 606"]) if (keyOf(nm)) {
+    const kc = keyed.find((x) => x.c.name === nm), id = kc.c.on[0];
+    await keyOf(nm).click(); await wait(80);
+    check(`console: ${nm} plays alone (only its own entrance on)`, ctl.i === kc.k && same(activeTwins(S), new Set([S.elements[id].play])), [...activeTwins(S)]);
+  }
+  await keyOf("Timeline").click(); await wait(80);
+  const tlPlay = objs[S.elements.timeline.play];
+  check("console: Timeline takes over: its entrance plays, Ashburn is off",
+    ctl.i === tl.k && tlPlay.active && !ashPlay.active && !objs[S.elements.ashburn.hold].active, [...activeTwins(S)]);
+  check("console: with Timeline up nothing else of the show is live", [...liveAt(S, tl.k)].join() === "timeline", [...liveAt(S, tl.k)]);
+  await keyOf("Ashburn").click(); await wait(80);
+  check("console: back to Ashburn: its entrance plays again, Timeline is off", ctl.i === ash.k && ashPlay.active && !tlPlay.active, [...activeTwins(S)]);
+  const onsBefore = ashPlay.log.filter((x) => x === "on").length;
   await wait(20); await ctl.replay(); await wait(80);
-  check("console: Again replays the cue's entrance from its start", ctl.i === 8 && racksPlay.active && racksPlay.log.filter((x) => x === "on").length === onsBefore + 1, racksPlay.log.slice(-6));
-  await ctl.house(); await wait(60);
-  check("End show -> house: everything off", ctl.i === 0 && activeTwins(S).size === 0, [...activeTwins(S)]);
+  check("console: replay restarts the cue's entrance", ctl.i === ash.k && ashPlay.active && ashPlay.log.filter((x) => x === "on").length === onsBefore + 1, ashPlay.log.slice(-6));
+  await keyOf("Ashburn").click(); await wait(80);
+  check("console: the lit key again -> house: everything off", ctl.i === 0 && activeTwins(S).size === 0, [...activeTwins(S)]);
 
   const ok = results.filter((r) => r.ok).length;
   document.getElementById("out").innerHTML = `<p>${ok}/${results.length} passed</p>` + results.map((r) =>

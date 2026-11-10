@@ -1,5 +1,5 @@
-"""Timeline cards for cue 2T: one 1024x256 card per event (ffmpeg drawtext + the public-domain photos from Ben's
-2020Vision assets), packed 2 x 8 into 2048x2048 atlases talk/gen/tl_cards_<n>.png, with talk/gen/tl_cards.json
+"""Timeline cards for cue 2T (the media timeline, tools/talk/layers.py): one 1024x256 card per item, layer name and
+axis year (ffmpeg drawtext; warm and dim, never white: rule 12), packed 2 x 8 into 2048x2048 atlases talk/gen/tl_cards_<n>.png, with talk/gen/tl_cards.json
 (uv rect and world size of each card) for SphererebroTalkTimeline.cs and the harness.
 Run: <blender python> tools/talk/make_cards.py
 """
@@ -8,17 +8,16 @@ import json, os, subprocess, glob, textwrap, shutil, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, "..", ".."))
 GEN = os.path.join(REPO, "talk", "gen")
-TL = json.load(open(os.path.join(REPO, "Assets", "_Sphererebro", "Config", "talk_timeline_events.json"), encoding="utf-8-sig"))
-ASSETS = r"B:\_powersimple\OmniScience\2020Vision\assets"
+import sys; sys.path.insert(0, HERE)
+import layers as LY
 FF = glob.glob(os.path.expandvars(r"%LOCALAPPDATA%\Microsoft\WinGet\Packages\Gyan.FFmpeg*\*\bin\ffmpeg.exe"))[0]
-F_YEAR = r"C\:/Users/power/AppData/Local/Microsoft/Windows/Fonts/Aldrich-Regular.ttf"
-F_TEXT = r"C\:/Windows/Fonts/Inter-SemiBold.ttf"
-F_TEXT2 = r"C\:/Windows/Fonts/Inter-Regular.ttf"
+def ffp(p): return p.replace("\\", "/").replace(":", "\\:")
+_ald = os.path.expandvars(r"%LOCALAPPDATA%\Microsoft\Windows\Fonts\Aldrich-Regular.ttf")
+F_YEAR = ffp(_ald if os.path.exists(_ald) else r"C:\Windows\Fonts\Inter-SemiBold.ttf")
+F_TEXT = ffp(r"C:\Windows\Fonts\Inter-SemiBold.ttf")
 W, H = 1024, 256
 tmp = tempfile.mkdtemp(prefix="tlcards_")
-
-
-def ffp(p): return p.replace("\\", "/").replace(":", "\\:")
+INK = "0xd8c9a8"            # warm, dim: no white on the dark sphere
 
 
 def run(args):
@@ -26,46 +25,65 @@ def run(args):
     if r.returncode: raise SystemExit("ffmpeg failed: " + r.stderr[-800:])
 
 
-cards = []
-for i, ev in enumerate(TL["events"]):
-    media = ev["kind"] == "media"
-    img = ev.get("img")
-    if img and not os.path.exists(os.path.join(ASSETS, img)): img = None
-    tx = 300 if img else 40
-    width_chars = 40 if img else 54
-    lines = textwrap.wrap(ev["t"], width_chars)[:3]
-    year = ("c. " if ev.get("approx") else "") + str(ev["y"])
-    yf = os.path.join(tmp, f"y{i}.txt"); open(yf, "w", encoding="utf-8", newline="\n").write(year)
-    tf = os.path.join(tmp, f"t{i}.txt"); open(tf, "w", encoding="utf-8", newline="\n").write("\n".join(lines))
-    bg = "0x0b0d12@0.86" if media else "0x0b0d12@0.62"
-    gold = "0xf2c46b" if media else "0x9a8a6a"
-    ink = "0xf4f1ea" if media else "0xb8b4ac"
-    fs = 34 if len(lines) <= 2 else 29
-    vf = (f"drawbox=x=0:y=0:w=6:h={H}:color={gold}@1:t=fill,"
-          f"drawbox=x=0:y=0:w={W}:h=2:color={gold}@0.6:t=fill,"
-          f"drawtext=fontfile='{F_YEAR}':textfile='{ffp(yf)}':fontcolor={gold}:fontsize={62 if media else 50}:x={tx}:y=22,"
-          f"drawtext=fontfile='{F_TEXT if media else F_TEXT2}':textfile='{ffp(tf)}':fontcolor={ink}:fontsize={fs}:line_spacing=6:x={tx}:y={100 if media else 92}")
-    out = os.path.join(tmp, f"card_{i:03d}.png")
-    if img:
-        run(["-f", "lavfi", "-i", f"color=c={bg}:s={W}x{H},format=rgba", "-i", os.path.join(ASSETS, img),
-             "-filter_complex", f"[1:v]scale=232:232:force_original_aspect_ratio=increase,crop=232:232,format=rgba[p];"
-                                f"[0:v][p]overlay=24:12,{vf}", "-frames:v", "1", out])
-    else:
-        run(["-f", "lavfi", "-i", f"color=c={bg}:s={W}x{H},format=rgba", "-vf", vf, "-frames:v", "1", out])
-    cards.append({"i": i, "year": ev["y"], "kind": ev["kind"], "img": img, "w": 8.0 if media else 5.6, "h": 2.0 if media else 1.4})
+def txt(name, s):
+    f = os.path.join(tmp, name); open(f, "w", encoding="utf-8", newline="\n").write(s); return ffp(f)
 
-PER = 16
+
+IMG = os.path.join(REPO, "talk", "timeline_img")
+cards, pics = [], []
+for c in LY.layout()["cards"]:
+    i = c["i"]; col = "0x" + c["color"]
+    if c["kind"] == "pic":
+        src = os.path.join(IMG, c["img"])
+        if not os.path.exists(src): raise SystemExit("timeline picture missing: " + src)
+        out = os.path.join(tmp, f"pic_{i:03d}.png")      # centre square, 512 px, a thin frame in the layer's colour
+        run(["-i", src, "-vf", f"scale=512:512:force_original_aspect_ratio=increase,crop=512:512,drawbox=x=0:y=0:w=512:h=512:color={col}@0.9:t=6,format=rgba", "-frames:v", "1", out])
+        pics.append({"i": i, "year": None, "kind": "pic", "img": c["img"], "w": c["w"], "h": c["h"], "file": out})
+        continue
+    if c["kind"] == "item":
+        year = ("c. " if c.get("approx") else "") + str(c["year"])
+        tx = 300 if c.get("img") else 44                 # a pictured card keeps its left end clear for the picture
+        room = (W - tx - 20) / 0.56
+        fs = int(min(84, room / max(1, len(c["t"]))))
+        vf = (f"drawbox=x=0:y=0:w=10:h={H}:color={col}@1:t=fill,"
+              f"drawtext=fontfile='{F_YEAR}':textfile='{txt(f'y{i}.txt', year)}':fontcolor={col}:fontsize=92:x={tx}:y=24,"
+              f"drawtext=fontfile='{F_TEXT}':textfile='{txt(f't{i}.txt', c['t'])}':fontcolor={INK}:fontsize={fs}:x={tx}:y={142 + (84 - fs) // 2}")
+        bg = "0x0b0d12@0.6"
+    elif c["kind"] == "layer":
+        vf = f"drawtext=fontfile='{F_YEAR}':textfile='{txt(f't{i}.txt', c['t'].upper())}':fontcolor={col}:fontsize=88:x=w-tw-30:y=(h-th)/2"
+        bg = "0x000000@0"
+    else:
+        vf = f"drawtext=fontfile='{F_YEAR}':textfile='{txt(f'y{i}.txt', str(c['year']))}':fontcolor={col}:fontsize=150:x=(w-tw)/2:y=(h-th)/2"
+        bg = "0x000000@0"
+    out = os.path.join(tmp, f"card_{i:03d}.png")
+    run(["-f", "lavfi", "-i", f"color=c={bg}:s={W}x{H},format=rgba", "-vf", vf, "-frames:v", "1", out])
+    cards.append({"i": i, "year": c.get("year"), "kind": c["kind"], "img": c.get("img"), "w": c["w"], "h": c["h"], "file": out})
+
+# Atlases, 2048 x 2048 each (ASTC 6x6 on Quest, about 1.9 MB): text cards drawn at 1024 x 256 and packed at half size
+# (4 x 16 = 64 a sheet: plenty for a 1.5 m card 46 m away); pictures 512 x 512, 4 x 4 = 16 a sheet. Was six sheets.
 os.makedirs(GEN, exist_ok=True)
-for a in range(0, (len(cards) + PER - 1) // PER):
-    chunk = cards[a * PER:(a + 1) * PER]
-    d = os.path.join(tmp, f"atlas{a}"); os.makedirs(d)
-    for j, c in enumerate(chunk): shutil.copy(os.path.join(tmp, f"card_{c['i']:03d}.png"), os.path.join(d, f"c_{j:03d}.png"))
-    for j in range(len(chunk), PER):     # transparent fillers
-        run(["-f", "lavfi", "-i", f"color=c=0x000000@0:s={W}x{H},format=rgba", "-frames:v", "1", os.path.join(d, f"c_{j:03d}.png")])
-    run(["-framerate", "1", "-i", os.path.join(d, "c_%03d.png"), "-vf", "tile=2x8,format=rgba", "-frames:v", "1", os.path.join(GEN, f"tl_cards_{a}.png")])
-    for j, c in enumerate(chunk):
-        col, row = j % 2, j // 2
-        c.update({"atlas": a, "u0": col * 0.5, "u1": col * 0.5 + 0.5, "v0": 1 - (row + 1) / 8, "v1": 1 - row / 8})
-json.dump({"cards": cards}, open(os.path.join(GEN, "tl_cards.json"), "w"), indent=1)
-shutil.copy(os.path.join(tmp, "card_016.png"), os.path.join(GEN, "_sample_card.png"))
-print(f"cards: {len(cards)} in {(len(cards) + PER - 1) // PER} atlases -> {GEN}")
+for f in glob.glob(os.path.join(GEN, "tl_cards_*.png")): os.remove(f)
+atlas = 0
+def pack(group, cols, rows, cw, ch):
+    global atlas
+    per = cols * rows
+    for a in range(0, len(group), per):
+        chunk = group[a:a + per]
+        d = os.path.join(tmp, f"atlas{atlas}"); os.makedirs(d)
+        for j, c in enumerate(chunk): shutil.copy(c["file"], os.path.join(d, f"c_{j:03d}.png"))
+        # transparent fillers, made FROM a real card (same size and pixel format, alpha zeroed). A lavfi colour frame came
+        # out in another format: the sheet then read its real cards as transparent and its fillers as solid black, so every
+        # card on a part-filled sheet was blank in the world (2026-11-10: the last two layers and the year labels)
+        for j in range(len(chunk), per):
+            run(["-i", chunk[0]["file"], "-vf", "format=rgba,colorchannelmixer=rr=0:gg=0:bb=0:aa=0", "-frames:v", "1", os.path.join(d, f"c_{j:03d}.png")])
+        run(["-framerate", "1", "-i", os.path.join(d, "c_%03d.png"), "-vf", f"scale={cw}:{ch}:flags=lanczos,tile={cols}x{rows},format=rgba", "-frames:v", "1", os.path.join(GEN, f"tl_cards_{atlas}.png")])
+        for j, c in enumerate(chunk):
+            x, y = j % cols, j // cols
+            c.update({"atlas": atlas, "u0": x / cols, "u1": (x + 1) / cols, "v0": 1 - (y + 1) / rows, "v1": 1 - y / rows})
+        atlas += 1
+pack(cards, 4, 16, 512, 128)
+pack(pics, 4, 4, 512, 512)
+allc = sorted(cards + pics, key=lambda c: c["i"])
+for c in allc: del c["file"]
+json.dump({"cards": allc}, open(os.path.join(GEN, "tl_cards.json"), "w"), indent=1)
+print(f"cards: {len(cards)} text + {len(pics)} pictures in {atlas} atlases -> {GEN}")

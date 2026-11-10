@@ -54,3 +54,22 @@ sets, kept in `tools/textures/<id>/` and used through `tools/blender/talk_materi
   - Reginald Fessenden (photograph)
   Film stills, music-video stills and photographs of living people in that folder were deliberately not used (the brief's
   rule 6: no film characters or likenesses).
+
+## Ashburn zoom module (cue 5B3, 2026-11-10)
+- **The Earth** (`talk/gen/ash_globe_*.png`): NASA Blue Marble Next Generation with topography and bathymetry (NASA Earth
+  Observatory; public domain).
+- **Map layers** (`talk/gen/ash_L1.png` to `ash_L6.png`): USGS The National Map, USGSImageryOnly tile service (U.S.
+  Geological Survey; public domain; at close zooms this is USDA NAIP aerial photography).
+- **Buildings**: footprints from OpenStreetMap, (c) OpenStreetMap contributors, Open Database License (ODbL). The credit
+  "(c) OpenStreetMap contributors" must be shown wherever the module is shown publicly (a slide, the event page or the
+  video description is enough). Which buildings are data centres comes from OpenStreetMap tags and names, not a survey.
+
+## Public media globe modules (cues 5F2 and 5F3, 2026-11-10)
+- **Outlets and their typology**: State Media Monitor (statemediamonitor.com, Media and Journalism Research Center), as
+  packaged in Ben's Public Hyperscale atlas (`layers/media.json`: 586 outlets in 190 cities on 2026-11-10).
+- **The 14 tour stops** (name, city, year founded): the same package's `broadcasters` list.
+- **The Earth**: NASA Blue Marble (see the Ashburn module above). Name cards are set in Segoe UI (Windows system font).
+
+## Immersive X logo (centre of the sphere, 2026-11-10)
+- `Assets/_Sphererebro/Models/ImmersiveX_Logo.glb`: the Immersive X logo as exported for the Polys theatre
+  (`B:\ThePolysWorld\...\Brands\ImmersiveX\Models\ImmersiveX_Logo.glb`, from Ben's 6thPolysCredits.blend). Immersive X's own mark.

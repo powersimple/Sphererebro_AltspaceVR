@@ -1,0 +1,13 @@
+{
+  "_readme": "Materials for the data hall module (tools/talk/modules/datahall.py, tools/blender/datahall.py). Merged into talk_materials.json's set by tools/blender/common.py and SphererebroTalk.cs; delete this file with the module. All unlit: the racks' lamps and the floor's reflections are drawn into the images (tools/geo/datahall_art.py).",
+  "TK_DhSpace":     {"unlit": true, "emit": [0.003, 0.004, 0.008]},
+  "TK_DhSpaceFade": {"unlit": true, "emit": [0.003, 0.004, 0.008], "alpha": "blend", "opacity": 1.0, "queue": 2950},
+  "TK_DhRack":      {"unlit": true, "emit": [1, 1, 1], "emitTex": "dh_racks.png"},
+  "TK_DhFloor":     {"unlit": true, "emit": [1, 1, 1], "emitTex": "dh_floor.png"},
+  "TK_DhCeil":      {"unlit": true, "emit": [0.022, 0.027, 0.038]},
+  "TK_DhFrame":     {"unlit": true, "emit": [0.055, 0.066, 0.09]},
+  "TK_DhLight":     {"unlit": true, "emit": [0.6, 0.72, 0.9]},
+  "TK_DhEdge":      {"unlit": true, "emit": [0.16, 0.4, 1.0]},
+  "TK_DhCase":      {"unlit": true, "emit": [0.014, 0.017, 0.025]},
+  "TK_DhFog":       {"unlit": true, "tint": [0.003, 0.004, 0.008], "emit": [0.003, 0.004, 0.008], "alpha": "blend", "opacity": 0.4, "queue": 3000, "doubleSided": true}
+}

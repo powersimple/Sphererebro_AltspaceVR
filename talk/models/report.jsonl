@@ -24,3 +24,20 @@
 {"asset": "server_rack_far_open", "tris": 1610, "bytes": 6496748, "glb": "talk/models/server_rack_far_open.glb", "note": "server_rack_open decimated to ~30% (LEDs whole), for distant racks", "time": "2026-11-07 23:00"}
 {"asset": "talk_text", "tris": 36648, "bytes": 1447204, "glb": "talk/models/talk_text.glb", "note": "all on-screen words, one mesh per word", "time": "2026-11-07 23:19"}
 {"asset": "talk_text_lod1", "tris": 14638, "bytes": 631856, "glb": "talk/models/talk_text_lod1.glb", "note": "LOD1 (decimate 0.4)", "time": "2026-11-07 23:19"}
+{"asset": "ashburn_zoom", "tris": 47389, "bytes": 7067724, "glb": "talk/models/ashburn_zoom.glb", "note": "globe + 6 map layers + 147 data-centre and 423 other blocks; focus 39.012302, -77.47037", "time": "2026-11-10 02:29"}
+{"asset": "media_globe", "tris": 18537, "bytes": 1855260, "glb": "talk/models/media_globe.glb", "note": "globe + 14 tour stops + 586 outlets (479 captured, 67 mixed, 23 unknown, 17 independent)", "time": "2026-11-10 03:30"}
+{"asset": "media_globe", "tris": 18537, "bytes": 1855244, "glb": "talk/models/media_globe.glb", "note": "globe + 14 tour stops + 586 outlets (479 captured, 67 mixed, 23 unknown, 17 independent)", "time": "2026-11-10 03:39"}
+{"asset": "ashburn_zoom", "tris": 47389, "bytes": 7067728, "glb": "talk/models/ashburn_zoom.glb", "note": "globe + 6 map layers + 147 data-centre and 423 other blocks; focus 39.012302, -77.47037", "time": "2026-11-10 03:41"}
+{"asset": "datahall", "tris": 4414, "bytes": 686872, "glb": "talk/models/datahall.glb", "note": "an aisle 22.4 m wide, 16.5 m high, 281.6 m long: 64 bays of racks a side", "time": "2026-11-10 06:17"}
+{"asset": "datahall", "tris": 4414, "bytes": 686976, "glb": "talk/models/datahall.glb", "note": "an aisle 23.2 m wide, 16.5 m high, 281.6 m long: 64 bays of racks a side", "time": "2026-11-10 06:17"}
+{"asset": "datahall", "tris": 4414, "bytes": 686960, "glb": "talk/models/datahall.glb", "note": "an aisle 23.2 m wide, 16.5 m high, 281.6 m long: 64 bays of racks a side", "time": "2026-11-10 06:19"}
+{"asset": "datahall", "tris": 4416, "bytes": 688100, "glb": "talk/models/datahall.glb", "note": "an aisle 23.2 m wide, 16.5 m high, 281.6 m long: 64 bays of racks a side", "time": "2026-11-10 12:45"}
+{"asset": "media_globe", "tris": 18539, "bytes": 1899296, "glb": "talk/models/media_globe.glb", "note": "globe + 14 tour stops + 586 outlets (479 captured, 67 mixed, 23 unknown, 17 independent)", "time": "2026-11-10 12:45"}
+{"asset": "datahall", "tris": 4416, "bytes": 688156, "glb": "talk/models/datahall.glb", "note": "an aisle 23.2 m wide, 16.5 m high, 281.6 m long: 64 bays of racks a side", "time": "2026-11-10 12:47"}
+{"asset": "media_globe", "tris": 18897, "bytes": 1923420, "glb": "talk/models/media_globe.glb", "note": "globe + 14 tour stops + 586 outlets (479 captured, 67 mixed, 23 unknown, 17 independent)", "time": "2026-11-10 12:53"}
+{"asset": "stills", "tris": 4, "bytes": 222888, "glb": "talk/models/stills.glb", "note": "flat pictures: innovation, venus", "time": "2026-11-10 13:36"}
+{"asset": "venus_poly", "tris": 40000, "bytes": 3278328, "glb": "talk/models/venus_poly.glb", "note": "Ben's VenusPoly.glb cut from 393,390 triangles; 1 unit tall, 0.25 wide", "time": "2026-11-10 13:36"}
+{"asset": "venus_poly", "tris": 40000, "bytes": 738812, "glb": "talk/models/venus_poly.glb", "note": "Ben's VenusPoly.glb cut from 368,076 triangles; 1 unit tall, 0.25 wide", "time": "2026-11-10 13:38"}
+{"asset": "stills", "tris": 30364, "bytes": 1899524, "glb": "talk/models/stills.glb", "note": "flat pictures: innovation, venus, stewart", "time": "2026-11-10 13:39"}
+{"asset": "stills", "tris": 4, "bytes": 222888, "glb": "talk/models/stills.glb", "note": "flat pictures: innovation, venus", "time": "2026-11-10 13:44"}
+{"asset": "stills", "tris": 29044, "bytes": 1925908, "glb": "talk/models/stills.glb", "note": "flat pictures: innovation, venus, stewart", "time": "2026-11-10 13:45"}

@@ -3,6 +3,13 @@
   "title": "Global Immersive Public Infrastructure: Why the Metaverse Needs a Public Commons",
   "audience": {"eye": [0, -1.0, -43.0], "frontEye": [0, -1.1, -40.0], "seatBox": [[-7.8, -2.25, -46.3], [7.8, 1.6, -39.7]], "presenter": [0, -2.65, -36.85], "clearance": 3.0},
   "mediaBase": "https://media.immersivepublic.network/events/ImmersiveX2026/talk/",
+  "modules": [{"name": "datahall", "after": "4B", "id": "4B2", "cueName": "Data Centers"},
+              {"name": "ashburn", "after": "5B", "id": "5B3", "cueName": "Ashburn"},
+              {"name": "media_tour", "after": "5F", "id": "5F2", "cueName": "Media Tour"},
+              {"name": "media_capture", "after": "5F2", "id": "5F3", "cueName": "Captured Media"},
+              {"name": "stills", "after": "T"}],
+  "keys": ["4B2", "5B3", "5F2", "5F3", "T", "S1", "S2", "S3"],
+  "_keys": "Ben, 2026-11-10: starting over. Only the cues named in keys get a button on the Console; the older cues stay in the show (Back / Next still reach them) until Ben keeps or cuts them. Remove keys to show every cue.",
   "cues": [
     {"id": "1",  "name": "So Who Will?",                  "on": ["env_dark", "stars", "bed_space", "title1", "title2"], "off": []},
     {"id": "2",  "name": "A Hundred Years of Public Media", "on": ["radio", "warm_light", "bed_media"], "off": ["title1", "title2"]},
@@ -33,7 +40,8 @@
     {"id": "9B", "name": "Devices at Every Doorway",       "on": ["devices"], "off": []},
     {"id": "10", "name": "So Who Will?",                   "on": ["halls_bright", "title3"], "off": []},
     {"id": "11", "name": "Quest Capture 1 (spare)",        "on": ["screen"], "off": [], "video": {"surface": "curved", "clip": "quest3d/01_capture.mp4", "layout": "sbs"}},
-    {"id": "11B","name": "Quest Capture 2 (spare)",        "on": [], "off": [], "video": {"surface": "curved", "clip": "quest3d/02_capture.mp4", "layout": "sbs"}}
+    {"id": "11B","name": "Quest Capture 2 (spare)",        "on": [], "off": [], "video": {"surface": "curved", "clip": "quest3d/02_capture.mp4", "layout": "sbs"}},
+    {"id": "T",  "name": "Timeline",                       "on": ["timeline"], "off": ["beams", "bed_commons", "devices", "env_warm", "halls", "halls_bright", "racks_open", "screen", "title3", "warm_fill"], "video": "stop", "alone": true}
   ],
   "text": {
     "title1": ["The market isn't going to create", "a public commons", "for the immersive medium."],

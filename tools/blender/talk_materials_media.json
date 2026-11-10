@@ -1,0 +1,18 @@
+{
+  "_readme": "Materials for the public media modules (tools/talk/modules/media_tour.py, media_capture.py). Merged into talk_materials.json's set by tools/blender/common.py and SphererebroTalk.cs; delete this file with the modules. All unlit. The globe reuses the Ashburn module's Earth images (talk/gen/ash_globe_*.png), dimmed so the markers carry the picture.",
+  "TK_MediaSpace":          {"unlit": true, "emit": [0.004, 0.006, 0.012]},
+  "TK_MediaSpaceFade":      {"unlit": true, "emit": [0.004, 0.006, 0.012], "alpha": "blend", "opacity": 1.0, "queue": 2950},
+  "TK_MediaGlobeW":         {"unlit": true, "emit": [0.5, 0.53, 0.6], "emitTex": "ash_globe_w.png", "doubleSided": true},
+  "TK_MediaGlobeE":         {"unlit": true, "emit": [0.5, 0.53, 0.6], "emitTex": "ash_globe_e.png", "doubleSided": true},
+  "TK_MediaGold":           {"unlit": true, "emit": [1.0, 0.74, 0.28], "doubleSided": true},
+  "TK_MediaArc":            {"unlit": true, "emit": [0.92, 0.56, 0.16], "doubleSided": true},
+  "TK_MediaBall":           {"unlit": true, "emit": [1.0, 0.9, 0.62]},
+  "TK_MediaCards":          {"unlit": true, "emit": [1, 1, 1], "emitTex": "media_cards.png", "alpha": "blend", "opacity": 1.0, "queue": 3010, "doubleSided": true},
+  "TK_MediaLegend":         {"unlit": true, "emit": [1, 1, 1], "emitTex": "media_legend.png", "alpha": "blend", "opacity": 1.0, "queue": 3010, "doubleSided": true},
+  "TK_MediaDotAll":        {"unlit": true, "emit": [1.0, 0.9, 0.72], "alpha": "blend", "opacity": 1.0, "queue": 3001, "doubleSided": true},
+  "TK_MediaDotCaptured":    {"unlit": true, "emit": [0.95, 0.2, 0.14], "alpha": "blend", "opacity": 1.0, "queue": 3002, "doubleSided": true},
+  "TK_MediaDotMixed":       {"unlit": true, "emit": [0.3, 0.68, 0.66], "alpha": "blend", "opacity": 1.0, "queue": 3002, "doubleSided": true},
+  "TK_MediaDotUnknown":     {"unlit": true, "emit": [0.5, 0.5, 0.53], "alpha": "blend", "opacity": 1.0, "queue": 3002, "doubleSided": true},
+  "TK_MediaDotAI":          {"unlit": true, "emit": [0.94, 0.24, 0.62], "alpha": "blend", "opacity": 1.0, "queue": 3004, "doubleSided": true},
+  "TK_MediaDotIndependent": {"unlit": true, "emit": [1.0, 0.8, 0.3], "alpha": "blend", "opacity": 1.0, "queue": 3003, "doubleSided": true}
+}

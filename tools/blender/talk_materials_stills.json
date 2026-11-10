@@ -1,0 +1,10 @@
+{
+  "_readme": "Materials for the stills module (tools/talk/modules/stills.py, tools/blender/stills.py, venus_poly.py). Merged into talk_materials.json's set by tools/blender/common.py and SphererebroTalk.cs; delete this file with the module. The pictures are unlit (Ben's own images, talk/gen/still_*.png from tools/geo/stills_art.py); the Venus figure is lit by the module's two lights, with a little glow of its own so it is never black.",
+  "TK_StillSpace":       {"unlit": true, "emit": [0.004, 0.005, 0.01]},
+  "TK_StillSpaceFade":   {"unlit": true, "emit": [0.004, 0.005, 0.01], "alpha": "blend", "opacity": 1.0, "queue": 2950},
+  "TK_Still_innovation": {"unlit": true, "emit": [1, 1, 1], "emitTex": "still_innovation.png", "alpha": "blend", "opacity": 1.0, "queue": 3010, "doubleSided": true},
+  "TK_Still_venus":      {"unlit": true, "emit": [1, 1, 1], "emitTex": "still_venus.png", "alpha": "blend", "opacity": 1.0, "queue": 3010, "doubleSided": true},
+  "TK_Still_stewart":    {"unlit": true, "emit": [1, 1, 1], "emitTex": "still_stewart.png", "alpha": "blend", "opacity": 1.0, "queue": 3010, "doubleSided": true},
+  "TK_VenusGold":        {"tex": null, "tint": [0.85, 0.42, 0.08], "metal": 0.2, "rough": 0.5, "tile": 0, "emit": [0.3, 0.14, 0.025]},
+  "TK_VenusBrass":       {"tex": null, "tint": [0.9, 0.66, 0.1], "metal": 0.2, "rough": 0.5, "tile": 0, "emit": [0.3, 0.22, 0.03]}
+}

@@ -7,7 +7,8 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using J = SphererebroTalkJson;
 
-// Cue 2T, "200 Years of Media": the glowing ribbon (28 segments, switched on as the comet passes), decade ticks, the
+// Cue 2T, the media timeline (2026-11-10: seven rails across the dome, tools/talk/layers.py): each rail is a ribbon of
+// segments switched on left to right, with decade ticks on the axis; the cards and stems below. Was: one ribbon, the
 // comet (a bright bead with a trail), the event cards (pre-rendered by tools/talk/make_cards.py into atlases:
 // talk/gen/tl_cards_<n>.png + talk/gen/tl_cards.json) and the stems that join each card to its year on the ribbon.
 public static class SphererebroTalkTimeline
@@ -34,7 +35,7 @@ public static class SphererebroTalkTimeline
     static void Ribbon(Transform t, Dictionary<string, object> m, Func<string, Material> mat)
     {
         int segs = (int)J.F(m["segments"], 28);
-        const int sub = 10; const float half = 0.32f;
+        const int sub = 10; float half = J.F(J.G(m, "half"), 0.32f);
         for (int k = 0; k < segs; k++)
         {
             var v = new List<Vector3>(); var uv = new List<Vector2>(); var tri = new List<int>();
@@ -61,14 +62,14 @@ public static class SphererebroTalkTimeline
             var seg = new GameObject($"Seg{k:00}"); seg.transform.SetParent(t, false);
             var mesh = new Mesh(); mesh.SetVertices(v); mesh.SetUVs(0, uv); mesh.SetTriangles(tri, 0);
             mesh.RecalculateNormals(); mesh.RecalculateBounds();
-            mesh = SphererebroTalk.Save(mesh, $"timeline_seg{k:00}");
+            mesh = SphererebroTalk.Save(mesh, $"timeline_{t.name}_seg{k:00}");
             seg.AddComponent<MeshFilter>().sharedMesh = mesh;
             var mr = seg.AddComponent<MeshRenderer>(); mr.sharedMaterial = mat("TK_Ribbon");
             if (tv.Count > 0)
             {
                 var ticks = new GameObject("Ticks"); ticks.transform.SetParent(seg.transform, false);
                 var tm = new Mesh(); tm.SetVertices(tv); tm.SetTriangles(tt, 0); tm.RecalculateNormals(); tm.RecalculateBounds();
-                tm = SphererebroTalk.Save(tm, $"timeline_ticks{k:00}");
+                tm = SphererebroTalk.Save(tm, $"timeline_{t.name}_ticks{k:00}");
                 ticks.AddComponent<MeshFilter>().sharedMesh = tm; ticks.AddComponent<MeshRenderer>().sharedMaterial = mat("TK_RibbonTick");
             }
         }

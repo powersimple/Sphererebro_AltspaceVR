@@ -62,6 +62,9 @@ public static class SphererebroTalk
         foreach (var d in new[] { "Materials", "Textures", "Anim", "Meshes", "Audio", "Models", "Shaders" }) Directory.CreateDirectory($"{Root}/{d}");
         TL = J.O(J.Parse(File.ReadAllText(tlPath)));
         MatSpec = J.O(J.Parse(File.ReadAllText("tools/blender/talk_materials.json")));
+        // optional modules bring their own materials: tools/blender/talk_materials_<module>.json (e.g. the Ashburn zoom)
+        foreach (var extra in Directory.GetFiles("tools/blender", "talk_materials_*.json").OrderBy(p => p))
+            foreach (var kv in J.O(J.Parse(File.ReadAllText(extra)))) MatSpec[kv.Key] = kv.Value;
         ImportTextures();
         ConfigureModels();
         MakeMaterials();
@@ -213,6 +216,9 @@ public static class SphererebroTalk
             Blend(m, alpha);
             if (kv.Key == "TK_RackDoor" || kv.Key == "TK_Glass" || kv.Key == "TK_TankGlass" || kv.Key == "TK_Water" || kv.Key == "TK_Beam" || kv.Key == "TK_BeamHalo")
                 m.SetFloat("_Cull", 0);
+            // module materials: an explicit draw order (stacked map layers) and no back-face culling
+            if (J.G(s, "doubleSided") is bool ds && ds) m.SetFloat("_Cull", 0);
+            if (J.G(s, "queue") != null) m.renderQueue = (int)J.F(J.G(s, "queue"));
             m.enableInstancing = true;
             EditorUtility.SetDirty(m);
             Mats[kv.Key] = m;

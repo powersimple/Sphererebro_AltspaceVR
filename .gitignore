@@ -113,3 +113,6 @@ InitTestScene*.unity*
 # Machine-specific Claude notes
 CLAUDE.local.md
 
+
+# Ashburn zoom module: downloaded map tiles (re-fetched by tools/geo/ashburn_fetch.py)
+/tools/geo/cache/

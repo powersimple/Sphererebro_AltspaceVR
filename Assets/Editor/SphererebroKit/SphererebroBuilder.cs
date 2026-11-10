@@ -30,7 +30,7 @@ public static class SphererebroBuilder
 
     // ---- size: Config/Sphererebro.derived.json (written by the Blender generator from Sphererebro.dims.json) ------------
     // Every sphere-scale position here comes from it, so resizing the sphere is: edit dims.json, run Blender, build.
-    [Serializable] public class DConcourse { public float r0, r1, height, phi0, phi1, barPhi0, barPhi1, barFaceR, barTopY, loungeR, coveInR, coveOutR, reflectionProbeR; public float[] loungePhis, probeRadii, reflectionProbeSize; }
+    [Serializable] public class DConcourse { public float r0, r1, height, phi0, phi1, barPhi0, barPhi1, barFaceR, barTopY, loungeR, coveInR, coveOutR, reflectionProbeR, barSignPhi, barSignR, barSignY; public float[] loungePhis, probeRadii, reflectionProbeSize; }
     [Serializable] public class DPlaza { public float y, radius; public float[] center, facadeWash, spawnGlow; }
     [Serializable] public class DNav { public float[] spawn, bandArrival, ringDest, daisDest; }
     [Serializable] public class DBridge { public string[] segs; public float[] @out; public float inZ, inY, segLength; }
@@ -86,10 +86,59 @@ public static class SphererebroBuilder
         Log($"IPN cube: at {CubeCentre}, first-level tris {tris}, 3 realtime lights (on only during the show)");
     }
 
+    // ---- the Immersive X logo (Ben, 2026-11-10: "put the immersive X logo in the center of the sphere, large", "the default
+    // when we enter"): the 3D logo from the Polys build (Brands/ImmersiveX/Models/ImmersiveX_Logo.glb, copied to
+    // Models/), upright at the centre, facing the seats, its underside above the equator. Unlit, in its own colours (the
+    // letters a soft warm white, not full white: rule 12), so it needs no lights. It starts ACTIVE (an Object Id
+    // registers in Awake); the script (SB.logo) shows it whenever the dome is at its default and no show is running.
+    static void SetupIxLogo(Transform show)
+    {
+        var asset = AssetDatabase.LoadAssetAtPath<GameObject>($"{Root}/Models/ImmersiveX_Logo.glb");
+        if (asset == null) { Log("IX logo: Models/ImmersiveX_Logo.glb did not import (is the glTF importer there?): not placed"); return; }
+        var holder = new GameObject("IX_Logo").transform; holder.SetParent(show, false);
+        var pivot = new GameObject("Pivot").transform; pivot.SetParent(holder, false);
+        var go = (GameObject)PrefabUtility.InstantiatePrefab(asset, pivot);
+        PrefabUtility.UnpackPrefabInstance(go, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+        var rs = go.GetComponentsInChildren<MeshRenderer>(true);
+        Transform Part(string n) => go.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name.Contains(n));
+        var lw = Part("Letters White"); var ld = Part("Letters Dark"); var box = rs.FirstOrDefault(r => r.name.Contains("Box White")); var swirl = rs.FirstOrDefault(r => r.name.Contains("Swirl Blue"));
+        if (rs.Length == 0 || lw == null || ld == null || box == null || swirl == null) { Log("IX logo: the model's parts are not the ones expected (IX Letters White / Dark, IX Box White, IX Swirl Blue): not placed"); UnityEngine.Object.DestroyImmediate(holder.gameObject); return; }
+        // the model's own frame, measured: front = from the dark layer to the white one; reading direction = swirl to box
+        var front = (lw.position - ld.position).normalized;
+        var right = box.bounds.center - swirl.bounds.center; right = (right - front * Vector3.Dot(right, front)).normalized;
+        var up = Vector3.Cross(-front, right);
+        pivot.rotation = Quaternion.Inverse(Quaternion.LookRotation(-front, up));      // front to -Z (the seats), reading to +X
+        Bounds B() { var b = rs[0].bounds; foreach (var r in rs) b.Encapsulate(r.bounds); return b; }
+        float width = 0.64f * D.sphereRadius;
+        pivot.localScale = Vector3.one * (width / B().size.x);
+        pivot.position -= B().center;                                                   // its middle on the holder
+        holder.position = new Vector3(0, 0.16f * D.sphereRadius, 0);
+        Material M(string name, Color c)
+        {
+            var p = $"{Root}/Materials/{name}.mat"; var sh = Shader.Find("Universal Render Pipeline/Unlit");
+            var m = AssetDatabase.LoadAssetAtPath<Material>(p);
+            if (m == null) { m = new Material(sh); AssetDatabase.CreateAsset(m, p); }
+            m.shader = sh; m.SetColor("_BaseColor", c); m.SetFloat("_Cull", 0); EditorUtility.SetDirty(m);
+            return m;
+        }
+        var white = M("SB_IX_White", new Color(0.82f, 0.80f, 0.76f)); var dark = M("SB_IX_Dark", new Color(0.07f, 0.08f, 0.10f));
+        var blue = M("SB_IX_Blue", new Color(0.23f, 0.66f, 0.88f)); var red = M("SB_IX_Red", new Color(0.91f, 0.22f, 0.26f));
+        foreach (var r in rs)
+        {
+            var m = r.name.Contains("White") ? white : r.name.Contains("Blue") ? blue : r.name.Contains("Red") ? red : dark;
+            r.sharedMaterials = r.sharedMaterials.Select(_ => m).ToArray();
+            r.shadowCastingMode = ShadowCastingMode.Off; r.receiveShadows = false;
+        }
+        ObjectId(holder.gameObject);
+        var bb = B();
+        Log($"IX logo: {bb.size.x:0.0} x {bb.size.y:0.0} m at {holder.position}, underside y {bb.min.y:0.0}, {rs.Length} parts, unlit");
+    }
+
     // ---- things Ben has taken out (2026-11-07), switched off, not deleted: the green planter "obelisks" (concourse and
     // plaza) and the star inlays (spawn pad, dais) until an on-brand motif replaces them. Their lights stay: they light the
     // plaza, not the fittings.
-    static readonly string[] Retired = { "Band_Planter_", "Plaza_Planter_", "Plaza_SpawnPad", "Dais_Inlay", "Dais_Perch_", "Sphere_Portal_Flange" };   // + the dais stools, the square flange round the arch (2026-11-07)
+    static readonly string[] Retired = { "Band_Planter_", "Plaza_Planter_", "Plaza_SpawnPad", "Dais_Inlay", "Dais_Perch_", "Sphere_Portal_Flange", "Band_Sign_Restrooms_" };   // + the RESTROOMS signs (Ben, 2026-11-10: "remove Restro sign", "Remove rooms sign")
+    //   // + the dais stools, the square flange round the arch (2026-11-07)
     static void RetireRemoved(GameObject[] roots)
     {
         int n = 0;
@@ -172,6 +221,7 @@ public static class SphererebroBuilder
         var vista = Place("SB_Vista", groups["VISTA"]);
         // SHOW: the show system's assets (spec phase 3). First one: the IPN cube (2026-11-07)
         SetupIpnCube(groups["SHOW"]);
+        try { SetupIxLogo(groups["SHOW"]); } catch (Exception e) { Log("IX LOGO FAILED: " + e.Message); }
         // THE TALK (10 Nov 2026): the cue-by-cue show XR Time Machine steps through (SphererebroTalk.cs). A failure here is
         // reported and the rest of the world still builds.
         try { SphererebroTalk.Build(groups["SHOW"], Log); }
@@ -183,10 +233,13 @@ public static class SphererebroBuilder
         SetupStage(stage);
         PlaceRecliners(groups["STAGE"]);
         PlaceVistaRecliners(groups["VISTA"]);
+        try { SetupPresenterMirror(groups["VISTA"]); } catch (Exception e) { Log("MIRROR FAILED: " + e.Message); }
         SetupDesk(stage);
         SetupRide(stage);
         PlaceProps(band, groups["PROPS"]);
         SeatBarStools(band);
+        SeatLoungeSofas(band);
+        try { SetupBarSign(groups["CONCOURSE"]); } catch (Exception e) { Log("BAR SIGN FAILED: " + e.Message); }
         SetupEscalator(plaza);
         SetupNavigation(groups["NAVIGATION"], groups["SAFETY"], plaza);
         SetupLighting(groups["LIGHTING"], band, plaza);
@@ -422,23 +475,31 @@ public static class SphererebroBuilder
     // One recliner: mesh, colliders, drink holders and the seat. Local frame: front (+Z) toward the stage, origin on the floor.
     // 2026-11-07: footrests gone, sit point 8 cm further forward (Ben: knees went through the cushion); the body collider
     // no longer covers the arms, so a glass dropped in a drink holder rests in it (each holder is a cup of thin boxes).
+    public const float SeatLift = 0.12f;
     static void MakeRecliner(GameObject go, MeshFilter src, MeshRenderer srcMr)
     {
         go.AddComponent<MeshFilter>().sharedMesh = src.sharedMesh;
         var mr = go.AddComponent<MeshRenderer>(); mr.sharedMaterials = srcMr.sharedMaterials;
         mr.shadowCastingMode = ShadowCastingMode.Off;
+        // 2026-11-10, Ben: "raise the seats up" (feet sank into the floor): everything is SeatLift higher, with the mesh
+        // (RECLINER_LIFT in the generator). "You should not stand on seats": the body and arm colliders are on a child on
+        // the Invisible layer, which stops teleport arcs, so a seat can no longer be teleported onto. (The mesh stays on
+        // the default layer; the drink holders too, so a glass still rests in one.)
+        float L = SeatLift;
+        var body = new GameObject("Body_COL") { layer = Invisible }; body.transform.SetParent(go.transform, false);
+        void Hard(Vector3 c, Vector3 s) { var b = body.AddComponent<BoxCollider>(); b.center = c; b.size = s; }
         void Box(Vector3 c, Vector3 s) { var b = go.AddComponent<BoxCollider>(); b.center = c; b.size = s; }
-        Box(new Vector3(0, 0.6f, -0.05f), new Vector3(0.58f, 1.2f, 0.7f));                 // seat and back, between the arms
+        Hard(new Vector3(0, 0.6f + L / 2, -0.05f), new Vector3(0.58f, 1.2f + L, 0.7f));   // seat and back, between the arms
         foreach (var side in new[] { -1f, 1f })
         {
-            Box(new Vector3(side * 0.37f, 0.3f, -0.06f), new Vector3(0.17f, 0.6f, 0.76f)); // arm, up to just under the holder
+            Hard(new Vector3(side * 0.37f, 0.3f + L / 2, -0.06f), new Vector3(0.17f, 0.6f + L, 0.76f)); // arm, up to just under the holder
             // drink holder at Blender (side*0.37, -0.2) = Unity (-side*0.37, z 0.2): floor at 0.66, walls to 0.72, 9.4 cm inside
-            var h = new Vector3(-side * 0.37f, 0f, 0.2f);
+            var h = new Vector3(-side * 0.37f, L, 0.2f);
             Box(h + new Vector3(0, 0.655f, 0), new Vector3(0.11f, 0.01f, 0.11f));
             foreach (var (dx, dz) in new[] { (1f, 0f), (-1f, 0f), (0f, 1f), (0f, -1f) })
                 Box(h + new Vector3(dx * 0.052f, 0.69f, dz * 0.052f), new Vector3(dz != 0 ? 0.11f : 0.01f, 0.07f, dx != 0 ? 0.11f : 0.01f));
         }
-        AddSeat(go.transform, "Seat", new Vector3(0, 0.46f, 0.06f), Quaternion.identity, new Vector3(0, 0.1f, -0.06f), new Vector3(0.6f, 0.56f, 0.7f));
+        AddSeat(go.transform, "Seat", new Vector3(0, 0.46f + L, 0.06f), Quaternion.identity, new Vector3(0, 0.1f, -0.06f), new Vector3(0.6f, 0.56f, 0.7f));
     }
 
     // ---- vista seating (Ben, 2026-11-07): the same recliners in a fan of raked rows just inside the portal, every seat facing
@@ -477,7 +538,10 @@ public static class SphererebroBuilder
         var mount = Find(vistaGroup, "Vista_Dais_Mount");
         if (mount == null) { mount = new GameObject("Vista_Dais_Mount").transform; mount.SetParent(vistaGroup, false); }
         ObjectId(mount.gameObject);
-        mount.position = V(D.vista.daisMount); mount.rotation = Quaternion.identity;   // HOME: the desk faces the dome
+        mount.position = V(D.vista.daisMount);
+        // HOME: the desk faces the AUDIENCE (Ben, 2026-11-10: "Let's try having the desk facing the audience"; it faced the
+        // dome). The mount is turned, so the script's yaw 0 and its desk reset still mean HOME.
+        mount.rotation = Quaternion.Euler(0, 180, 0);
         dais.SetParent(mount, false);
         dais.localPosition = Vector3.zero; dais.localRotation = Quaternion.identity;
     }
@@ -528,7 +592,7 @@ public static class SphererebroBuilder
             var ring = Find(nav, "Nav_RingDest"); if (ring != null) ring.position = V(vista ? D.vista.landing : D.nav.ringDest);
             var dd = Find(nav, "Nav_DaisDest"); if (dd != null) dd.position = V(vista ? D.vista.daisDest : D.nav.daisDest);
         }
-        Log(vista ? $"seating VISTA: dais on the vista stage at {V(D.vista.daisMount)} (desk faces the dome at HOME), round theatre, bridge and portal gate off"
+        Log(vista ? $"seating VISTA: dais on the vista stage at {V(D.vista.daisMount)} (desk faces the audience at HOME), round theatre, bridge and portal gate off"
                   : "seating ROUND: dais back at the centre, vista off");
     }
 
@@ -625,6 +689,13 @@ public static class SphererebroBuilder
     {
         var font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF.asset");
         var desk = Find(stage, "Desk_Body");
+        // a spot straight over the desk (Ben, 2026-11-10: "light it up a little bit, put a spotlight overhead on that"):
+        // a child of the desk, so it rides and turns with it. Realtime, no shadows; the script (SB.lx.deskName) sets its
+        // level with the lighting presets and keeps it on, dimmed, in Lights Out.
+        var top = AddLight(desk, "Desk Top", LightType.Spot, desk.position + Vector3.up * 4.2f, Quaternion.LookRotation(Vector3.down, desk.forward),
+                           new Color(1f, 0.86f, 0.68f), 14f, 7f, LightmapBakeType.Realtime, 62f);
+        top.renderMode = LightRenderMode.ForcePixel;
+        top.gameObject.AddComponent<BS.BSLight>(); ObjectId(top.gameObject);
         foreach (var t in All(stage).Where(t => t.name.StartsWith("Desk_Btn_")).ToList())
         {
             t.gameObject.layer = UI;
@@ -731,6 +802,104 @@ public static class SphererebroBuilder
         }
         Log($"bar stools: {n} seats, facing the counter");
     }
+
+    // ---- the lounge sofas are seats (2026-11-10, Ben: "You should be able to sit on the lounge benches"): five along each
+    // 200 deg sofa, on the cushion (0.48 m), facing the table at its centre. The generator builds the sofa as a lathe from
+    // 0 to 200 deg turned by (170 - phi) about Blender Z; Blender (x, y) is Unity (-x, -z).
+    static void SeatLoungeSofas(Transform band)
+    {
+        int n = 0; var phis = D.concourse.loungePhis;
+        foreach (var s in All(band).Where(t => t.name.StartsWith("Band_Lounge_Sofa_")).OrderBy(t => t.name).ToList())
+        {
+            if (!int.TryParse(s.name.Substring(s.name.Length - 2), out var g) || g < 1 || g > phis.Length) continue;
+            int k = 0;
+            foreach (var th in new[] { 22f, 61f, 100f, 139f, 178f })
+            {
+                float a = (th + 170f - phis[g - 1]) * Mathf.Deg2Rad;
+                var off = new Vector3(-1.52f * Mathf.Cos(a), 0, -1.52f * Mathf.Sin(a));
+                var pos = s.position + off + Vector3.up * 0.5f;
+                var face = Quaternion.Inverse(s.rotation) * Quaternion.LookRotation(-off.normalized, Vector3.up);
+                var seat = AddSeat(s, $"Seat {++k}", s.InverseTransformPoint(pos), face, new Vector3(0, -0.05f, 0), new Vector3(0.55f, 0.4f, 0.55f));
+                var srb = seat.AddComponent<Rigidbody>(); srb.isKinematic = true; srb.useGravity = false;
+                n++;
+            }
+        }
+        Log($"lounge sofas: {n} seats, facing their tables");
+    }
+
+    // ---- the bar sign (2026-11-10, Ben: "It should say IPN Theatre, copy the IPN logo to replace the letters and keep
+    // theatre in Aldrich, remove emission"): the generator makes the word "Theatre" (Band_Sign_Bar, plain gold); this puts
+    // a small copy of the IPN logo cube to its left on the back bar wall, 0.9 m across, flattened to a quarter of its
+    // depth, its front toward the room. It keeps its own lit materials and is not static (the baked concourse has no
+    // lightmap for it), so it takes its light from the probes.
+    static void SetupBarSign(Transform parent)
+    {
+        var cc = D.concourse;
+        if (cc.barSignR <= 0) { Log("bar sign: no barSign in derived.json (run the generator): logo not placed"); return; }
+        if (AssetDatabase.LoadAssetAtPath<GameObject>($"{Root}/Models/SB_IPNCube.fbx") == null) { Log("bar sign: no SB_IPNCube.fbx: logo not placed"); return; }
+        // Ben, 2026-11-10 (later): "the IPN 3D logo ... needs to be seen outside the venue and above the bar", "you can
+        // put the cube logo over the entrance to the theatre", "cube IPN logo". The bar's logo was the cube pressed flat
+        // (a quarter deep) against the wall; now it is the whole cube, 1.0 m, standing 0.65 m off the wall beside the
+        // word; and a second one, 2.4 m, stands on the roof's edge over the outer doorway, facing the plaza.
+        var bar = Polar(cc.barSignR - 0.65f, cc.barSignPhi - 1.0f / cc.barSignR * Mathf.Rad2Deg, cc.barSignY);
+        if (IpnLogo("Band_Sign_Bar_Logo", parent, bar, 1.0f, false)) Log($"bar sign: IPN cube 1.0 m at {bar}, beside the word Theatre");
+        var door = Polar(cc.r1 + 0.3f, 180f, cc.height + 0.25f + 1.25f);
+        if (IpnLogo("Entrance_Logo", parent, door, 2.4f, true)) Log($"entrance: IPN cube 2.4 m at {door}, over the outer doorway, facing the plaza");
+    }
+
+    // a still copy of Ben's IPN cube, `size` metres across, at pos; outward: its front toward the plaza (else the sphere)
+    static bool IpnLogo(string name, Transform parent, Vector3 pos, float size, bool outward)
+    {
+        var holder = new GameObject(name).transform; holder.SetParent(parent, false);
+        var radial = new Vector3(pos.x, 0, pos.z).normalized;
+        holder.SetPositionAndRotation(pos, Quaternion.LookRotation(outward ? -radial : radial, Vector3.up));
+        var cube = Place("SB_IPNCube", holder); cube.name = "IPN_Logo";
+        cube.localPosition = Vector3.zero; cube.localRotation = Quaternion.Euler(-90, 0, 0) * Quaternion.Euler(0, 180, 0);
+        var rs = cube.GetComponentsInChildren<MeshRenderer>(true);
+        if (rs.Length == 0) { Log(name + ": the cube has no renderers: logo not placed"); UnityEngine.Object.DestroyImmediate(holder.gameObject); return false; }
+        var b = rs[0].bounds; foreach (var r in rs) { b.Encapsulate(r.bounds); r.shadowCastingMode = ShadowCastingMode.Off; r.receiveShadows = false; }
+        holder.localScale = Vector3.one * (size / Mathf.Max(b.size.x, b.size.y, b.size.z));
+        // the model's own centre may be off its pivot: bring the middle of the cube to pos
+        var b2 = rs[0].bounds; foreach (var r in rs) b2.Encapsulate(r.bounds);
+        holder.position += pos - b2.center;
+        return true;
+    }
+
+    // ---- the presenter's mirror (2026-11-10, Ben: "Can you put a mirror over the door so I can see the content?"): with
+    // the desk facing the audience the show is behind the presenter, so a Banter mirror (BS Mirror: the SDK's prefab is a
+    // 2.5 m square that faces its -Z) hangs above the portal, 8 x 4.5 m, facing the dome. It is behind the audience, and
+    // a mirror only renders for those looking at it. Vista layout only (it is under the VISTA group).
+    static void SetupPresenterMirror(Transform vistaGroup)
+    {
+        var go = new GameObject("Presenter_Mirror"); go.transform.SetParent(vistaGroup, false);
+        // Ben, 2026-11-10 (later): "above door, move the mirror up and add a web browser there". The browser takes the
+        // mirror's place over the door (his notes); the mirror sits straight above it. Both 2 m in from the shell so
+        // the upper corners stay inside the sphere.
+        float z = -(D.sphereRadius - 2.0f);
+        go.transform.position = new Vector3(0, PresenterBrowserY + 4.5f + 0.3f, z);
+        go.transform.rotation = Quaternion.Euler(0, 180, 0);
+        go.transform.localScale = new Vector3(3.2f, 1.8f, 1f);
+        ObjectId(go);
+        go.AddComponent<BS.BSMirror>();
+        Log($"presenter mirror: 8.0 x 4.5 m at {go.transform.position}, facing the dome");
+
+        // the presenter's browser: the SDK draws a page of pageWidth x pageHeight pixels at pixelsPerUnit, so
+        // 1280 x 720 at 1200 is 1.07 x 0.6 m; scaled 7.5 it is 8.0 x 4.5 m.
+        var br = new GameObject("Presenter_Browser"); br.transform.SetParent(vistaGroup, false);
+        br.transform.position = new Vector3(0, PresenterBrowserY, z);
+        br.transform.rotation = Quaternion.Euler(0, 180, 0);
+        br.transform.localScale = Vector3.one * 7.5f;
+        ObjectId(br);
+        var b = br.AddComponent<BS.BSBrowser>();
+        var so = new SerializedObject(b);
+        so.FindProperty("url").stringValue = PresenterBrowserUrl;
+        so.FindProperty("pageWidth").floatValue = 1280; so.FindProperty("pageHeight").floatValue = 720; so.FindProperty("pixelsPerUnit").floatValue = 1200;
+        so.ApplyModifiedPropertiesWithoutUndo();
+        Log($"presenter browser: 8.0 x 4.5 m at {br.transform.position}, {PresenterBrowserUrl}");
+    }
+    const float PresenterBrowserY = 6.4f;
+    // Ben's notes for the talk (he gave this address for the browser over the door)
+    const string PresenterBrowserUrl = "https://docs.google.com/document/d/1qYFoOf48dBqFE55_G744ECysZSjpZZ37ma54yzNoAco/edit?pli=1&tab=t.0";
 
     // ---- grabbable glasses and bottles (Polys GrabLite spec), each with a Home the script returns it to ------------------------
     static void PlaceProps(Transform band, Transform props)
@@ -859,11 +1028,18 @@ public static class SphererebroBuilder
         var so = new SerializedObject(tp); so.FindProperty("destination").objectReferenceValue = dest; so.ApplyModifiedPropertiesWithoutUndo();
     }
 
+    const bool SpawnAtDesk = false;   // Ben, 2026-11-10 (after the talk build): "move the spawn point back to the bottom of the escalator"
     static void SetupNavigation(Transform nav, Transform safety, Transform plaza)
     {
-        var spawn = Dest(nav, "Nav_Spawn", V(D.nav.spawn), 0);
+        // 2026-11-10, Ben: "When you spawn you spawn over seats. The spawn is temporary and should be behind the desk." For
+        // now, in the vista layout, everyone arrives on the stage on the dome side of the desk (1.5 m from the dais centre),
+        // facing the audience, within 0.8 m (the stage is 2.6 m in radius). SpawnAtDesk = false puts it back on the plaza.
+        bool atDesk = SpawnAtDesk && Vista;
+        // Later the same day, Ben: "The spawn should be inside the desk": the dais centre itself, within 0.3 m.
+        var spawn = Dest(nav, "Nav_Spawn", atDesk ? V(D.vista.daisMount) + new Vector3(0, 0.02f, 0f) : V(D.nav.spawn), atDesk ? 180 : 0);
         var sp = spawn.gameObject.AddComponent<BS.BSSpawn>();
-        var so = new SerializedObject(sp); var r = so.FindProperty("radius"); if (r != null) { r.floatValue = 1.5f; so.ApplyModifiedPropertiesWithoutUndo(); }
+        var so = new SerializedObject(sp); var r = so.FindProperty("radius"); if (r != null) { r.floatValue = atDesk ? 0.3f : 1.5f; so.ApplyModifiedPropertiesWithoutUndo(); }
+        Log($"spawn: {(atDesk ? "inside the desk on the stage (temporary)" : "the plaza")} at {spawn.position}");
         var band = Dest(nav, "Nav_BandArrival", V(D.nav.bandArrival), 0);
         // in vista the "ring" destination (where rescue lands) is the top of the vista aisle, facing the dome
         var ring = Dest(nav, "Nav_RingDest", V(Vista ? D.vista.landing : D.nav.ringDest), 0);

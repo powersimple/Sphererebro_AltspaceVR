@@ -72,6 +72,11 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: SB_InlayGold
+    second: {fileID: 2100000, guid: fa6363c0dc9600547a9fb2f6855a2513, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: SB_Leather
     second: {fileID: 2100000, guid: 1d7d292797fbd17438f0e5c58feaff55, type: 2}
   - first:
@@ -104,6 +109,11 @@ ModelImporter:
       assembly: UnityEngine.CoreModule
       name: SB_SphereOuter
     second: {fileID: 2100000, guid: ba4c63b5c69731f45899771fca9484c3, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: SB_Velvet
+    second: {fileID: 2100000, guid: 6723b92f7ad15d44eb98ceaab4169bc2, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
